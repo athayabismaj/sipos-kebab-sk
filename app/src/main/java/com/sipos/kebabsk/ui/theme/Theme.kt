@@ -1,53 +1,98 @@
 package com.sipos.kebabsk.ui.theme
 
 import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
-
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+    primary = BrandOrange,
+    onPrimary = OnBrandOrange,
+    primaryContainer = BrandAmberLight,
+    onPrimaryContainer = BrownDark,
 
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
+    secondary = BrandAmber,
+    onSecondary = OnBrandAmber,
+    secondaryContainer = Color(0xFFFFE0B2),
+    onSecondaryContainer = BrownDark,
+
+    tertiary = BrownMid,
     onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    tertiaryContainer = Color(0xFFD7CCC8),
+    onTertiaryContainer = BrownDark,
+
+    background = CreamBg,
+    onBackground = BrownDark,
+
+    surface = CreamSurface,
+    onSurface = BrownDark,
+    surfaceVariant = Color(0xFFF5E6DC),
+    onSurfaceVariant = GreyVariant,
+
+    outline = Color(0xFFBCAAA4),
+    outlineVariant = Color(0xFFEDD5C8),
+
+    error = ErrorRed,
+    onError = Color.White,
+    errorContainer = Color(0xFFFFDAD6),
+    onErrorContainer = Color(0xFF410002),
+)
+
+private val DarkColorScheme = darkColorScheme(
+    primary = BrandOrangeLight,
+    onPrimary = Color(0xFF5B1500),
+    primaryContainer = DarkOrangeContainer,
+    onPrimaryContainer = OnDarkOrangeContainer,
+
+    secondary = BrandAmber,
+    onSecondary = Color(0xFF402D00),
+    secondaryContainer = Color(0xFF5C4100),
+    onSecondaryContainer = Color(0xFFFFDEA1),
+
+    tertiary = Color(0xFFD7CCC8),
+    onTertiary = Color(0xFF3E2723),
+    tertiaryContainer = Color(0xFF5D4037),
+    onTertiaryContainer = Color(0xFFEFEBE9),
+
+    background = DarkBg,
+    onBackground = Color(0xFFF5DDD5),
+
+    surface = DarkSurface,
+    onSurface = Color(0xFFF5DDD5),
+    surfaceVariant = DarkSurfaceVariant,
+    onSurfaceVariant = Color(0xFFD7B9AD),
+
+    outline = Color(0xFFA07A6F),
+    outlineVariant = Color(0xFF5C3A2F),
+
+    error = Color(0xFFFFB4AB),
+    onError = Color(0xFF690005),
+    errorContainer = Color(0xFF93000A),
+    onErrorContainer = Color(0xFFFFDAD6),
 )
 
 @Composable
 fun SiposKebabSkTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val view = LocalView.current
 
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            window.statusBarColor = colorScheme.background.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+        }
     }
 
     MaterialTheme(

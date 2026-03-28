@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Splash screen icon: Kebab Wrap inside white circle -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="240dp"
+    android:height="240dp"
+    android:viewportWidth="240"
+    android:viewportHeight="240">
+
+    <!-- White circle background for splash centering -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M120,120 m-90,0 a90,90 0 1,0 180,0 a90,90 0 1,0 -180,0" />
+
+    <!-- Kebab Body (Vertical-ish) -->
+    <path
+        android:fillColor="#FFF9C4"
+        android:pathData="M100,160 L140,80 L160,95 L120,175 Z" />
+    
+    <!-- Grill Marks -->
+    <path
+        android:strokeColor="#FFE082"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M115,145 L135,125 M125,160 L145,140 M110,130 L130,110" />
+
+    <!-- Filling - Meat -->
+    <path
+        android:fillColor="#795548"
+        android:pathData="M130,70 Q145,60 160,75 L160,95 L140,80 Z" />
+
+    <!-- Filling - Lettuce -->
+    <path
+        android:fillColor="#81C784"
+        android:pathData="M135,65 Q150,55 165,65 L175,75 L130,85 Z" />
+
+    <!-- Filling - Tomato -->
+    <path
+        android:fillColor="#E57373"
+        android:pathData="M145,62 Q160,57 170,62 L175,70 L145,72 Z" />
+
+    <!-- Paper/Foil Wrap (Bottom) -->
+    <path
+        android:fillColor="#ECEFF1"
+        android:pathData="M100,160 L120,200 L80,200 L70,180 Z" />
+    
+    <path
+        android:fillColor="#CFD8DC"
+        android:pathData="M100,160 L80,200 L70,180 Z" />
+
+</vector>
