@@ -1,0 +1,23 @@
+package com.sipos.kebabsk.feature.dailystock.data.remote
+
+import com.google.gson.JsonObject
+import retrofit2.Response
+import retrofit2.http.Body
+import retrofit2.http.GET
+import retrofit2.http.Header
+import retrofit2.http.POST
+import retrofit2.http.Url
+
+interface DailyStockApiService {
+    @GET
+    suspend fun getDailyStock(
+        @Header("Authorization") authorization: String,
+        @Url url: String
+    ): Response<JsonObject>
+
+    @POST("daily-stock-sessions/close")
+    suspend fun closeSession(
+        @Header("Authorization") authorization: String,
+        @Body body: JsonObject
+    ): Response<JsonObject>
+}

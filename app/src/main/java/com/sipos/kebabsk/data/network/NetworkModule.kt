@@ -1,8 +1,11 @@
 package com.sipos.kebabsk.data.network
 
 import com.sipos.kebabsk.BuildConfig
+import com.sipos.kebabsk.common.AuthSessionEvents
 import com.sipos.kebabsk.feature.auth.data.remote.AuthApiService
 import com.sipos.kebabsk.feature.checkout.data.remote.CheckoutApiService
+import com.sipos.kebabsk.feature.dailystock.data.remote.DailyStockApiService
+import com.sipos.kebabsk.feature.expense.data.remote.OperationalExpenseApiService
 import com.sipos.kebabsk.feature.menu.data.remote.MenuApiService
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -20,6 +23,13 @@ object NetworkModule {
     }
 
     private val httpClient = OkHttpClient.Builder()
+        .addInterceptor { chain ->
+            val response = chain.proceed(chain.request())
+            if (response.code == 401) {
+                AuthSessionEvents.notifyForceLogout()
+            }
+            response
+        }
         .addInterceptor(loggingInterceptor)
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
@@ -45,6 +55,14 @@ object NetworkModule {
 
     val checkoutApiService: CheckoutApiService by lazy {
         retrofit.create(CheckoutApiService::class.java)
+    }
+
+    val dailyStockApiService: DailyStockApiService by lazy {
+        retrofit.create(DailyStockApiService::class.java)
+    }
+
+    val operationalExpenseApiService: OperationalExpenseApiService by lazy {
+        retrofit.create(OperationalExpenseApiService::class.java)
     }
 
     val transactionsApiService: com.sipos.kebabsk.feature.transactions.data.remote.TransactionsApiService by lazy {
