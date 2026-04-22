@@ -1,17 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- Base theme (used for window background, no action bar) -->
+    <!-- Base theme (no action bar / no title) -->
     <style name="Theme.SiposKebabSk" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:windowBackground">@color/splash_background</item>
+        <item name="android:windowBackground">@drawable/bg_launch_splash</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
     </style>
 
     <!-- Splash screen theme using SplashScreen API -->
     <style name="Theme.SiposKebabSk.Splash" parent="Theme.SplashScreen">
-        <!-- Centered icon shown on splash -->
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
-        <!-- Orange brand background -->
-        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <!-- Hide system launch icon -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_blank</item>
+        <item name="windowSplashScreenBackground">#FEF8F3</item>
         <!-- Theme to switch to after splash completes -->
         <item name="postSplashScreenTheme">@style/Theme.SiposKebabSk</item>
     </style>

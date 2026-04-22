@@ -6,11 +6,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import com.sipos.kebabsk.common.AuthSessionEvents
 import com.sipos.kebabsk.feature.auth.presentation.forgotpassword.ForgotPasswordViewModel
 import com.sipos.kebabsk.feature.auth.presentation.login.LoginViewModel
 import com.sipos.kebabsk.feature.menu.presentation.MenuViewModel
 import com.sipos.kebabsk.ui.theme.SiposKebabSkTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private val loginViewModel: LoginViewModel by viewModels()
@@ -18,13 +23,19 @@ class MainActivity : ComponentActivity() {
     private val menuViewModel: MenuViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Install the splash screen BEFORE super.onCreate() so the theme
-        // transition is seamless. The splash dismisses automatically once
-        // the first Compose frame is drawn.
-        installSplashScreen()
-
+        installSplashScreen().setKeepOnScreenCondition { false }
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                AuthSessionEvents.forceLogout.collect {
+                    loginViewModel.logout()
+                    menuViewModel.clear()
+                }
+            }
+        }
+
         setContent {
             SiposKebabSkTheme {
                 val loginUiState = loginViewModel.uiState.collectAsStateWithLifecycle().value
@@ -57,6 +68,7 @@ class MainActivity : ComponentActivity() {
                     onLoadMenus = { token, forceRefresh -> menuViewModel.loadMenus(token, forceRefresh) },
                     onAddVariant = menuViewModel::addVariantToCart,
                     onRemoveVariant = menuViewModel::removeFromCart,
+                    onDeleteVariant = menuViewModel::deleteFromCart,
                     onCategorySelected = menuViewModel::onCategorySelected,
                     onPaymentMethodSelected = menuViewModel::onPaymentMethodSelected,
                     onQuickAmountSelected = menuViewModel::onQuickAmountSelected,

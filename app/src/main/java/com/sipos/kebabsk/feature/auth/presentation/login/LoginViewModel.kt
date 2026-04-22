@@ -2,6 +2,7 @@ package com.sipos.kebabsk.feature.auth.presentation.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sipos.kebabsk.common.AppSessionStore
 import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.data.network.NetworkModule
 import com.sipos.kebabsk.feature.auth.data.repository.AuthRepositoryImpl
@@ -29,6 +30,13 @@ class LoginViewModel(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
+
+    init {
+        val saved = AppSessionStore.loadSession()
+        if (saved != null) {
+            _uiState.update { it.copy(session = saved) }
+        }
+    }
 
     fun onIdentifierChanged(value: String) {
         _uiState.update { it.copy(identifier = value, errorMessage = null, successMessage = null) }
@@ -62,6 +70,7 @@ class LoginViewModel(
                             password = ""
                         )
                     }
+                    AppSessionStore.saveSession(finalSession)
                 }
                 .onFailure { error ->
                     _uiState.update {
@@ -82,6 +91,7 @@ class LoginViewModel(
                     _uiState.update {
                         it.copy(session = fresh, errorMessage = null)
                     }
+                    AppSessionStore.saveSession(fresh)
                 }
         }
     }
@@ -111,6 +121,7 @@ class LoginViewModel(
                             errorMessage = null
                         )
                     }
+                    AppSessionStore.saveSession(updated)
                 }
                 .onFailure { error ->
                     _uiState.update {
@@ -176,6 +187,7 @@ class LoginViewModel(
     }
 
     fun logout() {
+        AppSessionStore.clearSession()
         _uiState.update {
             it.copy(
                 session = null,
