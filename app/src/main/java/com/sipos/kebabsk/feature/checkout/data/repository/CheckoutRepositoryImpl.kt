@@ -1,6 +1,7 @@
 package com.sipos.kebabsk.feature.checkout.data.repository
 
 import com.google.gson.JsonParser
+import com.sipos.kebabsk.common.retryNetworkRequest
 import com.sipos.kebabsk.feature.checkout.data.remote.CheckoutApiService
 import com.sipos.kebabsk.feature.checkout.data.remote.CreateTransactionItemRequest
 import com.sipos.kebabsk.feature.checkout.data.remote.CreateTransactionRequest
@@ -17,17 +18,22 @@ class CheckoutRepositoryImpl(
 ) : CheckoutRepository {
     override suspend fun getPaymentMethods(token: String): Result<List<PaymentMethod>> {
         return runCatching {
-            val response = checkoutApiService.getPaymentMethods("Bearer $token")
+            val response = retryNetworkRequest {
+                checkoutApiService.getPaymentMethods("Bearer $token")
+            }
             val body = response.body()
 
             if (!response.isSuccessful || body?.success != true) {
                 throw IllegalStateException(body?.message ?: "Gagal memuat metode pembayaran")
             }
 
-            body.data?.paymentMethods.orEmpty().map {
+            body.data?.paymentMethods.orEmpty().mapNotNull {
+                val id = it.id ?: return@mapNotNull null
+                val name = it.name?.trim().orEmpty()
+                if (id <= 0L || name.isBlank()) return@mapNotNull null
                 PaymentMethod(
-                    id = it.id ?: 0L,
-                    name = it.name ?: "Unknown"
+                    id = id,
+                    name = name
                 )
             }
         }.recoverCatching { throwable ->
@@ -49,7 +55,7 @@ class CheckoutRepositoryImpl(
             val rawError = response.errorBody()?.string()
 
             if (!response.isSuccessful || body?.success != true || body.data == null) {
-                val errorMessage = extractErrorMessage(rawError)
+                val errorMessage = normalizeBusinessError(extractErrorMessage(rawError))
                     ?: body?.message
                     ?: "Transaksi belum berhasil diproses. Silakan coba lagi."
                 throw IllegalStateException(errorMessage)
@@ -87,6 +93,23 @@ class CheckoutRepositoryImpl(
                 }
             }
         }.getOrNull()
+    }
+
+    private fun normalizeBusinessError(rawMessage: String?): String? {
+        if (rawMessage.isNullOrBlank()) return null
+        val lower = rawMessage.lowercase()
+
+        return when {
+            lower.contains("sesi harian") && lower.contains("belum") ->
+                "Sesi harian belum dibuka admin. Checkout belum bisa dilakukan."
+            lower.contains("bahan") && lower.contains("stok harian") ->
+                "Bahan belum dibawa ke stok harian. Hubungi admin terlebih dahulu."
+            lower.contains("stok harian") && (lower.contains("tidak cukup") || lower.contains("kurang")) ->
+                "Stok harian bahan tidak cukup untuk transaksi ini."
+            lower.contains("pembayaran kurang") || lower.contains("deficit") ->
+                "Nominal pembayaran kurang. Silakan periksa kembali."
+            else -> rawMessage
+        }
     }
 
     private fun mapNetworkError(throwable: Throwable): String {

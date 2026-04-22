@@ -14,3 +14,11 @@ data class TransactionPageData(
     val items: List<TransactionHistoryItem>,
     val totalPages: Int
 )
+
+data class RevenueSummaryResult(
+    val totalRevenue: Double,
+    val totalCount: Int,
+    val transactionGrowthPercentage: Double?,
+    val dominantItemName: String?,
+    val revenueTargetPercentage: Double?
+)

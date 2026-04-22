@@ -2,6 +2,7 @@ package com.sipos.kebabsk.feature.transactions.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sipos.kebabsk.common.AppTime
 import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionHistoryItem
 import com.sipos.kebabsk.feature.transactions.domain.usecase.GetTransactionsUseCase
@@ -15,7 +16,7 @@ import java.time.LocalDate
 data class TransactionsUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val currentDate: LocalDate = LocalDate.now(),
+    val currentDate: LocalDate = AppTime.todayJakarta(),
     val currentPage: Int = 1,
     val totalPages: Int = 1,
     val paginatedTransactions: List<TransactionHistoryItem> = emptyList()

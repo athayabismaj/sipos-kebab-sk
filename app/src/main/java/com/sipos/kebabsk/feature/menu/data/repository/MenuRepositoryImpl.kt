@@ -1,7 +1,10 @@
 package com.sipos.kebabsk.feature.menu.data.repository
 
+import com.sipos.kebabsk.common.retryNetworkRequest
 import com.sipos.kebabsk.feature.menu.data.remote.MenuApiService
+import com.sipos.kebabsk.feature.menu.domain.model.DailyStockItem
 import com.sipos.kebabsk.feature.menu.domain.model.MenuItem
+import com.sipos.kebabsk.feature.menu.domain.model.DailySessionStatus
 import com.sipos.kebabsk.feature.menu.domain.model.MenuListPayload
 import com.sipos.kebabsk.feature.menu.domain.model.MenuUser
 import com.sipos.kebabsk.feature.menu.domain.model.MenuVariant
@@ -12,11 +15,13 @@ class MenuRepositoryImpl(
 ) : MenuRepository {
     override suspend fun getMenus(token: String, search: String?, categoryId: Long?): Result<MenuListPayload> {
         return runCatching {
-            val response = menuApiService.getMenus(
-                authorization = "Bearer $token",
-                search = search,
-                categoryId = categoryId
-            )
+            val response = retryNetworkRequest {
+                menuApiService.getMenus(
+                    authorization = "Bearer $token",
+                    search = search,
+                    categoryId = categoryId
+                )
+            }
 
             val body = response.body()
             if (!response.isSuccessful || body?.success != true || body.data == null) {
@@ -51,7 +56,31 @@ class MenuRepositoryImpl(
                 )
             }
 
-            MenuListPayload(user = user, menus = menus)
+            val dailySession = DailySessionStatus(
+                isOpen = body.data.dailySession?.isOpen
+                    ?: body.data.isDailySessionOpen
+                    ?: true,
+                label = body.data.dailySession?.statusLabel
+                    ?: body.data.dailySessionStatusLabel
+            )
+
+            val dailyStockItems = body.data.dailyStockItems.orEmpty().mapNotNull { stock ->
+                val name = stock.name?.trim().orEmpty()
+                if (name.isBlank()) return@mapNotNull null
+                DailyStockItem(
+                    ingredientId = stock.ingredientId ?: 0L,
+                    name = name,
+                    qty = stock.qty ?: 0.0,
+                    unit = stock.unit?.trim()?.takeIf { it.isNotBlank() }
+                )
+            }
+
+            MenuListPayload(
+                user = user,
+                menus = menus,
+                dailySession = dailySession,
+                dailyStockItems = dailyStockItems
+            )
         }
     }
 }

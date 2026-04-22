@@ -10,7 +10,25 @@ data class MenusResponse(
 
 data class MenusDataResponse(
     @SerializedName("user") val user: UserResponse?,
-    @SerializedName("menus") val menus: List<MenuResponse>?
+    @SerializedName("menus") val menus: List<MenuResponse>?,
+    @SerializedName(value = "daily_session", alternate = ["dailySession", "sesi_harian", "cashier_session"])
+    val dailySession: DailySessionResponse?,
+    @SerializedName(value = "is_daily_session_open", alternate = ["daily_session_open", "session_open"])
+    val isDailySessionOpen: Boolean?,
+    @SerializedName(value = "daily_session_status_label", alternate = ["session_status_label"])
+    val dailySessionStatusLabel: String?,
+    @SerializedName(
+        value = "daily_stock_items",
+        alternate = ["dailyStocks", "daily_stock", "stok_harian_bawa", "carried_stock_items"]
+    )
+    val dailyStockItems: List<DailyStockItemResponse>?
+)
+
+data class DailySessionResponse(
+    @SerializedName(value = "is_open", alternate = ["open", "isOpen"])
+    val isOpen: Boolean?,
+    @SerializedName(value = "status_label", alternate = ["label", "status"])
+    val statusLabel: String?
 )
 
 data class UserResponse(
@@ -39,4 +57,15 @@ data class VariantResponse(
     @SerializedName("name") val name: String?,
     @SerializedName("price") val price: Double?,
     @SerializedName("is_available") val isAvailable: Boolean?
+)
+
+data class DailyStockItemResponse(
+    @SerializedName(value = "ingredient_id", alternate = ["id"])
+    val ingredientId: Long?,
+    @SerializedName(value = "name", alternate = ["item_name", "material_name", "bahan_name"])
+    val name: String?,
+    @SerializedName(value = "qty", alternate = ["quantity", "amount"])
+    val qty: Double?,
+    @SerializedName(value = "unit", alternate = ["uom", "satuan"])
+    val unit: String?
 )

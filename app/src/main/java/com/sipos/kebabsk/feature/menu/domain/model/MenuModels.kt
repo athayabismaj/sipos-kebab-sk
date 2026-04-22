@@ -2,7 +2,9 @@ package com.sipos.kebabsk.feature.menu.domain.model
 
 data class MenuListPayload(
     val user: MenuUser,
-    val menus: List<MenuItem>
+    val menus: List<MenuItem>,
+    val dailySession: DailySessionStatus,
+    val dailyStockItems: List<DailyStockItem>
 )
 
 data class MenuUser(
@@ -10,6 +12,19 @@ data class MenuUser(
     val name: String,
     val role: String?,
     val isPrivileged: Boolean
+)
+
+data class DailySessionStatus(
+    val isOpen: Boolean,
+    val label: String?
+)
+
+data class DailyStockItem(
+    val ingredientId: Long,
+    val name: String,
+    val qty: Double,
+    val remainingQty: Double? = null,
+    val unit: String?
 )
 
 data class MenuItem(

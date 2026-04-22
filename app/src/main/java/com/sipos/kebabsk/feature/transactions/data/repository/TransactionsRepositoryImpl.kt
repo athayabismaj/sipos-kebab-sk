@@ -2,10 +2,12 @@ package com.sipos.kebabsk.feature.transactions.data.repository
 
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.sipos.kebabsk.common.retryNetworkRequest
 import com.sipos.kebabsk.feature.transactions.data.remote.TransactionItemResponse
 import com.sipos.kebabsk.feature.transactions.data.remote.TransactionsApiService
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionHistoryItem
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionPageData
+import com.sipos.kebabsk.feature.transactions.domain.model.RevenueSummaryResult
 import com.sipos.kebabsk.feature.transactions.domain.repository.TransactionsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -22,7 +24,9 @@ class TransactionsRepositoryImpl(
             // Example output: "9 Maret 2026 14:30"
             // Screenshot shows format like "09 Mar 2026 01:04"
             val formattedQueryDate = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-            val response = apiService.getTransactions("Bearer $token", formattedQueryDate, page)
+            val response = retryNetworkRequest(maxAttempts = 1) {
+                apiService.getTransactions("Bearer $token", formattedQueryDate, page)
+            }
 
             if (response.isSuccessful) {
                 val body = response.body()
@@ -113,17 +117,25 @@ class TransactionsRepositoryImpl(
         }
     }
 
-    override suspend fun getRevenueSummary(token: String, date: LocalDate): Result<Pair<Double, Int>> {
+    override suspend fun getRevenueSummary(token: String, date: LocalDate): Result<RevenueSummaryResult> {
         return try {
             val formattedQueryDate = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-            val response = apiService.getRevenueSummary("Bearer $token", formattedQueryDate)
+            val response = retryNetworkRequest {
+                apiService.getRevenueSummary("Bearer $token", formattedQueryDate)
+            }
 
             if (response.isSuccessful) {
                 val body = response.body()
                 if (body?.success == true && body.data != null) {
-                    val totalRevenue = body.data.totalRevenue ?: 0.0
-                    val totalCount = body.data.totalCount ?: 0
-                    Result.success(Pair(totalRevenue, totalCount))
+                    Result.success(
+                        RevenueSummaryResult(
+                            totalRevenue = body.data.totalRevenue ?: 0.0,
+                            totalCount = body.data.totalCount ?: 0,
+                            transactionGrowthPercentage = body.data.transactionGrowthPercentage,
+                            dominantItemName = body.data.dominantItemName,
+                            revenueTargetPercentage = body.data.revenueTargetPercentage
+                        )
+                    )
                 } else {
                     Result.failure(Exception(body?.message ?: "Gagal mengambil data ringkasan"))
                 }
@@ -138,7 +150,9 @@ class TransactionsRepositoryImpl(
     override suspend fun getRevenueTrend(token: String, date: LocalDate): Result<List<Pair<String, Double>>> {
         return try {
             val formattedQueryDate = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-            val response = apiService.getRevenueTrend("Bearer $token", formattedQueryDate)
+            val response = retryNetworkRequest {
+                apiService.getRevenueTrend("Bearer $token", formattedQueryDate)
+            }
 
             if (response.isSuccessful) {
                 val body = response.body()

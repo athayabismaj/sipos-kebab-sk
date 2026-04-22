@@ -10,12 +10,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -26,10 +26,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,15 +40,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.sipos.kebabsk.feature.checkout.domain.model.CheckoutCartItem
-import com.sipos.kebabsk.ui.theme.BrandAmber
-import com.sipos.kebabsk.ui.theme.BrandOrange
+
+import com.sipos.kebabsk.ui.theme.*
 
 @Composable
 fun MenuListTab(
@@ -66,10 +65,9 @@ fun MenuListTab(
         cartItems.associate { it.variantId to it.qty }
     }
 
-    Column {
-        // Category header row
+    Column(modifier = Modifier.fillMaxSize()) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -77,54 +75,33 @@ fun MenuListTab(
                 text = "Pilih Menu",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onBackground
+                color = KebabTextDark
             )
             IconButton(onClick = onRefresh) {
                 Icon(
                     imageVector = Icons.Default.Refresh,
                     contentDescription = "Refresh",
-                    tint = BrandOrange
+                    tint = KebabPrimaryContainer
                 )
             }
         }
 
-        // Category filter chips
+        // --- CATEGORY CHIPS ---
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(vertical = 6.dp),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            contentPadding = PaddingValues(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             items(categories) { category ->
-                val isSelected = category == selectedCategory
-                FilterChip(
-                    selected = isSelected,
-                    onClick = { onCategorySelected(category) },
-                    label = {
-                        Text(
-                            text = category ?: "Semua",
-                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Normal,
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                    },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = BrandOrange,
-                        selectedLabelColor = Color.White,
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    border = FilterChipDefaults.filterChipBorder(
-                        borderColor = if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant,
-                        enabled = true,
-                        selected = isSelected
-                    ),
-                    shape = RoundedCornerShape(10.dp)
+                CategoryChip(
+                    title = category ?: "Semua",
+                    isSelected = category == selectedCategory,
+                    onClick = { onCategorySelected(category) }
                 )
             }
         }
 
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp)
-
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         if (menuItems.isEmpty()) {
             Box(
@@ -139,17 +116,19 @@ fun MenuListTab(
                     Text(
                         text = "Tidak ada menu tersedia",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = KebabTextGray,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
             }
         } else {
+            // --- MENU GRID ---
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 155.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                columns = GridCells.Fixed(2),
+                modifier = Modifier.weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.weight(1f)
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = 100.dp, start = 24.dp, end = 24.dp)
             ) {
                 items(items = menuItems, key = { it.variantId }) { item ->
                     MenuItemCard(
@@ -161,6 +140,28 @@ fun MenuListTab(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun CategoryChip(title: String, isSelected: Boolean, onClick: () -> Unit) {
+    val bgColor = if (isSelected) KebabPrimaryContainer else KebabChipInactiveBg
+    val textColor = if (isSelected) Color.White else KebabTextGray
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(bgColor)
+            .clickable { onClick() }
+            .padding(horizontal = 20.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = title,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = textColor
+        )
     }
 }
 
@@ -179,123 +180,107 @@ private fun MenuItemCard(
             .fillMaxWidth()
             .animateContentSize()
             .clickable(enabled = !unavailable, onClick = onAdd),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (unavailable) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            else MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isInCart) 3.dp else 0.dp
-        ),
-        border = if (isInCart) {
-            androidx.compose.foundation.BorderStroke(1.5.dp, BrandOrange.copy(alpha = 0.5f))
-        } else {
-            androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-        }
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = KebabCardBg),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-
-            // Accent bar at top
-            if (!unavailable) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .background(
-                            if (isInCart)
-                                Brush.horizontalGradient(listOf(BrandOrange, BrandAmber))
-                            else
-                                Brush.horizontalGradient(listOf(
-                                    MaterialTheme.colorScheme.outlineVariant,
-                                    MaterialTheme.colorScheme.outlineVariant
-                                ))
-                        )
+        Column(modifier = Modifier.padding(12.dp)) {
+            // Gambar Menu (Rasio 1:1) placeholder
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.LightGray.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Restaurant,
+                    contentDescription = null,
+                    tint = Color.Gray,
+                    modifier = Modifier.size(32.dp)
                 )
             }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Menu Name
+            Text(
+                text = item.menuName,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (unavailable) KebabTextDark.copy(alpha = 0.5f) else KebabTextDark,
+                maxLines = 1,
+                lineHeight = 18.sp,
+                overflow = TextOverflow.Ellipsis
+            )
 
-            Column(
-                modifier = Modifier.padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                // Menu name
-                Text(
-                    text = item.menuName,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.ExtraBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = if (unavailable) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
-                    else MaterialTheme.colorScheme.onSurface
-                )
-
-                // Variant name
-                val displayVariantName = if (item.variantName.startsWith(item.menuName, ignoreCase = true)) {
-                    item.variantName.substring(item.menuName.length).trim().ifBlank { item.variantName }
-                } else {
-                    item.variantName
-                }
-
+            // Variant name
+            val displayVariantName = if (item.variantName.startsWith(item.menuName, ignoreCase = true)) {
+                item.variantName.substring(item.menuName.length).trim().ifBlank { item.variantName }
+            } else {
+                item.variantName
+            }
+            
+            if (displayVariantName.isNotBlank() && displayVariantName != item.menuName) {
                 Text(
                     text = displayVariantName,
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    color = if (unavailable) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
-                    else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (unavailable) KebabTextGray.copy(alpha = 0.5f) else KebabTextGray
+                )
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+            
+            // Bottom row: Price and Add controls
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = toRupiah(item.price),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (unavailable) KebabPrimary.copy(alpha = 0.5f) else KebabPrimary
                 )
 
-                Spacer(modifier = Modifier.height(6.dp))
-
-                // Price + qty controls
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = toRupiah(item.price),
-                        fontWeight = FontWeight.ExtraBold,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = if (unavailable) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                        else BrandOrange
-                    )
-
-                    if (qtyInCart > 0) {
-                        QtyControl(qty = qtyInCart, onAdd = onAdd, onRemove = onRemove)
-                    } else if (!unavailable) {
-                        // Add button
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(CircleShape)
-                                .background(BrandOrange)
-                                .clickable(onClick = onAdd),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = "Tambah",
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-                }
-
-                if (unavailable) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = MaterialTheme.colorScheme.errorContainer
+                if (qtyInCart > 0) {
+                    QtyControlCompact(qty = qtyInCart, onAdd = onAdd, onRemove = onRemove)
+                } else if (!unavailable) {
+                    Box(
+                        modifier = Modifier
+                            .size(26.dp)
+                            .clip(CircleShape)
+                            .background(KebabPrimaryContainer)
+                            .clickable(onClick = onAdd),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "Habis",
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Tambah",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
                         )
                     }
+                }
+            }
+
+            if (unavailable) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = MaterialTheme.colorScheme.errorContainer
+                ) {
+                    Text(
+                        text = "Habis",
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
                 }
             }
         }
@@ -303,16 +288,16 @@ private fun MenuItemCard(
 }
 
 @Composable
-private fun QtyControl(qty: Int, onAdd: () -> Unit, onRemove: () -> Unit) {
+private fun QtyControlCompact(qty: Int, onAdd: () -> Unit, onRemove: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(26.dp)
+                .size(24.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .background(Color.LightGray)
                 .clickable(onClick = onRemove),
             contentAlignment = Alignment.Center
         ) {
@@ -320,31 +305,24 @@ private fun QtyControl(qty: Int, onAdd: () -> Unit, onRemove: () -> Unit) {
                 text = "−",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = KebabTextDark,
                 textAlign = TextAlign.Center
             )
         }
 
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .background(BrandOrange)
-                .padding(horizontal = 8.dp, vertical = 2.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "$qty",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color.White
-            )
-        }
+        Text(
+            text = "$qty",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.ExtraBold,
+            color = KebabTextDark,
+            modifier = Modifier.padding(horizontal = 2.dp)
+        )
 
         Box(
             modifier = Modifier
-                .size(26.dp)
+                .size(24.dp)
                 .clip(CircleShape)
-                .background(BrandOrange)
+                .background(KebabPrimaryContainer)
                 .clickable(onClick = onAdd),
             contentAlignment = Alignment.Center
         ) {
@@ -352,7 +330,7 @@ private fun QtyControl(qty: Int, onAdd: () -> Unit, onRemove: () -> Unit) {
                 imageVector = Icons.Default.Add,
                 contentDescription = "Tambah",
                 tint = Color.White,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(14.dp)
             )
         }
     }

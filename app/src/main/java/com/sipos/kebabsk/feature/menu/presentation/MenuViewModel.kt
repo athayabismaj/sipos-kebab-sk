@@ -12,6 +12,7 @@ import com.sipos.kebabsk.feature.checkout.domain.model.PaymentMethod
 import com.sipos.kebabsk.feature.checkout.domain.usecase.CreateTransactionUseCase
 import com.sipos.kebabsk.feature.checkout.domain.usecase.GetPaymentMethodsUseCase
 import com.sipos.kebabsk.feature.menu.data.repository.MenuRepositoryImpl
+import com.sipos.kebabsk.feature.menu.domain.model.DailyStockItem
 import com.sipos.kebabsk.feature.menu.domain.model.MenuItem
 import com.sipos.kebabsk.feature.menu.domain.usecase.GetMenusUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +26,9 @@ data class MenuUiState(
     val errorMessage: String? = null,
     val cashierName: String = "",
     val cashierRole: String? = null,
+    val isDailySessionOpen: Boolean = true,
+    val dailySessionStatusLabel: String? = null,
+    val dailyStockItems: List<DailyStockItem> = emptyList(),
     val menus: List<MenuItem> = emptyList(),
     val selectedCategory: String? = null,
     val paymentMethods: List<PaymentMethod> = emptyList(),
@@ -36,7 +40,8 @@ data class MenuUiState(
     val checkoutTransactionCode: String? = null,
     val checkoutChangeAmount: Double? = null,
     val checkoutTotalAmount: Double? = null,
-    val checkoutPaidAmount: Double? = null
+    val checkoutPaidAmount: Double? = null,
+    val checkoutReceiptItems: List<CheckoutCartItem> = emptyList()
 )
 
 class MenuViewModel : ViewModel() {
@@ -58,12 +63,7 @@ class MenuViewModel : ViewModel() {
             _uiState.update {
                 it.copy(
                     isLoading = true,
-                    errorMessage = null,
-                    checkoutMessage = null,
-                    checkoutTransactionCode = null,
-                    checkoutChangeAmount = null,
-                    checkoutTotalAmount = null,
-                    checkoutPaidAmount = null
+                    errorMessage = null
                 )
             }
 
@@ -77,7 +77,10 @@ class MenuViewModel : ViewModel() {
                         it.copy(
                             menus = payload.menus,
                             cashierName = payload.user.name,
-                            cashierRole = payload.user.role
+                            cashierRole = payload.user.role,
+                            isDailySessionOpen = payload.dailySession.isOpen,
+                            dailySessionStatusLabel = payload.dailySession.label,
+                            dailyStockItems = payload.dailyStockItems
                         )
                     }
                 }
@@ -94,13 +97,12 @@ class MenuViewModel : ViewModel() {
 
             paymentResult
                 .onSuccess { methods ->
-                    val finalMethods = if (methods.isEmpty()) fallbackPaymentMethods() else methods
                     _uiState.update {
                         it.copy(
-                            paymentMethods = finalMethods,
-                            selectedPaymentMethodId = it.selectedPaymentMethodId ?: finalMethods.firstOrNull()?.id,
+                            paymentMethods = methods,
+                            selectedPaymentMethodId = methods.firstOrNull()?.id,
                             errorMessage = if (methods.isEmpty()) {
-                                "Metode pembayaran sementara menggunakan Cash."
+                                "Metode pembayaran belum tersedia. Hubungi admin untuk pengecekan."
                             } else {
                                 it.errorMessage
                             }
@@ -108,14 +110,13 @@ class MenuViewModel : ViewModel() {
                     }
                 }
                 .onFailure { error ->
-                    val finalMethods = fallbackPaymentMethods()
                     _uiState.update {
                         it.copy(
-                            paymentMethods = finalMethods,
-                            selectedPaymentMethodId = it.selectedPaymentMethodId ?: finalMethods.firstOrNull()?.id,
+                            paymentMethods = emptyList(),
+                            selectedPaymentMethodId = null,
                             errorMessage = sanitizeUserMessage(
                                 error.message,
-                                "Metode pembayaran belum tersedia. Sementara menggunakan Cash."
+                                "Metode pembayaran belum tersedia. Hubungi admin untuk pengecekan."
                             )
                         )
                     }
@@ -148,7 +149,8 @@ class MenuViewModel : ViewModel() {
                 checkoutTransactionCode = null,
                 checkoutChangeAmount = null,
                 checkoutTotalAmount = null,
-                checkoutPaidAmount = null
+                checkoutPaidAmount = null,
+                checkoutReceiptItems = emptyList()
             )
         }
     }
@@ -162,6 +164,12 @@ class MenuViewModel : ViewModel() {
                 } else it
             }
             state.copy(cartItems = updated)
+        }
+    }
+
+    fun deleteFromCart(variantId: Long) {
+        _uiState.update { state ->
+            state.copy(cartItems = state.cartItems.filter { it.variantId != variantId })
         }
     }
 
@@ -182,7 +190,8 @@ class MenuViewModel : ViewModel() {
                 checkoutTransactionCode = null,
                 checkoutChangeAmount = null,
                 checkoutTotalAmount = null,
-                checkoutPaidAmount = null
+                checkoutPaidAmount = null,
+                checkoutReceiptItems = emptyList()
             )
         }
     }
@@ -196,7 +205,8 @@ class MenuViewModel : ViewModel() {
                 checkoutTransactionCode = null,
                 checkoutChangeAmount = null,
                 checkoutTotalAmount = null,
-                checkoutPaidAmount = null
+                checkoutPaidAmount = null,
+                checkoutReceiptItems = emptyList()
             )
         }
     }
@@ -206,9 +216,23 @@ class MenuViewModel : ViewModel() {
     }
 
     fun submitCheckout(token: String) {
+        if (_uiState.value.isLoading) {
+            // Guard to prevent accidental duplicate request from rapid taps.
+            return
+        }
+
         val state = _uiState.value
         if (state.cartItems.isEmpty()) {
             _uiState.update { it.copy(errorMessage = "Keranjang masih kosong") }
+            return
+        }
+
+        if (!state.isDailySessionOpen) {
+            _uiState.update {
+                it.copy(
+                    errorMessage = "Sesi harian belum dibuka admin. Checkout belum bisa dilakukan."
+                )
+            }
             return
         }
 
@@ -233,7 +257,8 @@ class MenuViewModel : ViewModel() {
                     checkoutTransactionCode = null,
                     checkoutChangeAmount = null,
                     checkoutTotalAmount = null,
-                    checkoutPaidAmount = null
+                    checkoutPaidAmount = null,
+                    checkoutReceiptItems = emptyList()
                 )
             }
             val request = CheckoutRequestData(
@@ -256,23 +281,24 @@ class MenuViewModel : ViewModel() {
                             checkoutChangeAmount = result.changeAmount,
                             checkoutTotalAmount = result.totalAmount,
                             checkoutPaidAmount = result.paidAmount,
+                            checkoutReceiptItems = state.cartItems,
                             errorMessage = null
                         )
                     }
+                    // REFRESH DATA (Tarik stok terbaru setelah checkout berhasil)
+                    loadMenus(token, forceRefresh = true)
                 }
                 .onFailure { error ->
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = sanitizeUserMessage(
-                                error.message,
-                                "Pembayaran belum berhasil. Silakan coba lagi."
-                            ),
+                            errorMessage = normalizeCheckoutError(error.message),
                             checkoutMessage = null,
                             checkoutTransactionCode = null,
                             checkoutChangeAmount = null,
                             checkoutTotalAmount = null,
-                            checkoutPaidAmount = null
+                            checkoutPaidAmount = null,
+                            checkoutReceiptItems = emptyList()
                         )
                     }
                 }
@@ -285,7 +311,8 @@ class MenuViewModel : ViewModel() {
                 checkoutTransactionCode = null,
                 checkoutChangeAmount = null,
                 checkoutTotalAmount = null,
-                checkoutPaidAmount = null
+                checkoutPaidAmount = null,
+                checkoutReceiptItems = emptyList()
             )
         }
     }
@@ -295,7 +322,21 @@ class MenuViewModel : ViewModel() {
         _uiState.value = MenuUiState()
     }
 
-    private fun fallbackPaymentMethods(): List<PaymentMethod> {
-        return listOf(PaymentMethod(id = 1L, name = "Cash"))
+    private fun normalizeCheckoutError(rawMessage: String?): String {
+        val fallback = "Pembayaran belum berhasil. Silakan coba lagi."
+        val message = sanitizeUserMessage(rawMessage, fallback)
+        val lower = message.lowercase()
+
+        return when {
+            lower.contains("sesi harian") && lower.contains("belum") ->
+                "Sesi harian belum dibuka admin. Checkout belum bisa dilakukan."
+            lower.contains("bahan") && lower.contains("stok harian") ->
+                "Bahan belum dibawa ke stok harian. Hubungi admin terlebih dahulu."
+            lower.contains("stok harian") && (lower.contains("tidak cukup") || lower.contains("kurang")) ->
+                "Stok harian bahan tidak cukup untuk transaksi ini."
+            lower.contains("pembayaran kurang") || lower.contains("deficit") ->
+                "Nominal pembayaran kurang. Silakan periksa kembali."
+            else -> message
+        }
     }
 }
