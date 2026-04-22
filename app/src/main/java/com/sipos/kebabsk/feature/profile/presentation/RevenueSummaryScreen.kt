@@ -2,35 +2,75 @@ package com.sipos.kebabsk.feature.profile.presentation
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material3.*
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.ReceiptLong
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.sipos.kebabsk.common.AppTime
+import com.sipos.kebabsk.ui.theme.KebabBg
+import com.sipos.kebabsk.ui.theme.KebabDivider
+import com.sipos.kebabsk.ui.theme.KebabErrorText
+import com.sipos.kebabsk.ui.theme.KebabPrimary
+import com.sipos.kebabsk.ui.theme.KebabPrimaryContainer
+import com.sipos.kebabsk.ui.theme.KebabTextDark
+import com.sipos.kebabsk.ui.theme.KebabTextGray
 import java.text.NumberFormat
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+
+private val KebabBarLight = Color(0xFFFFB74D)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,29 +81,27 @@ fun RevenueSummaryScreen(
     onRefresh: () -> Unit,
     onBack: () -> Unit
 ) {
+    val scrollState = rememberScrollState()
     var showDatePicker by remember { mutableStateOf(false) }
+    var selectedFilter by remember { mutableStateOf("Hari Ini") }
 
-    val isToday = uiState.selectedDate == LocalDate.now()
-    val todayRevenue = uiState.revenueAmount
-    val totalTransactions = uiState.transactionCount
-
-    val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply {
+    val isToday = uiState.selectedDate == AppTime.todayJakarta()
+    val formatter = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("id-ID")).apply {
         maximumFractionDigits = 0
     }
-    
-    val dateFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale("id", "ID"))
-    
+    val dateFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.forLanguageTag("id-ID"))
+
+    // Date Picker Dialog
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = uiState.selectedDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            initialSelectedDateMillis = AppTime.toEpochMillisAtStartOfDay(uiState.selectedDate)
         )
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
-                        val selected = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate()
-                        onDateChanged(selected)
+                        onDateChanged(AppTime.dateFromEpochMillis(millis))
                     }
                     showDatePicker = false
                 }) { Text("Pilih") }
@@ -76,324 +114,356 @@ fun RevenueSummaryScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Ringkasan Penjualan", fontWeight = FontWeight.SemiBold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Kembali")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                )
-            )
-        },
+    Column(
         modifier = modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFFF7F9FC),
-                        Color(0xFFEFF3FA)
-                    )
-                )
-            )
-    ) { innerPadding ->
+            .background(KebabBg)
+    ) {
+        // === TOP BAR ===
+        RingkasanTopBar(onBack = onBack, onRefresh = onRefresh)
+
+        // === SCROLLABLE CONTENT ===
         Column(
             modifier = Modifier
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp)
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            
-            // Date Navigation Row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = { onDateChanged(uiState.selectedDate.minusDays(1)) }) {
-                    Icon(imageVector = Icons.Default.KeyboardArrowLeft, contentDescription = "Hari Sebelumnya")
-                }
-                
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                    modifier = Modifier.clickable { showDatePicker = true }
-                ) {
-                    Text(
-                        text = uiState.selectedDate.format(dateFormatter),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
-                }
-                
-                IconButton(onClick = { onDateChanged(uiState.selectedDate.plusDays(1)) }) {
-                    Icon(imageVector = Icons.Default.KeyboardArrowRight, contentDescription = "Hari Berikutnya")
-                }
-            }
-
-            // Main Omset Card
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = if (isToday) "Omset Hari Ini" else "Omset Tanggal Ini",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-                    )
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    Text(
-                        text = formatter.format(todayRevenue),
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-
-            // Stats row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Total Transactions Card
-                Card(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "Total Transaksi",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "$totalTransactions",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+            // --- FILTER & DATE ---
+            FilterSection(
+                selectedFilter = selectedFilter,
+                currentDate = uiState.selectedDate,
+                dateFormatter = dateFormatter,
+                onFilterSelected = { filter ->
+                    selectedFilter = filter
+                    val today = AppTime.todayJakarta()
+                    when (filter) {
+                        "Hari Ini" -> onDateChanged(today)
+                        "Kemarin" -> onDateChanged(today.minusDays(1))
                     }
-                }
-                
-                // Rata-rata per transaksi
-                Card(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "Rata-rata Order",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        val avg = if (totalTransactions > 0) todayRevenue / totalTransactions else 0.0
-                        Text(
-                            text = formatter.format(avg),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // Separated Graphic Chart
-            Text(
-                text = "Grafik Tren",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
+                },
+                onDateClick = { showDatePicker = true }
             )
-            
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                // The Decorative Chart "Pemanis" now uses real trend data
-                DecorativeRevenueChart(
-                    trendData = uiState.trendData,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 32.dp)
-                        .height(140.dp),
-                    lineColor = MaterialTheme.colorScheme.primary
-                )
+
+            // --- LOADING / ERROR / CONTENT ---
+            when {
+                uiState.isLoading -> {
+                    RevenueSummarySkeleton()
+                }
+                uiState.errorMessage != null -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(KebabErrorText.copy(alpha = 0.05f))
+                            .border(1.dp, KebabErrorText.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = uiState.errorMessage ?: "",
+                            color = KebabErrorText,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+                else -> {
+                    // --- METRIC CARDS ---
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        MetricSummaryCard(
+                            title = "TOTAL PENDAPATAN",
+                            value = formatter.format(uiState.revenueAmount),
+                            trend = if (isToday) "Hari ini" else uiState.selectedDate.format(dateFormatter),
+                            icon = Icons.Outlined.Payments,
+                            valueColor = KebabPrimary
+                        )
+                        MetricSummaryCard(
+                            title = "JUMLAH TRANSAKSI",
+                            value = "${uiState.transactionCount}",
+                            trend = if (uiState.transactionCount > 0) {
+                                "Rata-rata ${formatter.format(
+                                    if (uiState.transactionCount > 0) uiState.revenueAmount / uiState.transactionCount else 0.0
+                                )}/order"
+                            } else "Belum ada transaksi",
+                            icon = Icons.Outlined.ReceiptLong,
+                            valueColor = KebabTextDark
+                        )
+                    }
+
+                    // --- CHART SECTION ---
+                    ChartSection(trendData = uiState.trendData)
+                }
             }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            Spacer(modifier = Modifier.weight(1f))
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
-
-
+// === TOP BAR ===
 @Composable
-fun DecorativeRevenueChart(
-    trendData: List<Pair<String, Double>>,
-    modifier: Modifier = Modifier,
-    lineColor: Color = Color.White
+private fun RingkasanTopBar(onBack: () -> Unit, onRefresh: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(KebabBg)
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali", tint = KebabTextDark)
+        }
+
+        Text(
+            text = "Ringkasan Penjualan",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = KebabTextDark
+        )
+
+        IconButton(onClick = onRefresh) {
+            Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = KebabTextDark)
+        }
+    }
+}
+
+// === FILTER SECTION ===
+@Composable
+private fun FilterSection(
+    selectedFilter: String,
+    currentDate: LocalDate,
+    dateFormatter: DateTimeFormatter,
+    onFilterSelected: (String) -> Unit,
+    onDateClick: () -> Unit
 ) {
-    val maxRevenue = trendData.maxOfOrNull { it.second }?.takeIf { it > 0 } ?: 1.0
-    val range = maxRevenue * 1.2 // Add 20% padding at top
-
-    val dataPoints = if (trendData.isNotEmpty()) {
-        trendData.map { (it.second / range).toFloat() }
-    } else {
-        listOf(0f, 0f, 0f, 0f, 0f, 0f, 0f) // Fallback flat line
-    }
-    
-    val labels = if (trendData.isNotEmpty()) {
-        trendData.map { 
-            try {
-                LocalDate.parse(it.first).format(DateTimeFormatter.ofPattern("EEE", java.util.Locale("id", "ID")))
-            } catch (e: Exception) {
-                ""
-            }
-        }
-    } else {
-        listOf("H-6", "H-5", "H-4", "H-3", "H-2", "H-1", "H")
-    }
-
-    Canvas(modifier = modifier) {
-        val width = size.width
-        val height = size.height
-        val spacing = width / (dataPoints.size - 1)
-
-        val path = Path()
-        val fillPath = Path()
-
-        var previousX = 0f
-        var previousY = height - (dataPoints[0] * height)
-
-        path.moveTo(previousX, previousY)
-        fillPath.moveTo(0f, height)
-        fillPath.lineTo(previousX, previousY)
-
-        for (i in 1..dataPoints.lastIndex) {
-            val nextX = i * spacing
-            val nextY = height - (dataPoints[i] * height)
-
-            // Calculate bezier control points for a smooth curve
-            val controlPoint1 = Offset(previousX + spacing / 2, previousY)
-            val controlPoint2 = Offset(previousX + spacing / 2, nextY)
-
-            path.cubicTo(
-                controlPoint1.x, controlPoint1.y,
-                controlPoint2.x, controlPoint2.y,
-                nextX, nextY
-            )
-            
-            fillPath.cubicTo(
-                controlPoint1.x, controlPoint1.y,
-                controlPoint2.x, controlPoint2.y,
-                nextX, nextY
-            )
-
-            previousX = nextX
-            previousY = nextY
-        }
-        
-        fillPath.lineTo(width, height)
-        fillPath.close()
-
-        // Draw gradient fill under the line
-        drawPath(
-            path = fillPath,
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    lineColor.copy(alpha = 0.3f),
-                    lineColor.copy(alpha = 0.0f)
-                ),
-                startY = 0f,
-                endY = height
-            )
-        )
-
-        // Draw the smooth line
-        drawPath(
-            path = path,
-            color = lineColor,
-            style = Stroke(width = 4.dp.toPx())
-        )
-        
-        // Draw little circles on data points
-        dataPoints.forEachIndexed { index, value ->
-            val cx = index * spacing
-            val cy = height - (value * height)
-            
-            drawCircle(
-                color = lineColor,
-                radius = 4.dp.toPx(),
-                center = Offset(cx, cy)
-            )
-            drawCircle(
-                color = Color(0xFF1E88E5), // Inner contrast
-                radius = 2.dp.toPx(),
-                center = Offset(cx, cy)
-            )
-            
-            // Draw X-axis label centered under each point
-            if (index < labels.size) {
-                drawIntoCanvas { canvas ->
-                    val paint = android.graphics.Paint().apply {
-                        color = android.graphics.Color.GRAY
-                        textSize = 32f
-                        textAlign = android.graphics.Paint.Align.CENTER
-                        isAntiAlias = true
-                    }
-                    canvas.nativeCanvas.drawText(
-                        labels[index],
-                        cx,
-                        height + 24.dp.toPx(),
-                        paint
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Tab Filter
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .background(Color(0xFFF8F3EE))
+                .border(1.dp, KebabDivider, RoundedCornerShape(50))
+                .padding(4.dp)
+        ) {
+            listOf("Hari Ini", "Kemarin", "Bulan Ini").forEach { filter ->
+                val isSelected = selectedFilter == filter
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(if (isSelected) KebabPrimary else Color.Transparent)
+                        .clickable { onFilterSelected(filter) }
+                        .padding(horizontal = 24.dp, vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = filter,
+                        fontSize = 14.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isSelected) Color.White else KebabTextGray
                     )
                 }
             }
         }
+
+        // Date Display
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.clickable { onDateClick() }
+        ) {
+            Icon(
+                Icons.Default.CalendarToday,
+                contentDescription = null,
+                tint = KebabPrimary,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = currentDate.format(dateFormatter),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = KebabTextDark
+            )
+        }
     }
+}
+
+// === METRIC SUMMARY CARD ===
+@Composable
+private fun MetricSummaryCard(
+    title: String,
+    value: String,
+    trend: String,
+    icon: ImageVector,
+    valueColor: Color
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.White)
+            .padding(24.dp)
+    ) {
+        // Watermark Icon
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = KebabDivider.copy(alpha = 0.3f),
+            modifier = Modifier
+                .size(72.dp)
+                .align(Alignment.TopEnd)
+                .offset(x = 16.dp, y = (-8).dp)
+        )
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = title,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = KebabTextGray,
+                letterSpacing = 1.sp
+            )
+            Text(
+                text = value,
+                fontSize = 36.sp,
+                fontWeight = FontWeight.Bold,
+                color = valueColor
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.TrendingUp,
+                    contentDescription = null,
+                    tint = KebabPrimary,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = trend,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = KebabPrimary
+                )
+            }
+        }
+    }
+}
+
+// === CHART SECTION ===
+@Composable
+private fun ChartSection(trendData: List<Pair<String, Double>>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.White)
+            .padding(24.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Grafik Tren Penjualan",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = KebabTextDark
+            )
+            Icon(Icons.Default.MoreVert, contentDescription = "More", tint = KebabTextDark)
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        if (trendData.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Belum ada data tren", color = KebabTextGray, fontSize = 14.sp)
+            }
+        } else {
+            // Bar Chart
+            BarChartFromTrend(trendData = trendData)
+        }
+    }
+}
+
+// === BAR CHART ===
+@Composable
+private fun BarChartFromTrend(trendData: List<Pair<String, Double>>) {
+    val maxRevenue = trendData.maxOfOrNull { it.second }?.takeIf { it > 0 } ?: 1.0
+
+    // Chart bars
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(200.dp)
+            .background(Color(0xFFF8F3EE), RoundedCornerShape(12.dp))
+            .padding(horizontal = 16.dp, vertical = 16.dp)
+    ) {
+        // Grid lines
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            HorizontalDivider(color = KebabDivider)
+            HorizontalDivider(color = KebabDivider)
+            HorizontalDivider(color = KebabDivider)
+            HorizontalDivider(color = KebabDivider)
+        }
+
+        // Bars
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            val highestIndex = trendData.indices.maxByOrNull { trendData[it].second } ?: -1
+            trendData.forEachIndexed { index, (_, value) ->
+                val percentage = (value / maxRevenue).toFloat().coerceIn(0.05f, 1f)
+                val isHighest = index == highestIndex
+                ChartBar(heightPercentage = percentage, isHighest = isHighest)
+            }
+        }
+    }
+
+    // X-axis labels
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp, start = 16.dp, end = 16.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        trendData.forEach { (dateStr, _) ->
+            val label = try {
+                LocalDate.parse(dateStr).format(
+                    DateTimeFormatter.ofPattern("EEE", Locale.forLanguageTag("id-ID"))
+                )
+            } catch (_: Exception) {
+                dateStr.takeLast(5)
+            }
+            Text(text = label, fontSize = 10.sp, color = KebabTextGray)
+        }
+    }
+}
+
+@Composable
+private fun ChartBar(heightPercentage: Float, isHighest: Boolean) {
+    val barColor = if (isHighest) KebabPrimary else KebabBarLight
+
+    Box(
+        modifier = Modifier
+            .width(24.dp)
+            .fillMaxHeight(heightPercentage)
+            .background(barColor, RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+    )
 }

@@ -2,6 +2,7 @@ package com.sipos.kebabsk.feature.profile.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sipos.kebabsk.common.AppTime
 import com.sipos.kebabsk.feature.transactions.domain.repository.TransactionsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,7 +13,7 @@ import kotlinx.coroutines.async
 import java.time.LocalDate
 
 data class RevenueUiState(
-    val selectedDate: LocalDate = LocalDate.now(),
+    val selectedDate: LocalDate = AppTime.todayJakarta(),
     val isLoading: Boolean = false,
     val revenueAmount: Double = 0.0,
     val transactionCount: Int = 0,
