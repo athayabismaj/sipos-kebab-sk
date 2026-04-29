@@ -16,7 +16,8 @@ data class MenuUser(
 
 data class DailySessionStatus(
     val isOpen: Boolean,
-    val label: String?
+    val label: String?,
+    val targetRevenue: Double?
 )
 
 data class DailyStockItem(

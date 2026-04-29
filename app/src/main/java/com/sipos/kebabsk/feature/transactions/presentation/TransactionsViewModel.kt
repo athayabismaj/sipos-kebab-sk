@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
@@ -29,13 +30,15 @@ class TransactionsViewModel(
 
     private val _uiState = MutableStateFlow(TransactionsUiState())
     val uiState: StateFlow<TransactionsUiState> = _uiState.asStateFlow()
+    private var fetchJob: Job? = null
 
     init {
         fetchTransactions()
     }
 
     fun fetchTransactions() {
-        viewModelScope.launch {
+        fetchJob?.cancel()
+        fetchJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             val result = getTransactionsUseCase(token, _uiState.value.currentDate, _uiState.value.currentPage)
             result.onSuccess { pageData ->
@@ -59,6 +62,7 @@ class TransactionsViewModel(
 
     fun loadNextPage() {
         val currentState = _uiState.value
+        if (currentState.isLoading) return
         if (currentState.currentPage < currentState.totalPages) {
             _uiState.update { it.copy(currentPage = it.currentPage + 1) }
             fetchTransactions()
@@ -67,6 +71,7 @@ class TransactionsViewModel(
 
     fun loadPreviousPage() {
         val currentState = _uiState.value
+        if (currentState.isLoading) return
         if (currentState.currentPage > 1) {
             _uiState.update { it.copy(currentPage = it.currentPage - 1) }
             fetchTransactions()
@@ -74,11 +79,13 @@ class TransactionsViewModel(
     }
 
     fun setDate(newDate: LocalDate) {
+        if (_uiState.value.isLoading && _uiState.value.currentDate == newDate) return
         _uiState.update { it.copy(currentDate = newDate, currentPage = 1) }
         fetchTransactions()
     }
 
     fun nextDay() {
+        if (_uiState.value.isLoading) return
         _uiState.update {
             it.copy(currentDate = it.currentDate.plusDays(1), currentPage = 1)
         }
@@ -86,6 +93,7 @@ class TransactionsViewModel(
     }
 
     fun previousDay() {
+        if (_uiState.value.isLoading) return
         _uiState.update {
             it.copy(currentDate = it.currentDate.minusDays(1), currentPage = 1)
         }

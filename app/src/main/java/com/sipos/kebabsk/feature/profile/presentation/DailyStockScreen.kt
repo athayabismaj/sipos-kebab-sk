@@ -70,6 +70,7 @@ fun DailyStockScreen(
     errorMessage: String?,
     onBack: () -> Unit,
     onRetry: () -> Unit,
+    onForceLogout: () -> Unit = {},
     onCloseSession: () -> Unit
 ) {
     val dateFormatter = DateTimeFormatter.ofPattern("EEEE, dd MMM yyyy", Locale.forLanguageTag("id-ID"))
@@ -116,6 +117,7 @@ fun DailyStockScreen(
                     }
 
                     !errorMessage.isNullOrBlank() -> {
+                        val isSessionExpired = errorMessage.contains("Sesi login sudah berakhir", ignoreCase = true)
                         Card(
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -133,8 +135,8 @@ fun DailyStockScreen(
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.error
                                 )
-                                OutlinedButton(onClick = onRetry) {
-                                    Text("Coba Lagi")
+                                OutlinedButton(onClick = if (isSessionExpired) onForceLogout else onRetry) {
+                                    Text(if (isSessionExpired) "Login Ulang" else "Coba Lagi")
                                 }
                             }
                         }

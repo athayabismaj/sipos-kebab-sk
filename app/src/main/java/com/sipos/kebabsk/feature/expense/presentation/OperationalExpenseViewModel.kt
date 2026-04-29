@@ -2,6 +2,7 @@ package com.sipos.kebabsk.feature.expense.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.feature.expense.data.repository.OperationalExpenseRepositoryImpl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -92,8 +93,10 @@ class OperationalExpenseViewModel(
                     it.copy(
                         isSaving = false,
                         successMessage = null,
-                        errorMessage = error.message?.takeIf { msg -> msg.isNotBlank() }
-                            ?: "Pengeluaran belum berhasil disimpan. Silakan coba lagi."
+                        errorMessage = sanitizeUserMessage(
+                            error.message,
+                            "Pengeluaran belum berhasil disimpan. Silakan coba lagi."
+                        )
                     )
                 }
             }

@@ -20,5 +20,6 @@ data class RevenueSummaryResult(
     val totalCount: Int,
     val transactionGrowthPercentage: Double?,
     val dominantItemName: String?,
-    val revenueTargetPercentage: Double?
+    val revenueTargetPercentage: Double?,
+    val dailyTargetRevenue: Double?
 )

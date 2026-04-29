@@ -256,8 +256,8 @@ fun CartTab(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(KebabBg)
-                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp)
+                    .background(Color.Transparent)
+                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 6.dp)
             ) {
                 Button(
                     onClick = onNavigateToPayment,

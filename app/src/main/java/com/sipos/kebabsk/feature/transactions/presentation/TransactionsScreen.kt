@@ -82,7 +82,8 @@ import java.util.Locale
 @Composable
 fun TransactionsScreen(
     viewModel: TransactionsViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onForceLogout: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
@@ -164,6 +165,7 @@ fun TransactionsScreen(
                     // --- MAIN CONTENT ---
                     when {
                         uiState.errorMessage != null -> {
+                            val isSessionExpired = uiState.errorMessage?.contains("Sesi login sudah berakhir", ignoreCase = true) == true
                             Box(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
@@ -176,8 +178,8 @@ fun TransactionsScreen(
                                         fontWeight = FontWeight.Medium
                                     )
                                     Spacer(modifier = Modifier.height(12.dp))
-                                    OutlinedButton(onClick = { viewModel.fetchTransactions() }) {
-                                        Text("Coba Lagi")
+                                    OutlinedButton(onClick = { if (isSessionExpired) onForceLogout() else viewModel.fetchTransactions() }) {
+                                        Text(if (isSessionExpired) "Login Ulang" else "Coba Lagi")
                                     }
                                 }
                             }

@@ -20,7 +20,8 @@ data class ShiftSummaryUiState(
     val totalRevenue: Double = 0.0,
     val transactionGrowthPercentage: Double? = null,
     val dominantItemName: String? = null,
-    val revenueTargetPercentage: Double? = null
+    val revenueTargetPercentage: Double? = null,
+    val dailyTargetRevenue: Double? = null
 )
 
 class ShiftSummaryViewModel(
@@ -81,6 +82,7 @@ class ShiftSummaryViewModel(
                     transactionGrowthPercentage = summary?.transactionGrowthPercentage,
                     dominantItemName = summary?.dominantItemName,
                     revenueTargetPercentage = summary?.revenueTargetPercentage,
+                    dailyTargetRevenue = summary?.dailyTargetRevenue,
                     errorMessage = firstFailure?.let { throwable ->
                         sanitizeUserMessage(
                             throwable.message,

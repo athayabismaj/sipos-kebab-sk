@@ -1,6 +1,9 @@
 package com.sipos.kebabsk.feature.menu.data.repository
 
+import com.sipos.kebabsk.common.mapHttpCodeToUserMessage
+import com.sipos.kebabsk.common.mapThrowableToUserMessage
 import com.sipos.kebabsk.common.retryNetworkRequest
+import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.feature.menu.data.remote.MenuApiService
 import com.sipos.kebabsk.feature.menu.domain.model.DailyStockItem
 import com.sipos.kebabsk.feature.menu.domain.model.MenuItem
@@ -26,7 +29,7 @@ class MenuRepositoryImpl(
             val body = response.body()
             if (!response.isSuccessful || body?.success != true || body.data == null) {
                 throw IllegalStateException(
-                    body?.message ?: "Gagal mengambil data menu"
+                    mapMenuError(response.code(), body?.message)
                 )
             }
 
@@ -61,7 +64,8 @@ class MenuRepositoryImpl(
                     ?: body.data.isDailySessionOpen
                     ?: true,
                 label = body.data.dailySession?.statusLabel
-                    ?: body.data.dailySessionStatusLabel
+                    ?: body.data.dailySessionStatusLabel,
+                targetRevenue = body.data.dailySession?.targetRevenue
             )
 
             val dailyStockItems = body.data.dailyStockItems.orEmpty().mapNotNull { stock ->
@@ -81,6 +85,29 @@ class MenuRepositoryImpl(
                 dailySession = dailySession,
                 dailyStockItems = dailyStockItems
             )
+        }.recoverCatching { throwable ->
+            throw IllegalStateException(
+                mapThrowableError(throwable)
+            )
         }
+    }
+
+    private fun mapMenuError(code: Int, rawMessage: String?): String {
+        return when (code) {
+            404 -> "Data menu belum tersedia."
+            else -> {
+                val fallback = "Menu belum bisa dimuat. Silakan coba lagi."
+                val httpMapped = mapHttpCodeToUserMessage(code, fallback)
+                if (httpMapped == fallback) {
+                    sanitizeUserMessage(rawMessage, fallback)
+                } else {
+                    httpMapped
+                }
+            }
+        }
+    }
+
+    private fun mapThrowableError(throwable: Throwable): String {
+        return mapThrowableToUserMessage(throwable, "Menu belum bisa dimuat. Silakan coba lagi.")
     }
 }

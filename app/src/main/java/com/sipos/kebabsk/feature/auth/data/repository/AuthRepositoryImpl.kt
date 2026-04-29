@@ -3,6 +3,7 @@ package com.sipos.kebabsk.feature.auth.data.repository
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.feature.auth.data.remote.AuthApiService
 import com.sipos.kebabsk.feature.auth.domain.model.AuthSession
 import com.sipos.kebabsk.feature.auth.domain.repository.AuthRepository
@@ -29,7 +30,7 @@ class AuthRepositoryImpl(
             } else {
                 val msg = extractErrorMessage(response.errorBody()?.string(), body)
                     ?: "Login belum berhasil. Periksa kembali email/username dan password Anda."
-                throw IllegalStateException(msg)
+                throw IllegalStateException(normalizeAuthError(msg, "Login belum berhasil. Silakan coba lagi."))
             }
         }
     }
@@ -44,7 +45,7 @@ class AuthRepositoryImpl(
             } else {
                 val msg = extractErrorMessage(response.errorBody()?.string(), body)
                     ?: "Gagal memuat profil user."
-                throw IllegalStateException(msg)
+                throw IllegalStateException(normalizeAuthError(msg, "Profil belum bisa dimuat. Silakan coba lagi."))
             }
         }
     }
@@ -64,7 +65,7 @@ class AuthRepositoryImpl(
             } else {
                 val msg = extractErrorMessage(response.errorBody()?.string(), body)
                     ?: "Update profile gagal."
-                throw IllegalStateException(msg)
+                throw IllegalStateException(normalizeAuthError(msg, "Profil belum berhasil diperbarui. Silakan coba lagi."))
             }
         }
     }
@@ -84,7 +85,7 @@ class AuthRepositoryImpl(
             } else {
                 val msg = extractErrorMessage(response.errorBody()?.string(), body)
                     ?: "Ubah password gagal."
-                throw IllegalStateException(msg)
+                throw IllegalStateException(normalizeAuthError(msg, "Password belum berhasil diubah. Silakan coba lagi."))
             }
         }
     }
@@ -185,7 +186,7 @@ class AuthRepositoryImpl(
             ?: allErrors.firstOrNull()
             ?: fallbackError
 
-        throw IllegalStateException(bestError)
+        throw IllegalStateException(normalizeAuthError(bestError, fallbackError))
     }
 
     private fun extractToken(body: JsonObject?): String? {
@@ -261,6 +262,25 @@ class AuthRepositoryImpl(
     private fun isRouteNotFoundMessage(message: String): Boolean {
         val normalized = message.lowercase()
         return normalized.contains("route") && normalized.contains("could not be found")
+    }
+
+    private fun normalizeAuthError(rawMessage: String?, fallback: String): String {
+        val safe = sanitizeUserMessage(rawMessage, fallback)
+        val lower = safe.lowercase()
+
+        return when {
+            lower.contains("password") && lower.contains("salah") ->
+                "Password yang dimasukkan belum sesuai."
+            lower.contains("user") && lower.contains("tidak ditemukan") ->
+                "Akun tidak ditemukan. Periksa kembali email atau username."
+            lower.contains("otp") && lower.contains("tidak valid") ->
+                "Kode OTP tidak valid. Silakan cek kembali."
+            lower.contains("expired") || lower.contains("kadaluarsa") ->
+                "Sesi verifikasi sudah kedaluwarsa. Silakan minta kode baru."
+            lower.contains("terlalu sering") || lower.contains("too many") ->
+                "Permintaan terlalu sering. Coba lagi beberapa saat."
+            else -> safe
+        }
     }
 
     private fun JsonObject.getAsJsonObjectOrNull(key: String): JsonObject? {

@@ -229,7 +229,14 @@ fun MenuScreen(
                     }
 
                     CashierPage.CART -> {
-                        Box(modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)) {
+                        Box(
+                            modifier = Modifier.padding(
+                                start = 24.dp,
+                                end = 24.dp,
+                                top = 16.dp,
+                                bottom = 0.dp
+                            )
+                        ) {
                             CartTab(
                                 cartItems = uiState.cartItems,
                                 totalAmount = totalAmount,
@@ -340,5 +347,4 @@ private fun CartFloatingActionButton(itemCount: Int, onClick: () -> Unit) {
         }
     }
 }
-
 

@@ -2,6 +2,9 @@ package com.sipos.kebabsk.feature.transactions.data.repository
 
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.sipos.kebabsk.common.mapHttpCodeToUserMessage
+import com.sipos.kebabsk.common.mapThrowableToUserMessage
+import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.common.retryNetworkRequest
 import com.sipos.kebabsk.feature.transactions.data.remote.TransactionItemResponse
 import com.sipos.kebabsk.feature.transactions.data.remote.TransactionsApiService
@@ -19,156 +22,170 @@ class TransactionsRepositoryImpl(
 ) : TransactionsRepository {
 
     override suspend fun getTransactions(token: String, date: LocalDate, page: Int): Result<TransactionPageData> {
-        return try {
-            // Because backend uses custom format: \Carbon\Carbon::parse($transaction->created_at)->isoFormat('D MMMM Y HH:mm')
-            // Example output: "9 Maret 2026 14:30"
-            // Screenshot shows format like "09 Mar 2026 01:04"
+        return runCatching {
             val formattedQueryDate = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
             val response = retryNetworkRequest(maxAttempts = 1) {
                 apiService.getTransactions("Bearer $token", formattedQueryDate, page)
             }
 
-            if (response.isSuccessful) {
-                val body = response.body()
-                if (body?.success == true && body.data != null) {
-                    
-                    return withContext(Dispatchers.Default) {
-                        try {
-                            // Flexibly handle "data" being either a JSON Array or a JSON Object (Laravel pagination)
-                            val rawDataElement = body.data
-                            val listType = object : TypeToken<List<TransactionItemResponse>>() {}.type
-                            val gson = Gson()
-                            
-                            var lastPage = 1
-                            val parsedList: List<TransactionItemResponse> = try {
-                                if (rawDataElement.isJsonArray) {
-                                    gson.fromJson(rawDataElement, listType)
-                                } else if (rawDataElement.isJsonObject) {
-                                    // Backend might be returning paginated object: { "current_page": 1, "last_page": 2, "data": [...] }
-                                    val dataObj = rawDataElement.asJsonObject
-                                    if (dataObj.has("last_page")) {
-                                        lastPage = dataObj.get("last_page").asInt
-                                    }
-                                    if (dataObj.has("data") && dataObj.get("data").isJsonArray) {
-                                        gson.fromJson(dataObj.get("data"), listType)
-                                    } else {
-                                        emptyList()
-                                    }
-                                } else {
-                                    emptyList()
-                                }
-                            } catch (e: Exception) {
-                                emptyList()
-                            }
-
-                            val items = parsedList.mapIndexed { index, itemResponse ->
-                                // Generate TRX-0001 format based on daily index.
-                                // Assuming API returns newest first (descending), the oldest is at the end.
-                                // So index 0 (newest) gets the highest number.
-                                val chronologicalNumber = parsedList.size - index
-                                val generatedCode = "TRX-" + String.format("%04d", chronologicalNumber)
-
-                                // Parse time regardless of format
-                                val timeString = try {
-                                    val createdAtStr = itemResponse.createdAt ?: ""
-                                    if (createdAtStr.contains("T")) {
-                                        // Probably ISO-8601 like 2026-03-09T14:30:00
-                                        val timePart = createdAtStr.substringAfter("T").substringBefore(".")
-                                        val timeParts = timePart.split(":")
-                                        if (timeParts.size >= 2) "${timeParts[0]}:${timeParts[1]}" else "00:00"
-                                    } else {
-                                        // Probably D MMMM Y HH:mm format
-                                        val parts = createdAtStr.split(" ")
-                                        if (parts.size >= 2) {
-                                            val timeCandidate = parts.last()
-                                            if (timeCandidate.contains(":")) timeCandidate else "00:00"
-                                        } else {
-                                            "00:00"
-                                        }
-                                    }
-                                } catch (e: Exception) {
-                                    "00:00" // Fallback if parsing fails
-                                }
-
-                                TransactionHistoryItem(
-                                    id = itemResponse.id ?: 0L,
-                                    code = itemResponse.transactionCode ?: "TRX-UNKNOWN",
-                                    time = timeString,
-                                    itemCount = itemResponse.itemsCount ?: 0,
-                                    total = itemResponse.totalAmount ?: 0.0,
-                                    status = itemResponse.status ?: "Unknown",
-                                    originalDate = itemResponse.createdAt ?: ""
-                                )
-                            }
-
-                            Result.success(TransactionPageData(items, lastPage))
-                        } catch (e: Exception) {
-                            Result.failure(e)
-                        }
-                    }
-                } else {
-                    Result.failure(Exception(body?.message ?: "Gagal memuat data transaksi"))
-                }
-            } else {
-                Result.failure(Exception("HTTP Error ${response.code()}"))
+            val body = response.body()
+            if (!response.isSuccessful || body?.success != true || body.data == null) {
+                throw IllegalStateException(
+                    mapHttpFailure(
+                        code = response.code(),
+                        rawMessage = body?.message,
+                        fallback = "Riwayat transaksi belum bisa dimuat. Silakan coba lagi."
+                    )
+                )
             }
-        } catch (e: Exception) {
-            Result.failure(e)
+
+            withContext(Dispatchers.Default) {
+                val rawDataElement = body.data
+                val listType = object : TypeToken<List<TransactionItemResponse>>() {}.type
+                val gson = Gson()
+
+                var lastPage = 1
+                val parsedList: List<TransactionItemResponse> = try {
+                    if (rawDataElement.isJsonArray) {
+                        gson.fromJson(rawDataElement, listType)
+                    } else if (rawDataElement.isJsonObject) {
+                        val dataObj = rawDataElement.asJsonObject
+                        if (dataObj.has("last_page")) {
+                            lastPage = dataObj.get("last_page").asInt
+                        }
+                        if (dataObj.has("data") && dataObj.get("data").isJsonArray) {
+                            gson.fromJson(dataObj.get("data"), listType)
+                        } else {
+                            emptyList()
+                        }
+                    } else {
+                        emptyList()
+                    }
+                } catch (_: Exception) {
+                    emptyList()
+                }
+
+                val items = parsedList.map { itemResponse ->
+                    val timeString = parseTransactionTime(itemResponse.createdAt)
+                    TransactionHistoryItem(
+                        id = itemResponse.id ?: 0L,
+                        code = itemResponse.transactionCode ?: "TRX-UNKNOWN",
+                        time = timeString,
+                        itemCount = itemResponse.itemsCount ?: 0,
+                        total = itemResponse.totalAmount ?: 0.0,
+                        status = itemResponse.status ?: "Unknown",
+                        originalDate = itemResponse.createdAt ?: ""
+                    )
+                }
+
+                TransactionPageData(items, lastPage)
+            }
+        }.recoverCatching { throwable ->
+            throw IllegalStateException(
+                mapThrowable(
+                    throwable = throwable,
+                    fallback = "Riwayat transaksi belum bisa dimuat. Silakan coba lagi."
+                )
+            )
         }
     }
 
     override suspend fun getRevenueSummary(token: String, date: LocalDate): Result<RevenueSummaryResult> {
-        return try {
+        return runCatching {
             val formattedQueryDate = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
             val response = retryNetworkRequest {
                 apiService.getRevenueSummary("Bearer $token", formattedQueryDate)
             }
 
-            if (response.isSuccessful) {
-                val body = response.body()
-                if (body?.success == true && body.data != null) {
-                    Result.success(
-                        RevenueSummaryResult(
-                            totalRevenue = body.data.totalRevenue ?: 0.0,
-                            totalCount = body.data.totalCount ?: 0,
-                            transactionGrowthPercentage = body.data.transactionGrowthPercentage,
-                            dominantItemName = body.data.dominantItemName,
-                            revenueTargetPercentage = body.data.revenueTargetPercentage
-                        )
+            val body = response.body()
+            if (!response.isSuccessful || body?.success != true || body.data == null) {
+                throw IllegalStateException(
+                    mapHttpFailure(
+                        code = response.code(),
+                        rawMessage = body?.message,
+                        fallback = "Ringkasan omzet belum bisa dimuat. Silakan coba lagi."
                     )
-                } else {
-                    Result.failure(Exception(body?.message ?: "Gagal mengambil data ringkasan"))
-                }
-            } else {
-                Result.failure(Exception("Error: ${response.code()} ${response.message()}"))
+                )
             }
-        } catch (e: Exception) {
-            Result.failure(e)
+
+            RevenueSummaryResult(
+                totalRevenue = body.data.totalRevenue ?: 0.0,
+                totalCount = body.data.totalCount ?: 0,
+                transactionGrowthPercentage = body.data.transactionGrowthPercentage,
+                dominantItemName = body.data.dominantItemName,
+                revenueTargetPercentage = body.data.revenueTargetPercentage,
+                dailyTargetRevenue = body.data.dailyTargetRevenue
+            )
+        }.recoverCatching { throwable ->
+            throw IllegalStateException(
+                mapThrowable(
+                    throwable = throwable,
+                    fallback = "Ringkasan omzet belum bisa dimuat. Silakan coba lagi."
+                )
+            )
         }
     }
 
     override suspend fun getRevenueTrend(token: String, date: LocalDate): Result<List<Pair<String, Double>>> {
-        return try {
+        return runCatching {
             val formattedQueryDate = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
             val response = retryNetworkRequest {
                 apiService.getRevenueTrend("Bearer $token", formattedQueryDate)
             }
 
-            if (response.isSuccessful) {
-                val body = response.body()
-                if (body?.success == true && body.data != null) {
-                    val trendList = body.data.map { 
-                        Pair(it.date ?: "", it.totalRevenue ?: 0.0)
-                    }
-                    Result.success(trendList)
-                } else {
-                    Result.failure(Exception(body?.message ?: "Gagal mengambil data tren pendapatan"))
-                }
-            } else {
-                Result.failure(Exception("Error: ${response.code()} ${response.message()}"))
+            val body = response.body()
+            if (!response.isSuccessful || body?.success != true || body.data == null) {
+                throw IllegalStateException(
+                    mapHttpFailure(
+                        code = response.code(),
+                        rawMessage = body?.message,
+                        fallback = "Grafik omzet belum bisa dimuat. Silakan coba lagi."
+                    )
+                )
             }
-        } catch (e: Exception) {
-            Result.failure(e)
+
+            body.data.map { Pair(it.date ?: "", it.totalRevenue ?: 0.0) }
+        }.recoverCatching { throwable ->
+            throw IllegalStateException(
+                mapThrowable(
+                    throwable = throwable,
+                    fallback = "Grafik omzet belum bisa dimuat. Silakan coba lagi."
+                )
+            )
         }
+    }
+
+    private fun parseTransactionTime(createdAt: String?): String {
+        if (createdAt.isNullOrBlank()) return "00:00"
+        return try {
+            if (createdAt.contains("T")) {
+                val timePart = createdAt.substringAfter("T").substringBefore(".")
+                val timeParts = timePart.split(":")
+                if (timeParts.size >= 2) "${timeParts[0]}:${timeParts[1]}" else "00:00"
+            } else {
+                val parts = createdAt.split(" ")
+                if (parts.size >= 2) {
+                    val timeCandidate = parts.last()
+                    if (timeCandidate.contains(":")) timeCandidate else "00:00"
+                } else {
+                    "00:00"
+                }
+            }
+        } catch (_: Exception) {
+            "00:00"
+        }
+    }
+
+    private fun mapHttpFailure(code: Int, rawMessage: String?, fallback: String): String {
+        val httpMapped = mapHttpCodeToUserMessage(code, fallback)
+        return if (httpMapped == fallback) {
+            sanitizeUserMessage(rawMessage, fallback)
+        } else {
+            httpMapped
+        }
+    }
+
+    private fun mapThrowable(throwable: Throwable, fallback: String): String {
+        return mapThrowableToUserMessage(throwable, fallback)
     }
 }

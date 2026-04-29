@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 data class MenuUiState(
     val isLoading: Boolean = false,
@@ -28,6 +30,7 @@ data class MenuUiState(
     val cashierRole: String? = null,
     val isDailySessionOpen: Boolean = true,
     val dailySessionStatusLabel: String? = null,
+    val dailyTargetRevenue: Double? = null,
     val dailyStockItems: List<DailyStockItem> = emptyList(),
     val menus: List<MenuItem> = emptyList(),
     val selectedCategory: String? = null,
@@ -44,15 +47,17 @@ data class MenuUiState(
     val checkoutReceiptItems: List<CheckoutCartItem> = emptyList()
 )
 
-class MenuViewModel : ViewModel() {
-    private val getMenusUseCase = GetMenusUseCase(MenuRepositoryImpl(NetworkModule.menuApiService))
-    private val getPaymentMethodsUseCase = GetPaymentMethodsUseCase(CheckoutRepositoryImpl(NetworkModule.checkoutApiService))
-    private val createTransactionUseCase = CreateTransactionUseCase(CheckoutRepositoryImpl(NetworkModule.checkoutApiService))
+class MenuViewModel(
+    private val getMenusUseCase: GetMenusUseCase = GetMenusUseCase(MenuRepositoryImpl(NetworkModule.menuApiService)),
+    private val getPaymentMethodsUseCase: GetPaymentMethodsUseCase = GetPaymentMethodsUseCase(CheckoutRepositoryImpl(NetworkModule.checkoutApiService)),
+    private val createTransactionUseCase: CreateTransactionUseCase = CreateTransactionUseCase(CheckoutRepositoryImpl(NetworkModule.checkoutApiService))
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MenuUiState())
     val uiState: StateFlow<MenuUiState> = _uiState.asStateFlow()
 
     private var loadedToken: String? = null
+    private val checkoutMutex = Mutex()
 
     fun loadMenus(token: String, forceRefresh: Boolean = false) {
         if (!forceRefresh && loadedToken == token && _uiState.value.menus.isNotEmpty()) {
@@ -80,6 +85,7 @@ class MenuViewModel : ViewModel() {
                             cashierRole = payload.user.role,
                             isDailySessionOpen = payload.dailySession.isOpen,
                             dailySessionStatusLabel = payload.dailySession.label,
+                            dailyTargetRevenue = payload.dailySession.targetRevenue,
                             dailyStockItems = payload.dailyStockItems
                         )
                     }
@@ -216,92 +222,94 @@ class MenuViewModel : ViewModel() {
     }
 
     fun submitCheckout(token: String) {
-        if (_uiState.value.isLoading) {
-            // Guard to prevent accidental duplicate request from rapid taps.
-            return
-        }
-
-        val state = _uiState.value
-        if (state.cartItems.isEmpty()) {
-            _uiState.update { it.copy(errorMessage = "Keranjang masih kosong") }
-            return
-        }
-
-        if (!state.isDailySessionOpen) {
-            _uiState.update {
-                it.copy(
-                    errorMessage = "Sesi harian belum dibuka admin. Checkout belum bisa dilakukan."
-                )
-            }
-            return
-        }
-
-        val paymentMethodId = state.selectedPaymentMethodId
-        if (paymentMethodId == null) {
-            _uiState.update { it.copy(errorMessage = "Pilih metode pembayaran") }
-            return
-        }
-
-        val paidAmount = state.paidAmountInput.toDoubleOrNull()
-        if (paidAmount == null || paidAmount <= 0.0) {
-            _uiState.update { it.copy(errorMessage = "Nominal bayar tidak valid") }
-            return
-        }
-
         viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    isLoading = true,
-                    errorMessage = null,
-                    checkoutMessage = null,
-                    checkoutTransactionCode = null,
-                    checkoutChangeAmount = null,
-                    checkoutTotalAmount = null,
-                    checkoutPaidAmount = null,
-                    checkoutReceiptItems = emptyList()
-                )
-            }
-            val request = CheckoutRequestData(
-                paymentMethodId = paymentMethodId,
-                paidAmount = paidAmount,
-                items = state.cartItems.map { CheckoutItemInput(it.variantId, it.qty) },
-                note = state.noteInput.takeIf { it.isNotBlank() }
-            )
+            checkoutMutex.withLock {
+                if (_uiState.value.isLoading) {
+                    // Double guard: avoid duplicate submit while request is in flight.
+                    return@withLock
+                }
 
-            createTransactionUseCase(token, request)
-                .onSuccess { result ->
+                val state = _uiState.value
+                if (state.cartItems.isEmpty()) {
+                    _uiState.update { it.copy(errorMessage = "Keranjang masih kosong") }
+                    return@withLock
+                }
+
+                if (!state.isDailySessionOpen) {
                     _uiState.update {
                         it.copy(
-                            isLoading = false,
-                            cartItems = emptyList(),
-                            paidAmountInput = "",
-                            noteInput = "",
-                            checkoutMessage = "Pembayaran berhasil: ${result.transactionCode}",
-                            checkoutTransactionCode = result.transactionCode,
-                            checkoutChangeAmount = result.changeAmount,
-                            checkoutTotalAmount = result.totalAmount,
-                            checkoutPaidAmount = result.paidAmount,
-                            checkoutReceiptItems = state.cartItems,
-                            errorMessage = null
+                            errorMessage = "Sesi harian belum dibuka admin. Checkout belum bisa dilakukan."
                         )
                     }
-                    // REFRESH DATA (Tarik stok terbaru setelah checkout berhasil)
-                    loadMenus(token, forceRefresh = true)
+                    return@withLock
                 }
-                .onFailure { error ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = normalizeCheckoutError(error.message),
-                            checkoutMessage = null,
-                            checkoutTransactionCode = null,
-                            checkoutChangeAmount = null,
-                            checkoutTotalAmount = null,
-                            checkoutPaidAmount = null,
-                            checkoutReceiptItems = emptyList()
-                        )
+
+                val paymentMethodId = state.selectedPaymentMethodId
+                if (paymentMethodId == null) {
+                    _uiState.update { it.copy(errorMessage = "Pilih metode pembayaran") }
+                    return@withLock
+                }
+
+                val paidAmount = state.paidAmountInput.toDoubleOrNull()
+                if (paidAmount == null || paidAmount <= 0.0) {
+                    _uiState.update { it.copy(errorMessage = "Nominal bayar tidak valid") }
+                    return@withLock
+                }
+
+                _uiState.update {
+                    it.copy(
+                        isLoading = true,
+                        errorMessage = null,
+                        checkoutMessage = null,
+                        checkoutTransactionCode = null,
+                        checkoutChangeAmount = null,
+                        checkoutTotalAmount = null,
+                        checkoutPaidAmount = null,
+                        checkoutReceiptItems = emptyList()
+                    )
+                }
+                val request = CheckoutRequestData(
+                    paymentMethodId = paymentMethodId,
+                    paidAmount = paidAmount,
+                    items = state.cartItems.map { CheckoutItemInput(it.variantId, it.qty) },
+                    note = state.noteInput.takeIf { it.isNotBlank() }
+                )
+
+                createTransactionUseCase(token, request)
+                    .onSuccess { result ->
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                cartItems = emptyList(),
+                                paidAmountInput = "",
+                                noteInput = "",
+                                checkoutMessage = "Pembayaran berhasil: ${result.transactionCode}",
+                                checkoutTransactionCode = result.transactionCode,
+                                checkoutChangeAmount = result.changeAmount,
+                                checkoutTotalAmount = result.totalAmount,
+                                checkoutPaidAmount = result.paidAmount,
+                                checkoutReceiptItems = state.cartItems,
+                                errorMessage = null
+                            )
+                        }
+                        // REFRESH DATA (Tarik stok terbaru setelah checkout berhasil)
+                        loadMenus(token, forceRefresh = true)
                     }
-                }
+                    .onFailure { error ->
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = normalizeCheckoutError(error.message),
+                                checkoutMessage = null,
+                                checkoutTransactionCode = null,
+                                checkoutChangeAmount = null,
+                                checkoutTotalAmount = null,
+                                checkoutPaidAmount = null,
+                                checkoutReceiptItems = emptyList()
+                            )
+                        }
+                    }
+            }
         }
     }
 

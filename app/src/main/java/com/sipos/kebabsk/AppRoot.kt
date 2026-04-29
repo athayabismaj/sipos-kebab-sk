@@ -340,8 +340,10 @@ private fun AppScaffold(
                         cashierRole = session.role ?: menuUiState.cashierRole ?: "kasir",
                         isDailySessionOpen = menuUiState.isDailySessionOpen,
                         dailySessionLabel = menuUiState.dailySessionStatusLabel,
+                        dailyTargetRevenue = menuUiState.dailyTargetRevenue,
                         shiftSummaryUiState = shiftSummaryUiState,
                         onRetryShiftSummary = shiftSummaryViewModel::refresh,
+                        onForceLogout = onLogout,
                         onStartTransaction = { cashierTransactionStarted = true }
                     )
                 } else {
@@ -367,7 +369,11 @@ private fun AppScaffold(
             AppTab.TRANSACTIONS -> {
                 val factory = remember(session.token) { TransactionsViewModelFactory(session.token) }
                 val transactionsViewModel: TransactionsViewModel = viewModel(factory = factory)
-                TransactionsScreen(viewModel = transactionsViewModel, modifier = Modifier.padding(innerPadding))
+                TransactionsScreen(
+                    viewModel = transactionsViewModel, 
+                    modifier = Modifier.padding(innerPadding),
+                    onForceLogout = onLogout
+                )
             }
 
             AppTab.PROFILE -> {
@@ -473,6 +479,7 @@ private fun AppScaffold(
                                 profilePage = ProfilePage.SUMMARY
                             },
                             onRetry = dailyStockViewModel::refresh,
+                            onForceLogout = onLogout,
                             onCloseSession = {
                                 profilePage = ProfilePage.CLOSE_STOCK_SESSION
                             }
@@ -542,8 +549,10 @@ private fun CashierDashboardScreen(
     cashierRole: String,
     isDailySessionOpen: Boolean,
     dailySessionLabel: String?,
+    dailyTargetRevenue: Double?,
     shiftSummaryUiState: ShiftSummaryUiState,
     onRetryShiftSummary: () -> Unit,
+    onForceLogout: () -> Unit,
     onStartTransaction: () -> Unit
 ) {
     val scrollState = rememberScrollState()
@@ -619,6 +628,7 @@ private fun CashierDashboardScreen(
             }
 
             !shiftSummaryUiState.errorMessage.isNullOrBlank() -> {
+                val isSessionExpired = shiftSummaryUiState.errorMessage.contains("Sesi login sudah berakhir", ignoreCase = true)
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
@@ -632,11 +642,11 @@ private fun CashierDashboardScreen(
                         )
                         Spacer(modifier = Modifier.height(10.dp))
                         Button(
-                            onClick = onRetryShiftSummary,
+                            onClick = if (isSessionExpired) onForceLogout else onRetryShiftSummary,
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = KebabPrimary)
                         ) {
-                            Text("Coba Lagi", color = Color.White)
+                            Text(if (isSessionExpired) "Login Ulang" else "Coba Lagi", color = Color.White)
                         }
                     }
                 }
@@ -662,13 +672,17 @@ private fun CashierDashboardScreen(
                 DashboardMetricCard(
                     title = "Pendapatan Hari Ini",
                     value = formatRupiah(shiftSummaryUiState.totalRevenue),
-                    subValue = shiftSummaryUiState.revenueTargetPercentage?.let {
-                        "Target harian: ${it}% tercapai"
-                    } ?: "Target harian: ${
-                        if (shiftSummaryUiState.totalRevenue > 0)
-                            String.format("%.1f", (shiftSummaryUiState.totalRevenue / 500000.0) * 100)
-                        else "0.0"
-                    }% tercapai",
+                    subValue = run {
+                        val target = shiftSummaryUiState.dailyTargetRevenue
+                            ?.takeIf { it > 0.0 }
+                            ?: dailyTargetRevenue?.takeIf { it > 0.0 }
+                        val percentage = when {
+                            target != null -> (shiftSummaryUiState.totalRevenue / target) * 100.0
+                            shiftSummaryUiState.revenueTargetPercentage != null -> shiftSummaryUiState.revenueTargetPercentage
+                            else -> 0.0
+                        }
+                        "Target harian: ${String.format("%.1f", percentage)}% tercapai"
+                    },
                     icon = Icons.AutoMirrored.Outlined.List,
                     isPrimary = true
                 )

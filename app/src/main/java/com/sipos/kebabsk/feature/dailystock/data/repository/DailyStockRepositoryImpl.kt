@@ -4,6 +4,7 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.sipos.kebabsk.common.retryNetworkRequest
+import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.feature.dailystock.data.remote.DailyStockApiService
 import com.sipos.kebabsk.feature.menu.domain.model.DailyStockItem
 
@@ -94,7 +95,7 @@ class DailyStockRepositoryImpl(
                         .asJsonObject.get("message")?.asString
                 }.getOrNull()
                 throw IllegalStateException(
-                    errorMsg ?: "Gagal menutup sesi stok harian (HTTP ${response.code()})."
+                    mapCloseSessionError(response.code(), errorMsg)
                 )
             }
 
@@ -285,5 +286,16 @@ class DailyStockRepositoryImpl(
             }
         }
         return null
+    }
+
+    private fun mapCloseSessionError(code: Int, rawMessage: String?): String {
+        return when (code) {
+            401 -> "Sesi login sudah berakhir. Silakan login ulang."
+            404 -> "Sesi stok harian tidak ditemukan."
+            422 -> "Data sisa bahan belum valid. Silakan periksa kembali."
+            429 -> "Permintaan terlalu sering. Coba lagi beberapa saat."
+            in 500..599 -> "Layanan sedang bermasalah. Silakan coba lagi nanti."
+            else -> sanitizeUserMessage(rawMessage, "Gagal menutup sesi stok harian. Silakan coba lagi.")
+        }
     }
 }

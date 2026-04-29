@@ -29,7 +29,16 @@ data class RevenueSummaryData(
     @SerializedName("total_count") val totalCount: Int?,
     @SerializedName("transaction_growth_percentage") val transactionGrowthPercentage: Double?,
     @SerializedName("dominant_item_name") val dominantItemName: String?,
-    @SerializedName("revenue_target_percentage") val revenueTargetPercentage: Double?
+    @SerializedName(
+        value = "revenue_target_percentage",
+        alternate = ["target_achieved_pct", "target_percentage"]
+    )
+    val revenueTargetPercentage: Double?,
+    @SerializedName(
+        value = "daily_target_revenue",
+        alternate = ["target_revenue"]
+    )
+    val dailyTargetRevenue: Double?
 )
 
 data class RevenueTrendResponse(

@@ -21,6 +21,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.lazy.items
+import com.sipos.kebabsk.feature.checkout.domain.model.CheckoutCartItem
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -494,10 +497,44 @@ private fun ReceiptSuccessDialog(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        val totalAmount = uiState.cartItems.sumOf { it.price * it.qty }
+                        val totalAmount = uiState.checkoutTotalAmount ?: 0.0
+                        
+                        // Items List
+                        androidx.compose.foundation.lazy.LazyColumn(
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp).padding(bottom = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(uiState.checkoutReceiptItems) { item ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(text = item.menuName, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
+                                        Text(text = "${item.qty}x @ ${toRupiah(item.price)} (${item.variantName})", fontSize = 12.sp, color = KebabTextGray)
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(text = toRupiah(item.price * item.qty), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = KebabTextDark)
+                                }
+                            }
+                        }
+
+                        val dashColorTop = KebabDivider
+                        Canvas(modifier = Modifier.fillMaxWidth().height(1.dp)) {
+                            drawLine(
+                                color = dashColorTop,
+                                start = Offset(0f, 0f),
+                                end = Offset(size.width, 0f),
+                                strokeWidth = 1.dp.toPx(),
+                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+
                         ReceiptRow(label = "Total Belanja", value = toRupiah(totalAmount), isBold = true)
                         Spacer(modifier = Modifier.height(8.dp))
-                        val paidDouble = uiState.paidAmountInput.replace(".", "").toDoubleOrNull() ?: totalAmount
+                        val paidDouble = uiState.checkoutPaidAmount ?: totalAmount
                         ReceiptRow(label = "Tunai/Dibayar", value = toRupiah(paidDouble))
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -515,7 +552,7 @@ private fun ReceiptSuccessDialog(
 
                         Spacer(modifier = Modifier.height(16.dp))
                         
-                        val change = if (paidDouble > totalAmount) paidDouble - totalAmount else 0.0
+                        val change = uiState.checkoutChangeAmount ?: 0.0
                         Text(
                             text = "Kembalian",
                             fontSize = 14.sp,
@@ -585,13 +622,12 @@ private fun buildReceiptText(uiState: MenuUiState): String {
     val sb = StringBuilder()
     sb.append("KEBAB SK\n")
     sb.append("-----------------------------\n")
-    uiState.cartItems.forEach {
+    uiState.checkoutReceiptItems.forEach {
         sb.append("${it.menuName}\n")
         sb.append("${it.qty} x ${toRupiah(it.price)} = ${toRupiah(it.price * it.qty)}\n")
     }
     sb.append("-----------------------------\n")
-    val total = uiState.cartItems.sumOf { it.price * it.qty }
-    sb.append("Total: ${toRupiah(total)}\n")
+    sb.append("Total: ${toRupiah(uiState.checkoutTotalAmount ?: 0.0)}\n")
     return sb.toString()
 }
 
