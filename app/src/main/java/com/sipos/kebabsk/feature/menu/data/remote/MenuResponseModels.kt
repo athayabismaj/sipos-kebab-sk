@@ -58,7 +58,9 @@ data class VariantResponse(
     @SerializedName("id") val id: Long?,
     @SerializedName("name") val name: String?,
     @SerializedName("price") val price: Double?,
-    @SerializedName("is_available") val isAvailable: Boolean?
+    @SerializedName("is_available") val isAvailable: Boolean?,
+    @SerializedName(value = "insufficient_stock", alternate = ["stock_insufficient", "is_stock_insufficient", "out_of_stock"])
+    val insufficientStock: Boolean?
 )
 
 data class DailyStockItemResponse(

@@ -134,13 +134,25 @@ fun MenuScreen(
         uiState.cartItems.sumOf { it.price * it.qty }
     }
     val exactAmount = totalAmount.toInt()
+    val isCashier = remember(session.role) { session.role.equals("kasir", ignoreCase = true) }
 
     val quickAmounts = remember(totalAmount) { buildQuickAmounts(totalAmount) }
-    val menuItems = remember(uiState.menus) { buildMenuVariantItems(uiState.menus) }
-    val categories = remember(uiState.menus) { buildMenuCategories(uiState.menus) }
+    val rawMenuItems = remember(uiState.menus) { buildMenuVariantItems(uiState.menus) }
+    val menuItems = remember(rawMenuItems, isCashier) {
+        if (isCashier) {
+            // Sembunyikan semua variant yang tidak bisa dipesan:
+            // - isAvailable = false (admin nonaktifkan)
+            // - insufficientStock = true (bahan kurang dari resep)
+            rawMenuItems.filter { it.isAvailable && !it.insufficientStock }
+        } else {
+            rawMenuItems
+        }
+    }
+    val categories = remember(menuItems) { buildMenuCategories(menuItems) }
     val filteredMenuItems = remember(menuItems, uiState.selectedCategory) {
         filterMenuItems(menuItems, uiState.selectedCategory)
     }
+    val emptyStateMessage = "Belum ada menu yang tersedia untuk dijual saat ini."
 
     var cashierPage by rememberSaveable { mutableStateOf(CashierPage.MENU) }
 
@@ -220,6 +232,7 @@ fun MenuScreen(
                                 categories = categories,
                                 selectedCategory = uiState.selectedCategory,
                                 cartItems = uiState.cartItems,
+                                emptyStateMessage = emptyStateMessage,
                                 onCategorySelected = onCategorySelected,
                                 onRefresh = onRefresh,
                                 onAddVariant = onAddVariant,
@@ -275,14 +288,13 @@ fun MenuScreen(
 
 @Composable
 private fun MenuTopBar(cashierPage: CashierPage, onSearch: () -> Unit, onClose: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(KebabBg)
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (cashierPage == CashierPage.MENU) {
                 Icon(Icons.Default.Menu, contentDescription = null, tint = KebabPrimary, modifier = Modifier.size(24.dp))
@@ -307,12 +319,7 @@ private fun MenuTopBar(cashierPage: CashierPage, onSearch: () -> Unit, onClose: 
                 )
             }
         }
-        
-        if (cashierPage == CashierPage.MENU) {
-            IconButton(onClick = onSearch) {
-                Icon(Icons.Default.Search, contentDescription = "Cari", tint = KebabTextDark)
-            }
-        }
+        // Search icon dihilangkan sesuai permintaan
     }
 }
 
@@ -324,7 +331,7 @@ private fun CartFloatingActionButton(itemCount: Int, onClick: () -> Unit) {
         containerColor = KebabPrimary,
         contentColor = Color.White,
         shape = CircleShape,
-        modifier = Modifier.padding(bottom = 16.dp)
+        modifier = Modifier.padding(end = 12.dp, bottom = 4.dp)
     ) {
         BadgedBox(
             badge = {
@@ -347,4 +354,3 @@ private fun CartFloatingActionButton(itemCount: Int, onClick: () -> Unit) {
         }
     }
 }
-

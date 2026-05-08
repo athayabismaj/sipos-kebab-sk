@@ -57,79 +57,96 @@ class MenuViewModel(
     val uiState: StateFlow<MenuUiState> = _uiState.asStateFlow()
 
     private var loadedToken: String? = null
+    private val menuLoadMutex = Mutex()
     private val checkoutMutex = Mutex()
 
     fun loadMenus(token: String, forceRefresh: Boolean = false) {
+        if (_uiState.value.isLoading) return
         if (!forceRefresh && loadedToken == token && _uiState.value.menus.isNotEmpty()) {
             return
         }
 
         viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    isLoading = true,
-                    errorMessage = null
-                )
-            }
-
-            val menuResult = getMenusUseCase(token)
-            val paymentResult = getPaymentMethodsUseCase(token)
-
-            menuResult
-                .onSuccess { payload ->
-                    loadedToken = token
-                    _uiState.update {
-                        it.copy(
-                            menus = payload.menus,
-                            cashierName = payload.user.name,
-                            cashierRole = payload.user.role,
-                            isDailySessionOpen = payload.dailySession.isOpen,
-                            dailySessionStatusLabel = payload.dailySession.label,
-                            dailyTargetRevenue = payload.dailySession.targetRevenue,
-                            dailyStockItems = payload.dailyStockItems
-                        )
-                    }
+            menuLoadMutex.withLock {
+                _uiState.update {
+                    it.copy(
+                        isLoading = true,
+                        errorMessage = null
+                    )
                 }
-                .onFailure { error ->
-                    _uiState.update {
-                        it.copy(
-                            errorMessage = sanitizeUserMessage(
-                                error.message,
-                                "Menu belum bisa dimuat. Silakan coba lagi."
+
+                val menuResult = getMenusUseCase(token)
+
+                var menuLoaded = false
+                menuResult
+                    .onSuccess { payload ->
+                        loadedToken = token
+                        menuLoaded = true
+                        _uiState.update {
+                            it.copy(
+                                menus = payload.menus,
+                                cashierName = payload.user.name,
+                                cashierRole = payload.user.role,
+                                isDailySessionOpen = payload.dailySession.isOpen,
+                                dailySessionStatusLabel = payload.dailySession.label,
+                                dailyTargetRevenue = payload.dailySession.targetRevenue,
+                                dailyStockItems = payload.dailyStockItems
                             )
-                        )
+                        }
                     }
-                }
+                    .onFailure { error ->
+                        _uiState.update {
+                            it.copy(
+                                errorMessage = sanitizeUserMessage(
+                                    error.message,
+                                    "Menu belum bisa dimuat. Silakan coba lagi."
+                                )
+                            )
+                        }
+                    }
 
-            paymentResult
-                .onSuccess { methods ->
-                    _uiState.update {
-                        it.copy(
-                            paymentMethods = methods,
-                            selectedPaymentMethodId = methods.firstOrNull()?.id,
-                            errorMessage = if (methods.isEmpty()) {
-                                "Metode pembayaran belum tersedia. Hubungi admin untuk pengecekan."
-                            } else {
-                                it.errorMessage
+                if (menuLoaded) {
+                    val paymentResult = getPaymentMethodsUseCase(token)
+                    paymentResult
+                        .onSuccess { methods ->
+                            _uiState.update {
+                                it.copy(
+                                    paymentMethods = methods,
+                                    selectedPaymentMethodId = methods.firstOrNull()?.id,
+                                    errorMessage = if (methods.isEmpty()) {
+                                        "Metode pembayaran belum tersedia. Hubungi admin untuk pengecekan."
+                                    } else {
+                                        it.errorMessage
+                                    }
+                                )
                             }
-                        )
-                    }
-                }
-                .onFailure { error ->
-                    _uiState.update {
-                        it.copy(
-                            paymentMethods = emptyList(),
-                            selectedPaymentMethodId = null,
-                            errorMessage = sanitizeUserMessage(
-                                error.message,
-                                "Metode pembayaran belum tersedia. Hubungi admin untuk pengecekan."
-                            )
-                        )
-                    }
+                        }
+                        .onFailure { error ->
+                            _uiState.update {
+                                it.copy(
+                                    paymentMethods = emptyList(),
+                                    selectedPaymentMethodId = null,
+                                    errorMessage = sanitizeUserMessage(
+                                        error.message,
+                                        "Metode pembayaran belum tersedia. Hubungi admin untuk pengecekan."
+                                    )
+                                )
+                            }
+                        }
                 }
 
-            _uiState.update { it.copy(isLoading = false) }
+                _uiState.update { it.copy(isLoading = false) }
+            }
         }
+    }
+    
+    fun prefetchMenusIfNeeded(token: String) {
+        if (_uiState.value.menus.isNotEmpty() || _uiState.value.isLoading) return
+        loadMenus(token, forceRefresh = false)
+    }
+
+    fun forceRefreshMenus(token: String) {
+        loadMenus(token, forceRefresh = true)
     }
 
     fun addVariantToCart(menuName: String, variantId: Long, variantName: String, price: Double) {
@@ -339,11 +356,20 @@ class MenuViewModel(
             lower.contains("sesi harian") && lower.contains("belum") ->
                 "Sesi harian belum dibuka admin. Checkout belum bisa dilakukan."
             lower.contains("bahan") && lower.contains("stok harian") ->
-                "Bahan belum dibawa ke stok harian. Hubungi admin terlebih dahulu."
+                "⚠️ Bahan belum masuk stok harian. Hubungi admin untuk input bahan terlebih dahulu."
             lower.contains("stok harian") && (lower.contains("tidak cukup") || lower.contains("kurang")) ->
-                "Stok harian bahan tidak cukup untuk transaksi ini."
+                "⚠️ Stok bahan kurang. Kurangi jumlah pesanan atau hubungi admin untuk tambah stok."
             lower.contains("pembayaran kurang") || lower.contains("deficit") ->
                 "Nominal pembayaran kurang. Silakan periksa kembali."
+            // Tangkap pesan backend: "Variant 'xxx' tidak tersedia untuk dijual"
+            // artinya stok bahan tidak cukup untuk resep varian tersebut
+            lower.contains("tidak tersedia untuk dijual") || lower.contains("variant") && lower.contains("tidak tersedia") ->
+                "⚠️ Stok bahan kurang untuk salah satu menu. Kurangi jumlah pesanan atau hubungi admin untuk menambah stok."
+            // Tangkap pola lain dari backend yang berkaitan dengan stok/resep
+            lower.contains("stok") && (lower.contains("tidak cukup") || lower.contains("kurang") || lower.contains("habis")) ->
+                "⚠️ Stok bahan kurang. Kurangi jumlah pesanan atau hubungi admin untuk tambah stok."
+            lower.contains("resep") || lower.contains("recipe") ->
+                "⚠️ Bahan tidak mencukupi resep. Hubungi admin untuk menambah stok bahan."
             else -> message
         }
     }

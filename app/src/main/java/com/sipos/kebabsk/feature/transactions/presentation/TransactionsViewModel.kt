@@ -20,6 +20,7 @@ data class TransactionsUiState(
     val currentDate: LocalDate = AppTime.todayJakarta(),
     val currentPage: Int = 1,
     val totalPages: Int = 1,
+    val allTransactions: List<TransactionHistoryItem> = emptyList(),
     val paginatedTransactions: List<TransactionHistoryItem> = emptyList()
 )
 
@@ -36,17 +37,29 @@ class TransactionsViewModel(
         fetchTransactions()
     }
 
+    companion object {
+        const val PAGE_SIZE = 10
+    }
+
     fun fetchTransactions() {
         fetchJob?.cancel()
         fetchJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            val result = getTransactionsUseCase(token, _uiState.value.currentDate, _uiState.value.currentPage)
+            // Always fetch from page 1 to get all data, then paginate client-side
+            val result = getTransactionsUseCase(token, _uiState.value.currentDate, 1)
             result.onSuccess { pageData ->
+                val allItems = pageData.items
+                val page = _uiState.value.currentPage
+                val totalPages = maxOf(1, (allItems.size + PAGE_SIZE - 1) / PAGE_SIZE)
+                val safePage = page.coerceIn(1, totalPages)
+                val paginated = allItems.chunked(PAGE_SIZE).getOrNull(safePage - 1) ?: emptyList()
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        totalPages = pageData.totalPages,
-                        paginatedTransactions = pageData.items
+                        allTransactions = allItems,
+                        totalPages = totalPages,
+                        currentPage = safePage,
+                        paginatedTransactions = paginated
                     )
                 }
             }.onFailure { error ->
@@ -61,21 +74,19 @@ class TransactionsViewModel(
     }
 
     fun loadNextPage() {
-        val currentState = _uiState.value
-        if (currentState.isLoading) return
-        if (currentState.currentPage < currentState.totalPages) {
-            _uiState.update { it.copy(currentPage = it.currentPage + 1) }
-            fetchTransactions()
-        }
+        val state = _uiState.value
+        if (state.isLoading || state.currentPage >= state.totalPages) return
+        val newPage = state.currentPage + 1
+        val paginated = state.allTransactions.chunked(PAGE_SIZE).getOrNull(newPage - 1) ?: emptyList()
+        _uiState.update { it.copy(currentPage = newPage, paginatedTransactions = paginated) }
     }
 
     fun loadPreviousPage() {
-        val currentState = _uiState.value
-        if (currentState.isLoading) return
-        if (currentState.currentPage > 1) {
-            _uiState.update { it.copy(currentPage = it.currentPage - 1) }
-            fetchTransactions()
-        }
+        val state = _uiState.value
+        if (state.isLoading || state.currentPage <= 1) return
+        val newPage = state.currentPage - 1
+        val paginated = state.allTransactions.chunked(PAGE_SIZE).getOrNull(newPage - 1) ?: emptyList()
+        _uiState.update { it.copy(currentPage = newPage, paginatedTransactions = paginated) }
     }
 
     fun setDate(newDate: LocalDate) {

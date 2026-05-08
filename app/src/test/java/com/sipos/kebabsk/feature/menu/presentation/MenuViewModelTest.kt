@@ -181,7 +181,8 @@ private class FakeMenuRepository(
                 ),
                 dailySession = DailySessionStatus(
                     isOpen = isDailyOpen,
-                    label = if (isDailyOpen) "Sesi harian aktif" else "Sesi belum dibuka"
+                    label = if (isDailyOpen) "Sesi harian aktif" else "Sesi belum dibuka",
+                    targetRevenue = 200000.0
                 ),
                 dailyStockItems = emptyList()
             )

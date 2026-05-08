@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -76,6 +77,7 @@ import com.sipos.kebabsk.feature.profile.presentation.ChangePasswordScreen
 import com.sipos.kebabsk.feature.profile.presentation.CloseStockSessionScreen
 import com.sipos.kebabsk.feature.profile.presentation.DailyStockScreen
 import com.sipos.kebabsk.feature.profile.presentation.EditProfileScreen
+import com.sipos.kebabsk.feature.profile.presentation.BluetoothPrinterScreen
 import com.sipos.kebabsk.feature.profile.presentation.OperationalExpenseScreen
 import com.sipos.kebabsk.feature.profile.presentation.ProfileScreen
 import com.sipos.kebabsk.feature.profile.presentation.RevenueSummaryScreen
@@ -122,6 +124,7 @@ private enum class ProfilePage {
     REVENUE_SUMMARY,
     DAILY_STOCK,
     OPERATIONAL_EXPENSE,
+    BLUETOOTH_PRINTER,
     CLOSE_STOCK_SESSION,
     EDIT,
     CHANGE_PASSWORD
@@ -166,7 +169,7 @@ fun AuthRoot(
     }
 
     LaunchedEffect(Unit) {
-        delay(1400)
+        delay(700)
         showSplash = false
     }
 
@@ -183,7 +186,6 @@ fun AuthRoot(
         val session = loginUiState.session
         if (route == AuthRoute.APP && session != null) {
             onRefreshSession()
-            onLoadMenus(session.token, false)
         }
     }
 
@@ -268,6 +270,12 @@ private fun AppScaffold(
     var profilePage by rememberSaveable { mutableStateOf(ProfilePage.SUMMARY) }
     var cashierTransactionStarted by rememberSaveable { mutableStateOf(false) }
 
+    LaunchedEffect(cashierTransactionStarted, session.token) {
+        if (cashierTransactionStarted) {
+            onLoadMenus(session.token, false)
+        }
+    }
+
     LaunchedEffect(loginUiState.successMessage, profilePage) {
         if (!loginUiState.successMessage.isNullOrBlank() && profilePage != ProfilePage.SUMMARY) {
             profilePage = ProfilePage.SUMMARY
@@ -278,50 +286,44 @@ private fun AppScaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-                color = Color.White.copy(alpha = 0.95f),
-                shadowElevation = 16.dp
+            NavigationBar(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding(),
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 4.dp
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceAround,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    AppTab.entries.forEach { tab ->
-                        val isSelected = selectedTab == tab
-                        val bgColor = if (isSelected) Color(0xFFFFEDD5) else Color.Transparent
-                        val contentColor = if (isSelected) KebabPrimary else KebabNavInactiveText
-
-                        Column(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(24.dp))
-                                .background(bgColor)
-                                .clickable {
-                                    selectedTab = tab
-                                    if (tab != AppTab.PROFILE) profilePage = ProfilePage.SUMMARY
-                                }
-                                .padding(horizontal = 24.dp, vertical = 8.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
+                AppTab.entries.forEach { tab ->
+                    val isSelected = selectedTab == tab
+                    NavigationBarItem(
+                        selected = isSelected,
+                        onClick = {
+                            selectedTab = tab
+                            if (tab != AppTab.PROFILE) profilePage = ProfilePage.SUMMARY
+                        },
+                        icon = {
                             Icon(
                                 imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
                                 contentDescription = tab.label,
-                                tint = contentColor,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(22.dp)
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
+                        },
+                        label = {
                             Text(
                                 text = tab.label,
                                 fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = contentColor
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             )
-                        }
-                    }
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = KebabPrimary,
+                            selectedTextColor = KebabPrimary,
+                            indicatorColor = Color(0xFFFFEDD5),
+                            unselectedIconColor = KebabNavInactiveText,
+                            unselectedTextColor = KebabNavInactiveText
+                        ),
+                        alwaysShowLabel = true
+                    )
                 }
             }
         }
@@ -401,6 +403,9 @@ private fun AppScaffold(
                             },
                             onViewOperationalExpense = {
                                 profilePage = ProfilePage.OPERATIONAL_EXPENSE
+                            },
+                            onConnectReceiptPrinter = {
+                                profilePage = ProfilePage.BLUETOOTH_PRINTER
                             },
                             onLogout = onLogout
                         )
@@ -536,6 +541,13 @@ private fun AppScaffold(
                             }
                         )
                     }
+
+                    ProfilePage.BLUETOOTH_PRINTER -> {
+                        BluetoothPrinterScreen(
+                            modifier = Modifier.padding(innerPadding),
+                            onBack = { profilePage = ProfilePage.SUMMARY }
+                        )
+                    }
                 }
             }
         }
@@ -567,144 +579,162 @@ private fun CashierDashboardScreen(
         }
     }
 
+    // Outer column: fixed header + scrollable body
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .verticalScroll(scrollState)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        // ===== FIXED HEADER (tidak ikut scroll) =====
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(
-                imageVector = Icons.Filled.RestaurantMenu,
-                contentDescription = null,
-                tint = KebabPrimary,
-                modifier = Modifier.size(20.dp)
-            )
-            Text(
-                text = "Kebab SK",
-                color = KebabPrimary,
-                fontWeight = FontWeight.Bold,
-                fontStyle = FontStyle.Italic,
-                fontSize = 18.sp
-            )
-            Spacer(modifier = Modifier.size(20.dp))
-        }
-
-        UserInfoSection(
-            cashierName = firstName,
-            cashierRole = cashierRole,
-            currentTime = currentTime.format(timeFormatter),
-            isDailySessionOpen = isDailySessionOpen,
-            dailySessionLabel = dailySessionLabel
-        )
-
-        when {
-            shiftSummaryUiState.isLoading -> {
-                DashboardMetricCard(
-                    title = "TotalTransaksi",
-                    value = "...",
-                    subValue = "Memuat data shift",
-                    icon = Icons.AutoMirrored.Outlined.List
+            // Brand row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.RestaurantMenu,
+                    contentDescription = null,
+                    tint = KebabPrimary,
+                    modifier = Modifier.size(22.dp)
                 )
-                DashboardMetricCard(
-                    title = "ItemTerjual",
-                    value = "...",
-                    subValue = "Memuat data shift",
-                    icon = Icons.Outlined.ShoppingCart
-                )
-                DashboardMetricCard(
-                    title = "Pendapatan Hari Ini",
-                    value = "...",
-                    subValue = "Memuat data shift",
-                    icon = Icons.AutoMirrored.Outlined.List,
-                    isPrimary = true
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "Kebab SK",
+                    color = KebabPrimary,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 20.sp
                 )
             }
 
-            !shiftSummaryUiState.errorMessage.isNullOrBlank() -> {
-                val isSessionExpired = shiftSummaryUiState.errorMessage.contains("Sesi login sudah berakhir", ignoreCase = true)
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF8E8E8))
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = shiftSummaryUiState.errorMessage,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Button(
-                            onClick = if (isSessionExpired) onForceLogout else onRetryShiftSummary,
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = KebabPrimary)
-                        ) {
-                            Text(if (isSessionExpired) "Login Ulang" else "Coba Lagi", color = Color.White)
+            // Kasir info card
+            UserInfoSection(
+                cashierName = firstName,
+                cashierRole = cashierRole,
+                currentTime = currentTime.format(timeFormatter),
+                isDailySessionOpen = isDailySessionOpen,
+                dailySessionLabel = dailySessionLabel
+            )
+        }
+
+        // ===== SCROLLABLE BODY =====
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            when {
+                shiftSummaryUiState.isLoading -> {
+                    DashboardMetricCard(
+                        title = "TotalTransaksi",
+                        value = "...",
+                        subValue = "Memuat data shift",
+                        icon = Icons.AutoMirrored.Outlined.List
+                    )
+                    DashboardMetricCard(
+                        title = "ItemTerjual",
+                        value = "...",
+                        subValue = "Memuat data shift",
+                        icon = Icons.Outlined.ShoppingCart
+                    )
+                    DashboardMetricCard(
+                        title = "Pendapatan Hari Ini",
+                        value = "...",
+                        subValue = "Memuat data shift",
+                        icon = Icons.AutoMirrored.Outlined.List,
+                        isPrimary = true
+                    )
+                }
+
+                !shiftSummaryUiState.errorMessage.isNullOrBlank() -> {
+                    val isSessionExpired = shiftSummaryUiState.errorMessage.contains("Sesi login sudah berakhir", ignoreCase = true)
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8E8E8))
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = shiftSummaryUiState.errorMessage,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Button(
+                                onClick = if (isSessionExpired) onForceLogout else onRetryShiftSummary,
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = KebabPrimary)
+                            ) {
+                                Text(if (isSessionExpired) "Login Ulang" else "Coba Lagi", color = Color.White)
+                            }
                         }
                     }
                 }
+
+                else -> {
+                    DashboardMetricCard(
+                        title = "TotalTransaksi",
+                        value = shiftSummaryUiState.totalTransactions.toString(),
+                        subValue = shiftSummaryUiState.transactionGrowthPercentage?.let { pct ->
+                            val sign = if (pct >= 0) "+" else ""
+                            "${sign}${pct}% dari kemarin"
+                        } ?: if (shiftSummaryUiState.totalTransactions > 0) "Hari ini pertama" else "Belum ada transaksi",
+                        icon = Icons.AutoMirrored.Outlined.List
+                    )
+                    DashboardMetricCard(
+                        title = "ItemTerjual",
+                        value = shiftSummaryUiState.totalItemsSold.toString(),
+                        subValue = shiftSummaryUiState.dominantItemName?.let { "Dominan: $it" }
+                            ?: if (shiftSummaryUiState.totalItemsSold > 0) "Data dominan tersedia" else "Belum ada penjualan",
+                        icon = Icons.Outlined.ShoppingCart
+                    )
+                    DashboardMetricCard(
+                        title = "Pendapatan Hari Ini",
+                        value = formatRupiah(shiftSummaryUiState.totalRevenue),
+                        subValue = run {
+                            val target = shiftSummaryUiState.dailyTargetRevenue
+                                ?.takeIf { it > 0.0 }
+                                ?: dailyTargetRevenue?.takeIf { it > 0.0 }
+                            val percentage = when {
+                                target != null -> (shiftSummaryUiState.totalRevenue / target) * 100.0
+                                shiftSummaryUiState.revenueTargetPercentage != null -> shiftSummaryUiState.revenueTargetPercentage
+                                else -> 0.0
+                            }
+                            "Target harian: ${String.format("%.1f", percentage)}% tercapai"
+                        },
+                        icon = Icons.AutoMirrored.Outlined.List,
+                        isPrimary = true
+                    )
+                }
             }
 
-            else -> {
-                DashboardMetricCard(
-                    title = "TotalTransaksi",
-                    value = shiftSummaryUiState.totalTransactions.toString(),
-                    subValue = shiftSummaryUiState.transactionGrowthPercentage?.let { pct ->
-                        val sign = if (pct >= 0) "+" else ""
-                        "${sign}${pct}% dari kemarin"
-                    } ?: if (shiftSummaryUiState.totalTransactions > 0) "Hari ini pertama" else "Belum ada transaksi",
-                    icon = Icons.AutoMirrored.Outlined.List
-                )
-                DashboardMetricCard(
-                    title = "ItemTerjual",
-                    value = shiftSummaryUiState.totalItemsSold.toString(),
-                    subValue = shiftSummaryUiState.dominantItemName?.let { "Dominan: $it" }
-                        ?: if (shiftSummaryUiState.totalItemsSold > 0) "Data dominan tersedia" else "Belum ada penjualan",
-                    icon = Icons.Outlined.ShoppingCart
-                )
-                DashboardMetricCard(
-                    title = "Pendapatan Hari Ini",
-                    value = formatRupiah(shiftSummaryUiState.totalRevenue),
-                    subValue = run {
-                        val target = shiftSummaryUiState.dailyTargetRevenue
-                            ?.takeIf { it > 0.0 }
-                            ?: dailyTargetRevenue?.takeIf { it > 0.0 }
-                        val percentage = when {
-                            target != null -> (shiftSummaryUiState.totalRevenue / target) * 100.0
-                            shiftSummaryUiState.revenueTargetPercentage != null -> shiftSummaryUiState.revenueTargetPercentage
-                            else -> 0.0
-                        }
-                        "Target harian: ${String.format("%.1f", percentage)}% tercapai"
-                    },
-                    icon = Icons.AutoMirrored.Outlined.List,
-                    isPrimary = true
-                )
-            }
-        }
-
-        MainActionButton(
-            enabled = isDailySessionOpen,
-            onClick = onStartTransaction
-        )
-
-        if (!isDailySessionOpen) {
-            Text(
-                text = "Sesi harian belum dibuka admin, transaksi belum dapat dilakukan.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error
+            MainActionButton(
+                enabled = isDailySessionOpen,
+                onClick = onStartTransaction
             )
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            if (!isDailySessionOpen) {
+                Text(
+                    text = "Sesi harian belum dibuka admin, transaksi belum dapat dilakukan.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+        }
     }
 }
+
 
 
 @Composable

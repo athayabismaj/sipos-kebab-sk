@@ -1,6 +1,5 @@
 package com.sipos.kebabsk.feature.menu.presentation
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -56,6 +57,7 @@ fun MenuListTab(
     categories: List<String?>,
     selectedCategory: String?,
     cartItems: List<CheckoutCartItem>,
+    emptyStateMessage: String = "Tidak ada menu tersedia",
     onCategorySelected: (String?) -> Unit,
     onRefresh: () -> Unit,
     onAddVariant: (String, Long, String, Double) -> Unit,
@@ -110,14 +112,19 @@ fun MenuListTab(
                     .weight(1f),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("🍽️", style = MaterialTheme.typography.headlineLarge)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {                    Icon(
+                        imageVector = Icons.Default.Restaurant,
+                        contentDescription = null,
+                        tint = KebabTextGray.copy(alpha = 0.6f),
+                        modifier = Modifier.size(36.dp)
+                    )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "Tidak ada menu tersedia",
+                        text = emptyStateMessage,
                         style = MaterialTheme.typography.bodyLarge,
                         color = KebabTextGray,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
@@ -172,16 +179,20 @@ private fun MenuItemCard(
     onAdd: () -> Unit,
     onRemove: () -> Unit
 ) {
-    val isInCart = qtyInCart > 0
-    val unavailable = !item.isAvailable
+    // insufficientStock = bahan kurang (tampil, tapi tidak bisa dipesan)
+    // !isAvailable && !insufficientStock = dinonaktifkan admin (tersaring, tapi handle gracefully)
+    val isInsufficientStock = item.insufficientStock && !item.isAvailable
+    val isAdminDisabled = !item.isAvailable && !item.insufficientStock
+    val isOrderable = item.isAvailable && !item.insufficientStock
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .animateContentSize()
-            .clickable(enabled = !unavailable, onClick = onAdd),
+            .clickable(enabled = isOrderable, onClick = onAdd),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = KebabCardBg),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isInsufficientStock) KebabCardBg else KebabCardBg
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
@@ -191,25 +202,30 @@ private fun MenuItemCard(
                     .fillMaxWidth()
                     .aspectRatio(1f)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color.LightGray.copy(alpha = 0.5f)),
+                    .background(
+                        if (isInsufficientStock)
+                            Color(0xFFFFF3CD) // warna kuning redup untuk stok kurang
+                        else
+                            Color.LightGray.copy(alpha = 0.5f)
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Restaurant,
                     contentDescription = null,
-                    tint = Color.Gray,
+                    tint = if (isInsufficientStock) Color(0xFFF59E0B) else Color.Gray,
                     modifier = Modifier.size(32.dp)
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             // Menu Name
             Text(
                 text = item.menuName,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (unavailable) KebabTextDark.copy(alpha = 0.5f) else KebabTextDark,
+                color = if (isInsufficientStock) KebabTextDark.copy(alpha = 0.7f) else KebabTextDark,
                 maxLines = 1,
                 lineHeight = 18.sp,
                 overflow = TextOverflow.Ellipsis
@@ -221,19 +237,19 @@ private fun MenuItemCard(
             } else {
                 item.variantName
             }
-            
+
             if (displayVariantName.isNotBlank() && displayVariantName != item.menuName) {
                 Text(
                     text = displayVariantName,
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    color = if (unavailable) KebabTextGray.copy(alpha = 0.5f) else KebabTextGray
+                    color = if (isInsufficientStock) KebabTextGray.copy(alpha = 0.7f) else KebabTextGray
                 )
             }
 
             Spacer(modifier = Modifier.height(6.dp))
-            
+
             // Bottom row: Price and Add controls
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -244,12 +260,12 @@ private fun MenuItemCard(
                     text = toRupiah(item.price),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = if (unavailable) KebabPrimary.copy(alpha = 0.5f) else KebabPrimary
+                    color = if (isInsufficientStock) KebabPrimary.copy(alpha = 0.5f) else KebabPrimary
                 )
 
-                if (qtyInCart > 0) {
+                if (qtyInCart > 0 && isOrderable) {
                     QtyControlCompact(qty = qtyInCart, onAdd = onAdd, onRemove = onRemove)
-                } else if (!unavailable) {
+                } else if (isOrderable) {
                     Box(
                         modifier = Modifier
                             .size(26.dp)
@@ -268,19 +284,39 @@ private fun MenuItemCard(
                 }
             }
 
-            if (unavailable) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = MaterialTheme.colorScheme.errorContainer
-                ) {
-                    Text(
-                        text = "Habis",
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
+            // Badge status
+            Spacer(modifier = Modifier.height(4.dp))
+            when {
+                isInsufficientStock -> {
+                    // Badge stok bahan kurang - warna kuning/warning
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFFFFF3CD)
+                    ) {
+                        Text(
+                            text = "⚠ Stok Bahan Kurang",
+                            color = Color(0xFF92400E),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+                isAdminDisabled -> {
+                    // Seharusnya tidak tampil ke kasir (sudah difilter)
+                    // Tapi jika admin melihat, tampilkan badge "Nonaktif"
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = MaterialTheme.colorScheme.errorContainer
+                    ) {
+                        Text(
+                            text = "Nonaktif",
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
                 }
             }
         }
@@ -301,12 +337,11 @@ private fun QtyControlCompact(qty: Int, onAdd: () -> Unit, onRemove: () -> Unit)
                 .clickable(onClick = onRemove),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "−",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = KebabTextDark,
-                textAlign = TextAlign.Center
+            Icon(
+                imageVector = Icons.Default.Remove,
+                contentDescription = "Kurang",
+                tint = KebabTextDark,
+                modifier = Modifier.size(14.dp)
             )
         }
 
@@ -315,7 +350,8 @@ private fun QtyControlCompact(qty: Int, onAdd: () -> Unit, onRemove: () -> Unit)
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.ExtraBold,
             color = KebabTextDark,
-            modifier = Modifier.padding(horizontal = 2.dp)
+            textAlign = TextAlign.Center,
+            modifier = Modifier.widthIn(min = 22.dp)
         )
 
         Box(
@@ -335,3 +371,4 @@ private fun QtyControlCompact(qty: Int, onAdd: () -> Unit, onRemove: () -> Unit)
         }
     }
 }
+

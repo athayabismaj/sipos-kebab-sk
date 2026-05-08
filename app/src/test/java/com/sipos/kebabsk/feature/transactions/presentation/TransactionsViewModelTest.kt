@@ -123,7 +123,8 @@ private class FakeTransactionsRepository(
                 totalCount = 0,
                 transactionGrowthPercentage = null,
                 dominantItemName = null,
-                revenueTargetPercentage = null
+                revenueTargetPercentage = null,
+                dailyTargetRevenue = null
             )
         )
     }

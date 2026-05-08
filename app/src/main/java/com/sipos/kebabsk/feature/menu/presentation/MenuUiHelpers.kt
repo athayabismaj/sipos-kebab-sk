@@ -1,16 +1,19 @@
 package com.sipos.kebabsk.feature.menu.presentation
 
+import androidx.compose.runtime.Immutable
 import com.sipos.kebabsk.feature.menu.domain.model.MenuItem
 import java.text.NumberFormat
 import java.util.Locale
 
+@Immutable
 data class MenuVariantItem(
     val menuName: String,
     val categoryName: String?,
     val variantId: Long,
     val variantName: String,
     val price: Double,
-    val isAvailable: Boolean
+    val isAvailable: Boolean,
+    val insufficientStock: Boolean = false
 )
 
 fun buildMenuVariantItems(menus: List<MenuItem>): List<MenuVariantItem> {
@@ -22,14 +25,15 @@ fun buildMenuVariantItems(menus: List<MenuItem>): List<MenuVariantItem> {
                 variantId = variant.id,
                 variantName = variant.name,
                 price = variant.price,
-                isAvailable = variant.isAvailable
+                isAvailable = variant.isAvailable,
+                insufficientStock = variant.insufficientStock
             )
         }
     }
 }
 
-fun buildMenuCategories(menus: List<MenuItem>): List<String?> {
-    val uniqueCategories = menus.mapNotNull { it.categoryName }.distinct().sorted()
+fun buildMenuCategories(menuItems: List<MenuVariantItem>): List<String?> {
+    val uniqueCategories = menuItems.mapNotNull { it.categoryName }.distinct().sorted()
     return listOf(null) + uniqueCategories
 }
 
@@ -62,7 +66,20 @@ fun buildQuickAmounts(totalAmount: Double): List<Int> {
     return list.distinct().take(4)
 }
 
-fun toRupiah(amount: Double): String {
-    val formatter = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("id-ID"))
-    return formatter.format(amount)
+// Formatter dengan desimal — untuk input/ringkasan
+private val rupiahFormatter: NumberFormat by lazy {
+    NumberFormat.getCurrencyInstance(Locale.forLanguageTag("id-ID"))
 }
+
+// Formatter TANPA desimal — untuk tampilan total besar agar tidak berantakan
+private val rupiahFormatterNoDecimal: NumberFormat by lazy {
+    NumberFormat.getCurrencyInstance(Locale.forLanguageTag("id-ID")).apply {
+        maximumFractionDigits = 0
+        minimumFractionDigits = 0
+    }
+}
+
+fun toRupiah(amount: Double): String = rupiahFormatter.format(amount)
+
+/** Rupiah tanpa koma/desimal. Untuk tampilan angka besar seperti Total Tagihan. */
+fun toRupiahNoDecimal(amount: Double): String = rupiahFormatterNoDecimal.format(amount)

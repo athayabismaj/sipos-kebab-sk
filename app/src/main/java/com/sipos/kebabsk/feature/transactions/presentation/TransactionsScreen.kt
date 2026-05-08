@@ -7,8 +7,10 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -27,7 +29,9 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.RestaurantMenu
 import androidx.compose.material.icons.outlined.Payments
-import androidx.compose.material.icons.outlined.ReceiptLong
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -141,20 +145,20 @@ fun TransactionsScreen(
                 ) {
                     // --- SUMMARY METRICS (real data) ---
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         SummaryMetricCard(
-                            modifier = Modifier.weight(1f),
-                            title = "Total Transaksi",
-                            value = "${uiState.paginatedTransactions.size}",
-                            icon = Icons.Outlined.ReceiptLong
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            title = "Tot. Transaksi",
+                            value = "${uiState.allTransactions.size}",
+                            icon = Icons.AutoMirrored.Outlined.ReceiptLong
                         )
                         SummaryMetricCard(
-                            modifier = Modifier.weight(1f),
-                            title = "Total Pendapatan",
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            title = "Tot. Pendapatan",
                             value = formatShortRupiah(
-                                uiState.paginatedTransactions
+                                uiState.allTransactions
                                     .filter { it.status.equals("Sukses", ignoreCase = true) }
                                     .sumOf { it.total }
                             ),
@@ -189,18 +193,31 @@ fun TransactionsScreen(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
                                     Icon(
-                                        Icons.Outlined.ReceiptLong,
+                                        Icons.AutoMirrored.Outlined.ReceiptLong,
                                         contentDescription = null,
                                         tint = KebabTextGray.copy(alpha = 0.4f),
-                                        modifier = Modifier.size(48.dp)
+                                        modifier = Modifier.size(56.dp)
                                     )
-                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Spacer(modifier = Modifier.height(12.dp))
                                     Text(
-                                        text = "Belum ada transaksi pada tanggal ini",
+                                        text = "Belum ada transaksi",
                                         color = KebabTextGray,
-                                        fontSize = 14.sp
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "pada tanggal ini",
+                                        color = KebabTextGray.copy(alpha = 0.6f),
+                                        fontSize = 13.sp,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                     )
                                 }
                             }
@@ -274,7 +291,7 @@ private fun DateScroller(currentDate: LocalDate, onDateSelected: (LocalDate) -> 
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(horizontalScroll),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         dates.forEach { date ->
             val isActive = date == currentDate
@@ -300,24 +317,40 @@ private fun DateScroller(currentDate: LocalDate, onDateSelected: (LocalDate) -> 
 @Composable
 private fun DateCard(label: String, date: String, month: String, isActive: Boolean, onClick: () -> Unit) {
     val textColor = if (isActive) Color.White else KebabTextDark
-    val alphaText = if (isActive) 0.8f else 0.5f
+    val subAlpha = if (isActive) 0.85f else 0.55f
 
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(
                 brush = if (isActive) Brush.linearGradient(listOf(KebabPrimary, KebabPrimaryContainer))
                 else Brush.linearGradient(listOf(KebabDateInactiveBg, KebabDateInactiveBg))
             )
             .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-            .widthIn(min = 50.dp),
+            .padding(horizontal = 10.dp, vertical = 8.dp)
+            .widthIn(min = 44.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = label.uppercase(), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = textColor.copy(alpha = alphaText))
-            Text(text = date, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = textColor)
-            Text(text = month, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = textColor.copy(alpha = alphaText))
+            Text(
+                text = label.uppercase(),
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Bold,
+                color = textColor.copy(alpha = subAlpha),
+                letterSpacing = 0.5.sp
+            )
+            Text(
+                text = date,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = textColor
+            )
+            Text(
+                text = month,
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Medium,
+                color = textColor.copy(alpha = subAlpha)
+            )
         }
     }
 }
@@ -328,14 +361,14 @@ private fun SummaryMetricCard(modifier: Modifier = Modifier, title: String, valu
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(KebabCardBg)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(16.dp)
     ) {
         // Faded watermark icon
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = KebabPrimary.copy(alpha = 0.05f),
+            tint = KebabPrimary.copy(alpha = 0.08f),
             modifier = Modifier
                 .size(72.dp)
                 .align(Alignment.BottomEnd)
@@ -343,9 +376,19 @@ private fun SummaryMetricCard(modifier: Modifier = Modifier, title: String, valu
         )
 
         Column {
-            Text(text = title, fontSize = 12.sp, color = KebabTextGray, fontWeight = FontWeight.Medium)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(text = value, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = KebabTextDark)
+            Text(
+                text = title,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = value,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }
@@ -378,7 +421,10 @@ private fun TransactionItemCard(trx: TransactionHistoryItem) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Top
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.weight(1f).padding(end = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Box(
                     modifier = Modifier
                         .size(44.dp)
@@ -405,7 +451,9 @@ private fun TransactionItemCard(trx: TransactionHistoryItem) {
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = KebabTextDark.copy(alpha = opacity),
-                        textDecoration = textDecoration
+                        textDecoration = textDecoration,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                 }
             }
@@ -420,7 +468,8 @@ private fun TransactionItemCard(trx: TransactionHistoryItem) {
                     color = badgeText.copy(alpha = opacity),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    maxLines = 1
                 )
             }
         }
@@ -472,34 +521,70 @@ private fun PaginationControls(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        OutlinedButton(
-            onClick = onPrevious,
-            enabled = currentPage > 1,
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.weight(1f)
+        // Prev button
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(
+                    if (currentPage > 1) MaterialTheme.colorScheme.surfaceVariant
+                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                )
+                .clickable(enabled = currentPage > 1) { onPrevious() },
+            contentAlignment = Alignment.Center
         ) {
-            Text("Sebelumnya")
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Sebelumnya",
+                tint = if (currentPage > 1) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                modifier = Modifier.size(16.dp)
+            )
         }
 
-        Text(
-            text = "Hal $currentPage/$totalPages",
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            color = KebabTextGray,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
+        // Page indicator pills
+        Spacer(modifier = Modifier.width(12.dp))
+        repeat(totalPages) { index ->
+            val page = index + 1
+            val isCurrentPage = page == currentPage
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 3.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(
+                        if (isCurrentPage) KebabPrimary
+                        else MaterialTheme.colorScheme.surfaceVariant
+                    )
+                    .clickable { if (isCurrentPage.not()) { if (page < currentPage) onPrevious() else onNext() } }
+                    .then(
+                        if (isCurrentPage) Modifier.width(20.dp).height(8.dp)
+                        else Modifier.size(8.dp)
+                    )
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
 
-        OutlinedButton(
-            onClick = onNext,
-            enabled = currentPage < totalPages,
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.weight(1f)
+        // Next button
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(
+                    if (currentPage < totalPages) MaterialTheme.colorScheme.surfaceVariant
+                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                )
+                .clickable(enabled = currentPage < totalPages) { onNext() },
+            contentAlignment = Alignment.Center
         ) {
-            Text("Selanjutnya")
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = "Selanjutnya",
+                tint = if (currentPage < totalPages) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                modifier = Modifier.size(16.dp)
+            )
         }
     }
 }

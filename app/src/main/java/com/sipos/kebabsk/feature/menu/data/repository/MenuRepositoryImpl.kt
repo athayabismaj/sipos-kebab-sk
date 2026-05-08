@@ -12,6 +12,8 @@ import com.sipos.kebabsk.feature.menu.domain.model.MenuListPayload
 import com.sipos.kebabsk.feature.menu.domain.model.MenuUser
 import com.sipos.kebabsk.feature.menu.domain.model.MenuVariant
 import com.sipos.kebabsk.feature.menu.domain.repository.MenuRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class MenuRepositoryImpl(
     private val menuApiService: MenuApiService
@@ -33,58 +35,61 @@ class MenuRepositoryImpl(
                 )
             }
 
-            val userResponse = body.data.user
-            val user = MenuUser(
-                id = userResponse?.id ?: 0L,
-                name = userResponse?.name ?: "Kasir",
-                role = userResponse?.role,
-                isPrivileged = userResponse?.isPrivileged ?: false
-            )
+            withContext(Dispatchers.Default) {
+                val userResponse = body.data.user
+                val user = MenuUser(
+                    id = userResponse?.id ?: 0L,
+                    name = userResponse?.name ?: "Kasir",
+                    role = userResponse?.role,
+                    isPrivileged = userResponse?.isPrivileged ?: false
+                )
 
-            val menus = body.data.menus.orEmpty().map { item ->
-                MenuItem(
-                    id = item.id ?: 0L,
-                    name = item.name ?: "Tanpa nama",
-                    description = item.description,
-                    isActive = item.isActive ?: false,
-                    categoryName = item.category?.name,
-                    variants = item.variants.orEmpty().map { variant ->
-                        MenuVariant(
-                            id = variant.id ?: 0L,
-                            name = variant.name ?: "Varian",
-                            price = variant.price ?: 0.0,
-                            isAvailable = variant.isAvailable ?: false
-                        )
-                    }
+                val menus = body.data.menus.orEmpty().map { item ->
+                    MenuItem(
+                        id = item.id ?: 0L,
+                        name = item.name ?: "Tanpa nama",
+                        description = item.description,
+                        isActive = item.isActive ?: false,
+                        categoryName = item.category?.name,
+                        variants = item.variants.orEmpty().map { variant ->
+                            MenuVariant(
+                                id = variant.id ?: 0L,
+                                name = variant.name ?: "Varian",
+                                price = variant.price ?: 0.0,
+                                isAvailable = variant.isAvailable ?: false,
+                                insufficientStock = variant.insufficientStock ?: false
+                            )
+                        }
+                    )
+                }
+
+                val dailySession = DailySessionStatus(
+                    isOpen = body.data.dailySession?.isOpen
+                        ?: body.data.isDailySessionOpen
+                        ?: true,
+                    label = body.data.dailySession?.statusLabel
+                        ?: body.data.dailySessionStatusLabel,
+                    targetRevenue = body.data.dailySession?.targetRevenue
+                )
+
+                val dailyStockItems = body.data.dailyStockItems.orEmpty().mapNotNull { stock ->
+                    val name = stock.name?.trim().orEmpty()
+                    if (name.isBlank()) return@mapNotNull null
+                    DailyStockItem(
+                        ingredientId = stock.ingredientId ?: 0L,
+                        name = name,
+                        qty = stock.qty ?: 0.0,
+                        unit = stock.unit?.trim()?.takeIf { it.isNotBlank() }
+                    )
+                }
+
+                MenuListPayload(
+                    user = user,
+                    menus = menus,
+                    dailySession = dailySession,
+                    dailyStockItems = dailyStockItems
                 )
             }
-
-            val dailySession = DailySessionStatus(
-                isOpen = body.data.dailySession?.isOpen
-                    ?: body.data.isDailySessionOpen
-                    ?: true,
-                label = body.data.dailySession?.statusLabel
-                    ?: body.data.dailySessionStatusLabel,
-                targetRevenue = body.data.dailySession?.targetRevenue
-            )
-
-            val dailyStockItems = body.data.dailyStockItems.orEmpty().mapNotNull { stock ->
-                val name = stock.name?.trim().orEmpty()
-                if (name.isBlank()) return@mapNotNull null
-                DailyStockItem(
-                    ingredientId = stock.ingredientId ?: 0L,
-                    name = name,
-                    qty = stock.qty ?: 0.0,
-                    unit = stock.unit?.trim()?.takeIf { it.isNotBlank() }
-                )
-            }
-
-            MenuListPayload(
-                user = user,
-                menus = menus,
-                dailySession = dailySession,
-                dailyStockItems = dailyStockItems
-            )
         }.recoverCatching { throwable ->
             throw IllegalStateException(
                 mapThrowableError(throwable)

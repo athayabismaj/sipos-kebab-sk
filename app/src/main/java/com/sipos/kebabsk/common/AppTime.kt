@@ -10,6 +10,9 @@ object AppTime {
 
     fun todayJakarta(): LocalDate = LocalDate.now(jakartaZone)
 
+    // Tanggal bisnis/shift operasional (toleransi 4 jam untuk shift malam)
+    fun businessDateJakarta(): LocalDate = LocalDateTime.now(jakartaZone).minusHours(4).toLocalDate()
+
     fun nowJakartaDateTime(): LocalDateTime = LocalDateTime.now(jakartaZone)
 
     fun toEpochMillisAtStartOfDay(date: LocalDate): Long {

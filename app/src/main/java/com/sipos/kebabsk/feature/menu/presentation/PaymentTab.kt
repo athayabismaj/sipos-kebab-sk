@@ -26,13 +26,13 @@ import androidx.compose.foundation.lazy.items
 import com.sipos.kebabsk.feature.checkout.domain.model.CheckoutCartItem
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Check
@@ -243,7 +243,12 @@ fun PaymentTab(
                 NominalCustomInput(value = uiState.paidAmountInput, onValueChange = onPaidAmountChanged)
                 
                 // Quick Chips
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     quickAmounts.forEachIndexed { index, amount ->
                         val label = if (index == 0 && amount == exactAmount) "Pas" else "Rp ${amount / 1000}k"
                         QuickChip(label = label, onClick = { onQuickAmountSelected(amount) })
@@ -261,12 +266,13 @@ fun PaymentTab(
 
         // --- FIXED FOOTER BUTTONS ---
         val isEnabled = uiState.cartItems.isNotEmpty() && uiState.isDailySessionOpen && !uiState.isLoading && uiState.selectedPaymentMethodId != null
-        
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(KebabBg)
-                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .padding(horizontal = 24.dp)
+                .padding(top = 10.dp, bottom = 14.dp)
         ) {
             Button(
                 onClick = onSubmitCheckout,
@@ -301,10 +307,23 @@ private fun TotalTagihanCard(totalAmount: Double, itemsCount: Int) {
         Column {
             Text(text = "Total Tagihan", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = KebabTextGray)
             Spacer(modifier = Modifier.height(8.dp))
-            Text(text = toRupiah(totalAmount), fontSize = 48.sp, fontWeight = FontWeight.ExtraBold, color = KebabPrimary, letterSpacing = (-1.5).sp)
+            // Gunakan toRupiahNoDecimal agar angka ratusan ribu/jutaan tidak berantakan
+            Text(
+                text = toRupiahNoDecimal(totalAmount),
+                fontWeight = FontWeight.ExtraBold,
+                color = KebabPrimary,
+                letterSpacing = (-1.5).sp,
+                fontSize = when {
+                    totalAmount >= 10_000_000 -> 34.sp  // >= 10 juta
+                    totalAmount >= 1_000_000  -> 40.sp  // >= 1 juta
+                    totalAmount >= 100_000    -> 44.sp  // >= 100 ribu
+                    else                      -> 48.sp  // normal
+                },
+                maxLines = 1
+            )
             Spacer(modifier = Modifier.height(16.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.List, contentDescription = null, tint = KebabTextGray, modifier = Modifier.size(16.dp))
+                Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, tint = KebabTextGray, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(text = "$itemsCount Items", fontSize = 14.sp, color = KebabTextGray)
             }
@@ -378,7 +397,14 @@ private fun QuickChip(label: String, onClick: () -> Unit) {
             .padding(horizontal = 16.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = KebabTextDark)
+        Text(
+            text = label,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = KebabTextDark,
+            maxLines = 1,
+            softWrap = false
+        )
     }
 }
 
@@ -456,7 +482,10 @@ private fun ReceiptSuccessDialog(
             contentAlignment = Alignment.Center
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 24.dp)
+                    .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Column(
@@ -500,11 +529,11 @@ private fun ReceiptSuccessDialog(
                         val totalAmount = uiState.checkoutTotalAmount ?: 0.0
                         
                         // Items List
-                        androidx.compose.foundation.lazy.LazyColumn(
-                            modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp).padding(bottom = 16.dp),
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            items(uiState.checkoutReceiptItems) { item ->
+                            uiState.checkoutReceiptItems.forEach { item ->
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
