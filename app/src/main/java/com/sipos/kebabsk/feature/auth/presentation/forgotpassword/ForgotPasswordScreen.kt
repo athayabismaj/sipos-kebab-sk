@@ -55,10 +55,14 @@ fun ForgotPasswordScreen(
 
     Scaffold(
         containerColor = KebabBg,
+        modifier = modifier
+            .fillMaxSize()
+            .systemBarsPadding()
+            .imePadding(),
         topBar = { TopBarSecurityCheck(onBack = { onBackToLogin() }) }
     ) { paddingValues ->
         Column(
-            modifier = modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 24.dp)
@@ -122,6 +126,7 @@ fun ForgotPasswordScreen(
                                     focusedBorderColor = KebabPrimary,
                                     unfocusedBorderColor = KebabDivider,
                                 ),
+                                textStyle = androidx.compose.ui.text.TextStyle(color = Color.Black, fontSize = 16.sp),
                                 singleLine = true,
                                 enabled = !uiState.isLoading
                             )
@@ -162,6 +167,7 @@ fun ForgotPasswordScreen(
                                 focusedBorderColor = KebabPrimary,
                                 unfocusedBorderColor = KebabDivider,
                             ),
+                            textStyle = androidx.compose.ui.text.TextStyle(color = Color.Black, fontSize = 16.sp),
                             singleLine = true,
                             enabled = !uiState.isLoading
                         )
@@ -179,6 +185,7 @@ fun ForgotPasswordScreen(
                                 focusedBorderColor = KebabPrimary,
                                 unfocusedBorderColor = KebabDivider,
                             ),
+                            textStyle = androidx.compose.ui.text.TextStyle(color = Color.Black, fontSize = 16.sp),
                             singleLine = true,
                             enabled = !uiState.isLoading
                         )
@@ -225,7 +232,7 @@ fun ForgotPasswordScreen(
                         .height(56.dp)
                         .shadow(8.dp, RoundedCornerShape(12.dp), spotColor = KebabPrimaryContainer)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(if (uiState.isLoading) Brush.horizontalGradient(listOf(Color.Gray, Color.LightGray)) else Brush.horizontalGradient(listOf(KebabPrimary, KebabPrimaryContainer)))
+                        .background(if (uiState.isLoading) Brush.horizontalGradient(listOf(KebabPrimary.copy(alpha=0.6f), KebabPrimaryContainer.copy(alpha=0.6f))) else Brush.horizontalGradient(listOf(KebabPrimary, KebabPrimaryContainer)))
                         .clickable(enabled = !uiState.isLoading) {
                             when (uiState.step) {
                                 ForgotPasswordStep.REQUEST -> onRequestReset()
@@ -236,19 +243,21 @@ fun ForgotPasswordScreen(
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    if (uiState.isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
-                    } else {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = when (uiState.step) {
-                                    ForgotPasswordStep.REQUEST -> "Kirim Kode OTP"
-                                    ForgotPasswordStep.VERIFY -> "Verifikasi"
-                                    ForgotPasswordStep.RESET -> "Simpan Kata Sandi"
-                                    ForgotPasswordStep.DONE -> "Kembali ke Login"
-                                },
-                                color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp
-                            )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (uiState.isLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                            Spacer(modifier = Modifier.width(12.dp))
+                        }
+                        Text(
+                            text = when (uiState.step) {
+                                ForgotPasswordStep.REQUEST -> if (uiState.isLoading) "Mengirim OTP..." else "Kirim Kode OTP"
+                                ForgotPasswordStep.VERIFY -> if (uiState.isLoading) "Memverifikasi..." else "Verifikasi"
+                                ForgotPasswordStep.RESET -> if (uiState.isLoading) "Menyimpan..." else "Simpan Kata Sandi"
+                                ForgotPasswordStep.DONE -> "Kembali ke Login"
+                            },
+                            color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp
+                        )
+                        if (!uiState.isLoading) {
                             Spacer(modifier = Modifier.width(8.dp))
                             if (uiState.step != ForgotPasswordStep.DONE) {
                                 Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))

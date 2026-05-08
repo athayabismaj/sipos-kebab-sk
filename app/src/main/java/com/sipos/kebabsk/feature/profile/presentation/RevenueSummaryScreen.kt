@@ -25,9 +25,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.outlined.Payments
-import androidx.compose.material.icons.outlined.ReceiptLong
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -186,7 +186,7 @@ fun RevenueSummaryScreen(
                                     if (uiState.transactionCount > 0) uiState.revenueAmount / uiState.transactionCount else 0.0
                                 )}/order"
                             } else "Belum ada transaksi",
-                            icon = Icons.Outlined.ReceiptLong,
+                            icon = Icons.AutoMirrored.Outlined.ReceiptLong,
                             valueColor = KebabTextDark
                         )
                     }
@@ -251,14 +251,14 @@ private fun FilterSection(
                 .border(1.dp, KebabDivider, RoundedCornerShape(50))
                 .padding(4.dp)
         ) {
-            listOf("Hari Ini", "Kemarin", "Bulan Ini").forEach { filter ->
+            listOf("Hari Ini", "Kemarin").forEach { filter ->
                 val isSelected = selectedFilter == filter
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(50))
                         .background(if (isSelected) KebabPrimary else Color.Transparent)
                         .clickable { onFilterSelected(filter) }
-                        .padding(horizontal = 24.dp, vertical = 10.dp),
+                        .padding(horizontal = 28.dp, vertical = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -336,7 +336,7 @@ private fun MetricSummaryCard(
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    Icons.Default.TrendingUp,
+                    Icons.AutoMirrored.Filled.TrendingUp,
                     contentDescription = null,
                     tint = KebabPrimary,
                     modifier = Modifier.size(16.dp)

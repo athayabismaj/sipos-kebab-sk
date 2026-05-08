@@ -25,7 +25,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.outlined.HelpOutline
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -365,7 +365,7 @@ private fun PasswordInputField(
             )
             Spacer(modifier = Modifier.width(4.dp))
             Icon(
-                Icons.Outlined.HelpOutline,
+                Icons.AutoMirrored.Outlined.HelpOutline,
                 contentDescription = "Info",
                 tint = KebabPrimary.copy(alpha = 0.6f),
                 modifier = Modifier.size(14.dp)

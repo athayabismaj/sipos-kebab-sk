@@ -1,58 +1,28 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Kebab Wrap Icon – vector foreground for adaptive icon -->
+﻿<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Tortilla Wrap (Main Body - Diagonal) -->
+    <!-- S (block minimal) -->
     <path
-        android:fillColor="#FFF9C4"
-        android:pathData="M35,80 L75,40 L85,50 L45,90 Z" />
-    
-    <!-- Tortilla Texture / Grill Marks -->
-    <path
-        android:strokeColor="#FFE082"
-        android:strokeWidth="1.5"
-        android:strokeLineCap="round"
-        android:pathData="M48,72 L58,62 M55,79 L65,69 M41,65 L51,55" />
+        android:fillColor="#FFFDF8"
+        android:pathData="M22,28H46V36H30V48H46V56H30V68H46V76H22V56H38V48H22V28Z" />
 
-    <!-- Filling - Meat (Visible from top end) -->
+    <!-- K stem -->
     <path
-        android:fillColor="#795548"
-        android:pathData="M70,35 Q75,30 80,35 L85,40 L75,50 Z" />
+        android:fillColor="#FFFDF8"
+        android:pathData="M60,28H68V76H60Z" />
 
-    <!-- Filling - Lettuce -->
+    <!-- K upper arm -->
     <path
-        android:fillColor="#81C784"
-        android:pathData="M72,32 Q78,28 84,32 L88,36 L70,38 Z" />
+        android:fillColor="#FFFDF8"
+        android:pathData="M68,52L84,28H94L76,54Z" />
 
-    <!-- Filling - Tomato -->
+    <!-- K lower arm -->
     <path
-        android:fillColor="#E57373"
-        android:pathData="M78,30 Q82,27 86,30 L88,32 L78,34 Z" />
-
-    <!-- Wrap Fold -->
-    <path
-        android:fillColor="#FFF176"
-        android:pathData="M35,80 L75,40 L45,90 Z" />
-
-    <!-- Bottom wrapper (Paper/Foil) -->
-    <path
-        android:fillColor="#ECEFF1"
-        android:pathData="M35,80 L55,100 L25,100 L15,90 Z" />
-    
-    <path
-        android:fillColor="#CFD8DC"
-        android:pathData="M35,80 L25,100 L15,90 Z" />
-
-    <!-- POS Indicator (Subtle badge style) -->
-    <path
-        android:fillColor="#E8501A"
-        android:pathData="M80,70 L95,70 L95,85 L80,85 Z" />
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M83,73 L92,73 L92,75 L83,75 Z M83,77 L92,77 L92,79 L83,79 Z M83,81 L88,81 L88,83 L83,83 Z" />
+        android:fillColor="#FFFDF8"
+        android:pathData="M68,52L76,54L94,76H84Z" />
 
 </vector>

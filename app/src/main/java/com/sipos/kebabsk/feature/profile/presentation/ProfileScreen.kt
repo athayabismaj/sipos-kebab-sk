@@ -24,7 +24,8 @@ import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.LockReset
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.Print
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Logout
 import androidx.compose.material3.Icon
@@ -64,7 +65,8 @@ fun ProfileScreen(
     onChangePassword: () -> Unit = {},
     onViewRevenue: () -> Unit = {},
     onViewDailyStock: () -> Unit = {},
-    onViewOperationalExpense: () -> Unit = {}
+    onViewOperationalExpense: () -> Unit = {},
+    onConnectReceiptPrinter: () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
 
@@ -78,7 +80,6 @@ fun ProfileScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(64.dp)
-                .background(KebabBg)
                 .padding(horizontal = 20.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -98,13 +99,7 @@ fun ProfileScreen(
                 color = KebabPrimary
             )
 
-            IconButton(onClick = onLogout) {
-                Icon(
-                    Icons.Outlined.Logout,
-                    contentDescription = "Keluar",
-                    tint = KebabErrorText
-                )
-            }
+            Spacer(modifier = Modifier.width(48.dp))
         }
 
         // === SCROLLABLE CONTENT ===
@@ -170,7 +165,7 @@ fun ProfileScreen(
             MenuSection(title = "Operasional") {
                 ProfilMenuItem(
                     title = "Ringkasan Penjualan",
-                    icon = Icons.Default.TrendingUp,
+                    icon = Icons.AutoMirrored.Filled.TrendingUp,
                     onClick = onViewRevenue
                 )
                 ProfilMenuItem(
@@ -187,6 +182,12 @@ fun ProfileScreen(
 
             // === MENU AKUN ===
             MenuSection(title = "Akun") {
+                ProfilMenuItem(
+                    title = "Printer Bluetooth",
+                    icon = Icons.Default.Print,
+                    iconTint = KebabTextGray,
+                    onClick = onConnectReceiptPrinter
+                )
                 ProfilMenuItem(
                     title = "Ubah Sandi",
                     icon = Icons.Default.LockReset,

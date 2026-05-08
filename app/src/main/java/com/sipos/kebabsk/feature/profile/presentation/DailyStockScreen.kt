@@ -2,6 +2,7 @@ package com.sipos.kebabsk.feature.profile.presentation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -275,19 +276,18 @@ private fun StokItemCard(
     icon: ImageVector,
     iconColor: Color
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(KebabCardBg)
-            .border(1.dp, KebabDivider, RoundedCornerShape(16.dp))
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = KebabCardBg),
+        border = BorderStroke(1.dp, KebabDivider),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             // Lingkaran Ikon
             Box(
@@ -307,62 +307,66 @@ private fun StokItemCard(
 
             Spacer(modifier = Modifier.width(16.dp))
 
+            // Kolom Tengah (Judul & Sisa)
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title, 
                     fontSize = 16.sp, 
                     fontWeight = FontWeight.Bold, 
-                    color = KebabTextDark
+                    color = KebabTextDark,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(2.dp))
-                Row(verticalAlignment = Alignment.Bottom) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Sisa Aktual ", 
+                        text = "Sisa: ", 
                         fontSize = 13.sp, 
-                        color = KebabTextGray
+                        color = KebabTextGray,
+                        maxLines = 1
                     )
                     Text(
-                        text = sisaAktual, 
+                        text = "$sisaAktual $unit", 
                         fontSize = 14.sp, 
                         fontWeight = FontWeight.Bold,
-                        color = KebabTextDark
-                    )
-                    Text(
-                        text = " $unit", 
-                        fontSize = 13.sp, 
-                        color = KebabTextGray
+                        color = KebabTextDark,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
-        // Info Stok Awal
-        Column(horizontalAlignment = Alignment.End) {
-            Text(
-                text = "STOK AWAL",
-                fontSize = 10.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = KebabTextGray,
-                letterSpacing = 0.5.sp
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Row(verticalAlignment = Alignment.Bottom) {
+            // Info Stok Awal (Kanan)
+            Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = stokAwal,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = KebabPrimary
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = unit,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
+                    text = "STOK AWAL",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
                     color = KebabTextGray,
-                    modifier = Modifier.padding(bottom = 2.dp)
+                    letterSpacing = 0.5.sp,
+                    maxLines = 1
                 )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        text = stokAwal,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = KebabPrimary,
+                        maxLines = 1
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = unit,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = KebabTextGray,
+                        modifier = Modifier.padding(bottom = 2.dp),
+                        maxLines = 1
+                    )
+                }
             }
         }
     }

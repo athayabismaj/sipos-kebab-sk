@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -47,6 +49,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.vector.path
 
 private val BgSurface = Color(0xFFFEF8F3)
 private val TextGray = Color(0xFF6D4C41)
@@ -69,7 +72,9 @@ fun LoginScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(BgSurface),
+            .background(BgSurface)
+            .systemBarsPadding()
+            .imePadding(),
         contentAlignment = Alignment.Center
     ) {
         Box(
@@ -127,8 +132,8 @@ fun LoginScreen(
                 LoginInputField(
                     value = uiState.identifier,
                     onValueChange = onIdentifierChanged,
-                    label = "Email / Username",
-                    placeholder = "Masukkan email atau username",
+                    label = "Username",
+                    placeholder = "Masukkan username",
                     leadingIcon = Icons.Default.Person,
                     enabled = !uiState.isLoading
                 )
@@ -237,21 +242,29 @@ private fun LoginInputField(
             onValueChange = onValueChange,
             modifier = Modifier.fillMaxWidth(),
             enabled = enabled,
-            placeholder = { Text(placeholder, color = TextGray.copy(alpha = 0.5f)) },
+            placeholder = { 
+                Text(
+                    text = placeholder, 
+                    color = TextGray.copy(alpha = 0.5f),
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                ) 
+            },
             leadingIcon = {
                 Icon(leadingIcon, contentDescription = null, tint = TextGray)
             },
             trailingIcon = if (isPassword) {
                 {
-                    Text(
-                        text = if (passwordVisible) "Sembunyikan" else "Tampilkan",
-                        color = TextGray,
-                        fontSize = 12.sp,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable(enabled = enabled, onClick = onTogglePassword)
-                            .padding(horizontal = 8.dp, vertical = 6.dp)
-                    )
+                    androidx.compose.material3.IconButton(
+                        onClick = onTogglePassword,
+                        enabled = enabled
+                    ) {
+                        androidx.compose.material3.Icon(
+                            imageVector = if (passwordVisible) VisibilityOffIcon else VisibilityIcon,
+                            contentDescription = if (passwordVisible) "Sembunyikan password" else "Tampilkan password",
+                            tint = TextGray
+                        )
+                    }
                 }
             } else {
                 null
@@ -264,6 +277,7 @@ private fun LoginInputField(
             keyboardOptions = KeyboardOptions(
                 keyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Text
             ),
+            textStyle = androidx.compose.ui.text.TextStyle(color = Color.Black, fontSize = 16.sp),
             shape = RoundedCornerShape(50),
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = InputBg,
@@ -280,3 +294,73 @@ private fun LoginInputField(
         )
     }
 }
+
+private val VisibilityIcon: androidx.compose.ui.graphics.vector.ImageVector
+    get() = androidx.compose.ui.graphics.vector.ImageVector.Builder(
+        name = "Visibility",
+        defaultWidth = 24.dp,
+        defaultHeight = 24.dp,
+        viewportWidth = 24f,
+        viewportHeight = 24f
+    ).apply {
+        path(
+            fill = null,
+            stroke = androidx.compose.ui.graphics.SolidColor(Color(0xFF6D4C41)),
+            strokeLineWidth = 2f,
+            strokeLineCap = androidx.compose.ui.graphics.StrokeCap.Round,
+            strokeLineJoin = androidx.compose.ui.graphics.StrokeJoin.Round
+        ) {
+            moveTo(12f, 4.5f)
+            curveTo(7f, 4.5f, 2.73f, 7.61f, 1f, 12f)
+            curveTo(2.73f, 16.39f, 7f, 19.5f, 12f, 19.5f)
+            curveTo(17f, 19.5f, 21.27f, 16.39f, 23f, 12f)
+            curveTo(21.27f, 7.61f, 17f, 4.5f, 12f, 4.5f)
+            close()
+            moveTo(12f, 17f)
+            curveTo(9.24f, 17f, 7f, 14.76f, 7f, 12f)
+            curveTo(7f, 9.24f, 9.24f, 7f, 12f, 7f)
+            curveTo(14.76f, 7f, 17f, 9.24f, 17f, 12f)
+            curveTo(17f, 14.76f, 14.76f, 17f, 12f, 17f)
+            close()
+            moveTo(12f, 15f)
+            curveTo(13.66f, 15f, 15f, 13.66f, 15f, 12f)
+            curveTo(15f, 10.34f, 13.66f, 9f, 12f, 9f)
+            curveTo(10.34f, 9f, 9f, 10.34f, 9f, 12f)
+            curveTo(9f, 13.66f, 10.34f, 15f, 12f, 15f)
+            close()
+        }
+    }.build()
+
+private val VisibilityOffIcon: androidx.compose.ui.graphics.vector.ImageVector
+    get() = androidx.compose.ui.graphics.vector.ImageVector.Builder(
+        name = "VisibilityOff",
+        defaultWidth = 24.dp,
+        defaultHeight = 24.dp,
+        viewportWidth = 24f,
+        viewportHeight = 24f
+    ).apply {
+        path(
+            fill = null,
+            stroke = androidx.compose.ui.graphics.SolidColor(Color(0xFF6D4C41)),
+            strokeLineWidth = 2f,
+            strokeLineCap = androidx.compose.ui.graphics.StrokeCap.Round,
+            strokeLineJoin = androidx.compose.ui.graphics.StrokeJoin.Round
+        ) {
+            moveTo(17.94f, 17.94f)
+            lineTo(15.52f, 15.52f)
+            moveTo(1f, 1f)
+            lineTo(23f, 23f)
+            moveTo(9.88f, 9.88f)
+            curveTo(9.32f, 10.45f, 9f, 11.19f, 9f, 12f)
+            curveTo(9f, 13.66f, 10.34f, 15f, 12f, 15f)
+            curveTo(12.81f, 15f, 13.55f, 14.68f, 14.12f, 14.12f)
+            moveTo(11f, 4.58f)
+            curveTo(11.33f, 4.53f, 11.66f, 4.5f, 12f, 4.5f)
+            curveTo(17f, 4.5f, 21.27f, 7.61f, 23f, 12f)
+            curveTo(22.12f, 14.23f, 20.67f, 16.14f, 18.82f, 17.51f)
+            moveTo(6.34f, 6.34f)
+            curveTo(4.24f, 7.66f, 2.45f, 9.64f, 1f, 12f)
+            curveTo(2.73f, 16.39f, 7f, 19.5f, 12f, 19.5f)
+            curveTo(13.61f, 19.5f, 15.15f, 19.16f, 16.55f, 18.57f)
+        }
+    }.build()

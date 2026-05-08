@@ -372,13 +372,7 @@ private fun ExpensesTopBar(onBack: () -> Unit) {
             color = KebabPrimary
         )
 
-        IconButton(onClick = { /* placeholder */ }) {
-            Icon(
-                Icons.Default.AccountCircle,
-                contentDescription = "Profil",
-                tint = KebabTextDark
-            )
-        }
+        Spacer(modifier = Modifier.width(48.dp))
     }
 }
 

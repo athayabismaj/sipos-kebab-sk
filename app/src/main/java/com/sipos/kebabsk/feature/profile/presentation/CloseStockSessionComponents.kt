@@ -10,6 +10,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -36,12 +37,12 @@ import kotlin.math.absoluteValue
 @Composable
 fun StepperSection(step: Int) {
     Row(
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.Center,
         modifier = Modifier.fillMaxWidth()
     ) {
         // Step 1: Rekap Fisik
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(80.dp)) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(90.dp)) {
             val isActive1 = step == 1
             val isDone1 = step > 1
             Box(
@@ -63,18 +64,25 @@ fun StepperSection(step: Int) {
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Rekap Fisik", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = if (isActive1 || isDone1) KebabPrimary else KebabTextGray)
+            Text(
+                text = "Rekap Fisik", 
+                fontSize = 12.sp, 
+                fontWeight = FontWeight.SemiBold, 
+                color = if (isActive1 || isDone1) KebabPrimary else KebabTextGray,
+                maxLines = 1,
+                softWrap = false
+            )
         }
 
         // Line
         HorizontalDivider(
-            modifier = Modifier.width(40.dp).padding(bottom = 20.dp),
+            modifier = Modifier.width(40.dp).padding(top = 16.dp),
             color = if (step > 1) KebabPrimary.copy(alpha = 0.3f) else KebabDivider,
             thickness = 2.dp
         )
 
         // Step 2: Review
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(80.dp)) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(90.dp)) {
             val isActive2 = step == 2
             Box(
                 modifier = Modifier
@@ -91,7 +99,14 @@ fun StepperSection(step: Int) {
                 Text("2", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if (isActive2) KebabTextDark else KebabTextGray)
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Review", fontSize = 12.sp, fontWeight = if (isActive2) FontWeight.Bold else FontWeight.SemiBold, color = if (isActive2) KebabTextDark else KebabTextGray)
+            Text(
+                text = "Review", 
+                fontSize = 12.sp, 
+                fontWeight = if (isActive2) FontWeight.Bold else FontWeight.SemiBold, 
+                color = if (isActive2) KebabTextDark else KebabTextGray,
+                maxLines = 1,
+                softWrap = false
+            )
         }
     }
 }
@@ -100,7 +115,8 @@ fun StepperSection(step: Int) {
 @Composable
 fun RingkasanSesiCard() {
     val dateFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.forLanguageTag("id-ID"))
-    val hariIniStr = AppTime.todayJakarta().format(dateFormatter)
+    // Menggunakan business date agar tanggal tidak otomatis berubah saat jam 12 malam sampai toleransi jam 4 pagi
+    val hariIniStr = AppTime.businessDateJakarta().format(dateFormatter)
     
     Box(
         modifier = Modifier
@@ -357,7 +373,7 @@ fun BahanInputCard(
                         ) {
                             Text(text = terpakai, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = KebabTextDark)
                             Spacer(modifier = Modifier.width(4.dp))
-                            Icon(Icons.Default.TrendingDown, contentDescription = null, tint = KebabPrimary, modifier = Modifier.size(16.dp))
+                            Icon(Icons.AutoMirrored.Filled.TrendingDown, contentDescription = null, tint = KebabPrimary, modifier = Modifier.size(16.dp))
                         }
                     }
                 }
