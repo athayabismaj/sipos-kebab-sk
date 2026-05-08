@@ -11,6 +11,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.sipos.kebabsk.common.AuthSessionEvents
+import com.sipos.kebabsk.common.perf.JankMonitor
 import com.sipos.kebabsk.feature.auth.presentation.forgotpassword.ForgotPasswordViewModel
 import com.sipos.kebabsk.feature.auth.presentation.login.LoginViewModel
 import com.sipos.kebabsk.feature.menu.presentation.MenuViewModel
@@ -26,6 +27,9 @@ class MainActivity : ComponentActivity() {
         installSplashScreen().setKeepOnScreenCondition { false }
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        if (BuildConfig.DEBUG) {
+            JankMonitor.attach(window)
+        }
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {

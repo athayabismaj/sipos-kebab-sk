@@ -25,6 +25,9 @@ object AppSessionStore {
     }
 
     fun saveSession(session: AuthSession) {
+        val current = loadSession()
+        if (current == session) return
+
         prefs?.edit()
             ?.putString(KEY_TOKEN, session.token)
             ?.putString(KEY_DISPLAY_NAME, session.displayName)
@@ -49,4 +52,3 @@ object AppSessionStore {
         prefs?.edit()?.clear()?.apply()
     }
 }
-

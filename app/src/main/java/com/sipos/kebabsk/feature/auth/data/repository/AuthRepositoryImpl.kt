@@ -26,7 +26,7 @@ class AuthRepositoryImpl(
             val token = extractToken(body)
 
             if (response.isSuccessful && !token.isNullOrBlank()) {
-                parseUserSession(body, token, identifier)
+                parseUserSession(body, normalizeAccessToken(token), identifier)
             } else {
                 val msg = extractErrorMessage(response.errorBody()?.string(), body)
                     ?: "Login belum berhasil. Periksa kembali email/username dan password Anda."
@@ -197,6 +197,15 @@ class AuthRepositoryImpl(
 
         val data = body.getAsJsonObjectOrNull("data")
         return firstString(data, "token", "access_token", "accessToken")
+    }
+
+    private fun normalizeAccessToken(raw: String): String {
+        val token = raw.trim()
+        return if (token.startsWith("Bearer ", ignoreCase = true)) {
+            token.substringAfter(" ", "").trim()
+        } else {
+            token
+        }
     }
 
     private fun extractUserJson(body: JsonObject?): JsonObject? {

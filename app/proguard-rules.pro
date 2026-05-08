@@ -1,21 +1,44 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# ============================================================
+# Kebab SK — ProGuard / R8 Rules
+# ============================================================
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# --- Debugging (uncomment for crash traces in release) ---
+# -keepattributes SourceFile,LineNumberTable
+# -renamesourcefileattribute SourceFile
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# --- Kotlin ---
+-keep class kotlin.Metadata { *; }
+-dontwarn kotlin.**
+-keepclassmembers class **$WhenMappings { <fields>; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# --- Coroutines ---
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-keepclassmembernames class kotlinx.** { volatile <fields>; }
+
+# --- Retrofit & OkHttp ---
+-keep class retrofit2.** { *; }
+-keepattributes Signature, Exceptions, RuntimeVisibleAnnotations
+-keepattributes *Annotation*
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-dontwarn retrofit2.**
+
+# --- Gson: Protect all data model classes from obfuscation ---
+-keep class com.sipos.kebabsk.feature.**.data.remote.** { *; }
+-keep class com.sipos.kebabsk.feature.**.domain.model.** { *; }
+-keep class com.sipos.kebabsk.feature.**.presentation.*UiState { *; }
+-keepclassmembers,allowobfuscation class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+
+# --- Compose: Prevent stripping of stable/immutable markers ---
+-keep class androidx.compose.runtime.** { *; }
+-dontwarn androidx.compose.**
+
+# --- Splash Screen ---
+-keep class androidx.core.splashscreen.** { *; }
+
+# --- App specific: Keep Application & Activities ---
+-keep class com.sipos.kebabsk.SiposKebabApplication { *; }
+-keep class com.sipos.kebabsk.MainActivity { *; }
