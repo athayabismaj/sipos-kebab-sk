@@ -84,8 +84,7 @@ object NetworkModule {
 
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
-            // HARCODED URL: Memastikan tidak ada masalah cache dari BuildConfig
-            .baseUrl(normalizeBaseUrl("https://skkebab.my.id/api/"))
+            .baseUrl(normalizeBaseUrl(BuildConfig.API_BASE_URL))
             .addConverterFactory(GsonConverterFactory.create())
             .client(httpClient)
             .build()
