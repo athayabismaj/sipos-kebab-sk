@@ -3,6 +3,14 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// Baca URL API dari local.properties (file ini tidak ter-push ke Git)
+val localProps = java.util.Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) load(file.inputStream())
+}
+val apiRelease = localProps.getProperty("API_BASE_URL_RELEASE", "https://your-domain.com/api/")
+val apiDebug = localProps.getProperty("API_BASE_URL_DEBUG", "http://your-local-ip:8000/api/")
+
 android {
     namespace = "com.sipos.kebabsk"
     compileSdk = 36
@@ -22,7 +30,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             isDebuggable = false
-            buildConfigField("String", "API_BASE_URL", "\"https://skkebab.my.id/api/\"")
+            buildConfigField("String", "API_BASE_URL", "\"$apiRelease\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -31,7 +39,7 @@ android {
         debug {
             isMinifyEnabled = false
             isShrinkResources = false
-            buildConfigField("String", "API_BASE_URL", "\"https://skkebab.my.id/api/\"")
+            buildConfigField("String", "API_BASE_URL", "\"$apiDebug\"")
         }
     }
 
