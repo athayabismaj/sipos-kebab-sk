@@ -22,4 +22,11 @@ interface TransactionsApiService {
         @Header("Authorization") authorization: String,
         @retrofit2.http.Query("date") date: String? = null
     ): Response<RevenueTrendResponse>
+
+    @retrofit2.http.POST("transactions/{id}/void")
+    suspend fun voidTransaction(
+        @Header("Authorization") authorization: String,
+        @retrofit2.http.Path("id") id: Long,
+        @retrofit2.http.Body request: VoidTransactionRequest
+    ): Response<VoidTransactionResponse>
 }

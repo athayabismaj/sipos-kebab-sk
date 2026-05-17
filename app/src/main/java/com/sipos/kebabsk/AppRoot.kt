@@ -32,6 +32,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -65,6 +66,7 @@ import com.sipos.kebabsk.feature.auth.presentation.forgotpassword.ForgotPassword
 import com.sipos.kebabsk.feature.auth.presentation.forgotpassword.ForgotPasswordUiState
 import com.sipos.kebabsk.feature.auth.presentation.login.LoginScreen
 import com.sipos.kebabsk.feature.auth.presentation.login.LoginUiState
+import com.sipos.kebabsk.feature.auth.presentation.login.SessionSyncState
 import com.sipos.kebabsk.feature.dailystock.data.repository.DailyStockRepositoryImpl
 import com.sipos.kebabsk.feature.dailystock.presentation.DailyStockViewModel
 import com.sipos.kebabsk.feature.dailystock.presentation.DailyStockViewModelFactory
@@ -83,6 +85,9 @@ import com.sipos.kebabsk.feature.profile.presentation.ProfileScreen
 import com.sipos.kebabsk.feature.profile.presentation.RevenueSummaryScreen
 import com.sipos.kebabsk.feature.profile.presentation.RevenueViewModel
 import com.sipos.kebabsk.feature.profile.presentation.RevenueViewModelFactory
+import com.sipos.kebabsk.feature.shift.presentation.CloseShiftScreen
+import com.sipos.kebabsk.feature.shift.presentation.CloseShiftViewModel
+import com.sipos.kebabsk.feature.shift.presentation.CloseShiftViewModelFactory
 import com.sipos.kebabsk.feature.shift.presentation.ShiftSummaryUiState
 import com.sipos.kebabsk.feature.shift.presentation.ShiftSummaryViewModel
 import com.sipos.kebabsk.feature.shift.presentation.ShiftSummaryViewModelFactory
@@ -93,10 +98,12 @@ import com.sipos.kebabsk.feature.transactions.presentation.TransactionsViewModel
 import com.sipos.kebabsk.feature.transactions.presentation.TransactionsViewModelFactory
 import com.sipos.kebabsk.ui.theme.BrandAmber
 import com.sipos.kebabsk.ui.theme.BrandOrange
+import com.sipos.kebabsk.ui.theme.KebabBg
 import com.sipos.kebabsk.ui.theme.KebabNavActiveBg
 import com.sipos.kebabsk.ui.theme.KebabNavInactiveText
 import com.sipos.kebabsk.ui.theme.KebabPrimary
 import com.sipos.kebabsk.ui.theme.KebabPrimaryContainer
+import com.sipos.kebabsk.ui.theme.KebabSecondaryContainer
 import com.sipos.kebabsk.ui.theme.KebabSuccess
 import com.sipos.kebabsk.ui.theme.KebabSuccessBg
 import com.sipos.kebabsk.ui.theme.KebabTextDark
@@ -126,6 +133,7 @@ private enum class ProfilePage {
     OPERATIONAL_EXPENSE,
     BLUETOOTH_PRINTER,
     CLOSE_STOCK_SESSION,
+    CLOSE_SHIFT,
     EDIT,
     CHANGE_PASSWORD
 }
@@ -161,21 +169,30 @@ fun AuthRoot(
     onPaidAmountChanged: (String) -> Unit,
     onNoteChanged: (String) -> Unit,
     onSubmitCheckout: (token: String) -> Unit,
-    onDismissCheckoutPreview: () -> Unit
+    onDismissCheckoutPreview: () -> Unit,
+    onClearCheckoutMessage: () -> Unit
 ) {
     var showSplash by rememberSaveable { mutableStateOf(true) }
     var route by remember(loginUiState.session) {
         mutableStateOf(if (loginUiState.session == null) AuthRoute.LOGIN else AuthRoute.APP)
     }
 
+    // Splash minimum 700ms — tapi juga menunggu session validation selesai
     LaunchedEffect(Unit) {
         delay(700)
         showSplash = false
     }
 
-    if (showSplash) {
+    // Tetap tampilkan splash selama validasi sesi masih berjalan
+    val isSessionChecking = loginUiState.sessionSyncState == SessionSyncState.CHECKING
+    if (showSplash || isSessionChecking) {
         KebabSkSplashScreen()
         return
+    }
+
+    // Self-Healing: Jika DESYNCED, paksa ke Login
+    if (loginUiState.sessionSyncState == SessionSyncState.DESYNCED) {
+        route = AuthRoute.LOGIN
     }
 
     if (loginUiState.session != null) {
@@ -238,7 +255,8 @@ fun AuthRoot(
             onPaidAmountChanged = onPaidAmountChanged,
             onNoteChanged = onNoteChanged,
             onSubmitCheckout = onSubmitCheckout,
-            onDismissCheckoutPreview = onDismissCheckoutPreview
+            onDismissCheckoutPreview = onDismissCheckoutPreview,
+            onClearCheckoutMessage = onClearCheckoutMessage
         )
     }
 }
@@ -261,7 +279,8 @@ private fun AppScaffold(
     onPaidAmountChanged: (String) -> Unit,
     onNoteChanged: (String) -> Unit,
     onSubmitCheckout: (token: String) -> Unit,
-    onDismissCheckoutPreview: () -> Unit
+    onDismissCheckoutPreview: () -> Unit,
+    onClearCheckoutMessage: () -> Unit
 ) {
     val session = checkNotNull(loginUiState.session)
     val profileEmail = session.email
@@ -269,6 +288,18 @@ private fun AppScaffold(
     var selectedTab by rememberSaveable { mutableStateOf(AppTab.CASHIER) }
     var profilePage by rememberSaveable { mutableStateOf(ProfilePage.SUMMARY) }
     var cashierTransactionStarted by rememberSaveable { mutableStateOf(false) }
+    var targetCloseShiftSessionId by rememberSaveable { mutableStateOf<Long?>(null) }
+
+    // Shared DailyStockViewModel agar sessionId bisa diakses oleh Transactions tab (untuk Void)
+    val sharedDsRepository = remember { DailyStockRepositoryImpl(NetworkModule.dailyStockApiService) }
+    val sharedDsFactory = remember(session.token) { DailyStockViewModelFactory(session.token, sharedDsRepository) }
+    val sharedDailyStockViewModel: DailyStockViewModel = viewModel(factory = sharedDsFactory)
+    val sharedDailyStockUiState by sharedDailyStockViewModel.uiState.collectAsStateWithLifecycle()
+
+    // Fetch session saat pertama kali masuk AppScaffold
+    LaunchedEffect(session.token) {
+        sharedDailyStockViewModel.refresh()
+    }
 
     LaunchedEffect(cashierTransactionStarted, session.token) {
         if (cashierTransactionStarted) {
@@ -284,12 +315,11 @@ private fun AppScaffold(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = KebabBg,
         bottomBar = {
             NavigationBar(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding(),
+                    .fillMaxWidth(),
                 containerColor = MaterialTheme.colorScheme.surface,
                 tonalElevation = 4.dp
             ) {
@@ -346,7 +376,8 @@ private fun AppScaffold(
                         shiftSummaryUiState = shiftSummaryUiState,
                         onRetryShiftSummary = shiftSummaryViewModel::refresh,
                         onForceLogout = onLogout,
-                        onStartTransaction = { cashierTransactionStarted = true }
+                        onStartTransaction = { cashierTransactionStarted = true },
+                        isPendingSync = loginUiState.sessionSyncState == SessionSyncState.PENDING_SYNC
                     )
                 } else {
                     MenuScreen(
@@ -363,7 +394,8 @@ private fun AppScaffold(
                         onPaidAmountChanged = onPaidAmountChanged,
                         onNoteChanged = onNoteChanged,
                         onSubmitCheckout = { onSubmitCheckout(session.token) },
-                        onDismissCheckoutPreview = onDismissCheckoutPreview
+                        onDismissCheckoutPreview = onDismissCheckoutPreview,
+                        onClearCheckoutMessage = onClearCheckoutMessage
                     )
                 }
             }
@@ -374,6 +406,7 @@ private fun AppScaffold(
                 TransactionsScreen(
                     viewModel = transactionsViewModel, 
                     modifier = Modifier.padding(innerPadding),
+                    sessionId = sharedDailyStockUiState.sessionId,
                     onForceLogout = onLogout
                 )
             }
@@ -465,28 +498,24 @@ private fun AppScaffold(
                     }
 
                     ProfilePage.DAILY_STOCK -> {
-                        val repository = remember { DailyStockRepositoryImpl(NetworkModule.dailyStockApiService) }
-                        val factory = remember(session.token) { DailyStockViewModelFactory(session.token, repository) }
-                        val dailyStockViewModel: DailyStockViewModel = viewModel(factory = factory)
-                        val dailyStockUiState by dailyStockViewModel.uiState.collectAsStateWithLifecycle()
-
-                        LaunchedEffect(Unit) {
-                            dailyStockViewModel.refresh()
-                        }
-
                         DailyStockScreen(
                             modifier = Modifier.padding(innerPadding),
-                            items = dailyStockUiState.items,
-                            sessionId = dailyStockUiState.sessionId,
-                            isLoading = dailyStockUiState.isLoading,
-                            errorMessage = dailyStockUiState.errorMessage,
+                            items = sharedDailyStockUiState.items,
+                            sessionId = sharedDailyStockUiState.sessionId,
+                            isLoading = sharedDailyStockUiState.isLoading,
+                            errorMessage = sharedDailyStockUiState.errorMessage,
                             onBack = {
                                 profilePage = ProfilePage.SUMMARY
                             },
-                            onRetry = dailyStockViewModel::refresh,
+                            onRetry = sharedDailyStockViewModel::refresh,
                             onForceLogout = onLogout,
                             onCloseSession = {
                                 profilePage = ProfilePage.CLOSE_STOCK_SESSION
+                            },
+                            isCashReconciliationPending = sharedDailyStockUiState.isCashReconciliationPending,
+                            onNavigateToCloseShift = {
+                                targetCloseShiftSessionId = sharedDailyStockUiState.sessionId
+                                profilePage = ProfilePage.CLOSE_SHIFT
                             }
                         )
                     }
@@ -503,8 +532,9 @@ private fun AppScaffold(
 
                         LaunchedEffect(dailyStockUiState.closeSuccess) {
                             if (dailyStockUiState.closeSuccess) {
+                                targetCloseShiftSessionId = dailyStockUiState.sessionId
                                 dailyStockViewModel.clearCloseState()
-                                profilePage = ProfilePage.SUMMARY
+                                profilePage = ProfilePage.CLOSE_SHIFT
                             }
                         }
 
@@ -548,6 +578,35 @@ private fun AppScaffold(
                             onBack = { profilePage = ProfilePage.SUMMARY }
                         )
                     }
+
+                    ProfilePage.CLOSE_SHIFT -> {
+                        val dsRepository = remember { DailyStockRepositoryImpl(NetworkModule.dailyStockApiService) }
+                        val closeShiftFactory = remember(session.token, targetCloseShiftSessionId) {
+                            CloseShiftViewModelFactory(
+                                token = session.token,
+                                closeShiftApiService = NetworkModule.closeShiftApiService,
+                                dailyStockRepository = dsRepository,
+                                targetSessionId = targetCloseShiftSessionId
+                            )
+                        }
+                        val closeShiftViewModel: CloseShiftViewModel = viewModel(factory = closeShiftFactory)
+                        val closeShiftUiState by closeShiftViewModel.uiState.collectAsStateWithLifecycle()
+
+                        CloseShiftScreen(
+                            modifier = Modifier.padding(innerPadding),
+                            uiState = closeShiftUiState,
+                            onBack = {
+                                targetCloseShiftSessionId = null
+                                closeShiftViewModel.clearState()
+                                profilePage = ProfilePage.SUMMARY
+                            },
+                            onSubmit = { cash, notes ->
+                                closeShiftViewModel.submitCloseShift(cash, notes)
+                            },
+                            onRetryReadiness = closeShiftViewModel::checkReadiness,
+                            onSessionClosed = onLogout
+                        )
+                    }
                 }
             }
         }
@@ -565,7 +624,8 @@ private fun CashierDashboardScreen(
     shiftSummaryUiState: ShiftSummaryUiState,
     onRetryShiftSummary: () -> Unit,
     onForceLogout: () -> Unit,
-    onStartTransaction: () -> Unit
+    onStartTransaction: () -> Unit,
+    isPendingSync: Boolean = false
 ) {
     val scrollState = rememberScrollState()
     var currentTime by remember { mutableStateOf(AppTime.nowJakartaDateTime()) }
@@ -621,6 +681,31 @@ private fun CashierDashboardScreen(
                 isDailySessionOpen = isDailySessionOpen,
                 dailySessionLabel = dailySessionLabel
             )
+
+            // === SYNC PENDING BANNER ===
+            if (isPendingSync) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(KebabSecondaryContainer.copy(alpha = 0.15f))
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(14.dp),
+                        strokeWidth = 2.dp,
+                        color = KebabPrimary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Menunggu Sinkronisasi — verifikasi sesi tertunda (offline)",
+                        fontSize = 12.sp,
+                        color = KebabPrimary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
         }
 
         // ===== SCROLLABLE BODY =====

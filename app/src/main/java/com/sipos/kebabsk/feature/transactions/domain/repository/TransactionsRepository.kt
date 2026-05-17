@@ -9,4 +9,5 @@ interface TransactionsRepository {
     suspend fun getTransactions(token: String, date: LocalDate, page: Int = 1): Result<TransactionPageData>
     suspend fun getRevenueSummary(token: String, date: LocalDate): Result<RevenueSummaryResult>
     suspend fun getRevenueTrend(token: String, date: LocalDate): Result<List<Pair<String, Double>>>
+    suspend fun voidTransaction(token: String, transactionId: Long, reason: String, sessionId: Long): Result<String>
 }

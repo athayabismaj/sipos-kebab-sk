@@ -79,7 +79,8 @@ class MainActivity : ComponentActivity() {
                     onPaidAmountChanged = menuViewModel::onPaidAmountChanged,
                     onNoteChanged = menuViewModel::onNoteChanged,
                     onSubmitCheckout = { token -> menuViewModel.submitCheckout(token) },
-                    onDismissCheckoutPreview = menuViewModel::dismissCheckoutPreview
+                    onDismissCheckoutPreview = menuViewModel::dismissCheckoutPreview,
+                    onClearCheckoutMessage = menuViewModel::clearCheckoutMessage
                 )
             }
         }

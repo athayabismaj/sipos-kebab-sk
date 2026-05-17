@@ -8,6 +8,7 @@ import com.sipos.kebabsk.feature.checkout.data.remote.CheckoutApiService
 import com.sipos.kebabsk.feature.dailystock.data.remote.DailyStockApiService
 import com.sipos.kebabsk.feature.expense.data.remote.OperationalExpenseApiService
 import com.sipos.kebabsk.feature.menu.data.remote.MenuApiService
+import com.sipos.kebabsk.feature.shift.data.remote.CloseShiftApiService
 import okhttp3.Cache
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -112,6 +113,10 @@ object NetworkModule {
 
     val transactionsApiService: com.sipos.kebabsk.feature.transactions.data.remote.TransactionsApiService by lazy {
         retrofit.create(com.sipos.kebabsk.feature.transactions.data.remote.TransactionsApiService::class.java)
+    }
+
+    val closeShiftApiService: CloseShiftApiService by lazy {
+        retrofit.create(CloseShiftApiService::class.java)
     }
 
     private fun normalizeBaseUrl(baseUrl: String): String {

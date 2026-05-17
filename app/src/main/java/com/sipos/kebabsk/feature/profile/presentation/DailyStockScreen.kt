@@ -43,6 +43,8 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -72,7 +74,9 @@ fun DailyStockScreen(
     onBack: () -> Unit,
     onRetry: () -> Unit,
     onForceLogout: () -> Unit = {},
-    onCloseSession: () -> Unit
+    onCloseSession: () -> Unit,
+    isCashReconciliationPending: Boolean = false,
+    onNavigateToCloseShift: () -> Unit = {}
 ) {
     val dateFormatter = DateTimeFormatter.ofPattern("EEEE, dd MMM yyyy", Locale.forLanguageTag("id-ID"))
     val hariIni = AppTime.todayJakarta().format(dateFormatter)
@@ -115,6 +119,51 @@ fun DailyStockScreen(
                 when {
                     isLoading -> {
                         DailyStockSkeleton(modifier = Modifier.weight(1f))
+                    }
+
+                    isCashReconciliationPending -> {
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3CD)),
+                            modifier = Modifier.fillMaxWidth().weight(1f)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = Color(0xFF856404),
+                                    modifier = Modifier.size(64.dp)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "Formulir Stok Terkunci.\nAnda belum menyelesaikan rekonsiliasi kas harian.",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = Color(0xFF856404),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(24.dp))
+                                androidx.compose.material3.Button(
+                                    onClick = onNavigateToCloseShift,
+                                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color(0xFFE0A800)),
+                                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text(
+                                        text = "Lanjutkan Penutupan Shift\n(Rekonsiliasi Kas Pending)", 
+                                        color = Color.White, 
+                                        fontWeight = FontWeight.Bold, 
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
                     }
 
                     !errorMessage.isNullOrBlank() -> {

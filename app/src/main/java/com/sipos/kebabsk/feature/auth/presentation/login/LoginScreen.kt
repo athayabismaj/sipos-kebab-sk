@@ -16,8 +16,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -51,11 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.vector.path
 
-private val BgSurface = Color(0xFFFEF8F3)
-private val TextGray = Color(0xFF6D4C41)
-private val InputBg = Color(0xFFF7F1EC)
-private val OrangeStart = Color(0xFFB66100)
-private val OrangeEnd = Color(0xFFFF8C00)
+import com.sipos.kebabsk.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,24 +67,36 @@ fun LoginScreen(
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
 
+    val scrollState = rememberScrollState()
+
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(BgSurface)
+            .background(KebabBg)
             .systemBarsPadding()
-            .imePadding(),
-        contentAlignment = Alignment.Center
     ) {
+        // Decorative background elements
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.02f))
+                .background(Brush.verticalGradient(
+                    colors = listOf(KebabBg, KebabPrimaryContainer.copy(alpha = 0.2f))
+                ))
         )
 
-        Card(
+        Column(
             modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .widthIn(max = 400.dp),
+                .fillMaxSize()
+                .imePadding()
+                .verticalScroll(scrollState)
+                .padding(vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .widthIn(max = 400.dp),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -97,16 +107,16 @@ fun LoginScreen(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(64.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFFFDCC3)),
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(KebabPrimaryContainer),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.ShoppingCart,
                         contentDescription = null,
-                        tint = Color(0xFF623200),
-                        modifier = Modifier.size(32.dp)
+                        tint = KebabPrimary,
+                        modifier = Modifier.size(40.dp)
                     )
                 }
 
@@ -114,15 +124,15 @@ fun LoginScreen(
 
                 Text(
                     text = "Selamat Datang, Kasir!",
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = KebabTextDark,
                     textAlign = TextAlign.Center
                 )
                 Text(
                     text = "Masuk untuk memulai shift Anda di Kebab SK.",
-                    fontSize = 14.sp,
-                    color = TextGray,
+                    fontSize = 15.sp,
+                    color = KebabTextGray,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 8.dp)
                 )
@@ -168,24 +178,25 @@ fun LoginScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Brush.horizontalGradient(listOf(OrangeStart, OrangeEnd)))
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Brush.horizontalGradient(listOf(KebabPrimary, KebabPrimaryContainer)))
                         .clickable(enabled = !uiState.isLoading, onClick = onLogin),
                     contentAlignment = Alignment.Center
                 ) {
                     if (uiState.isLoading) {
                         CircularProgressIndicator(
-                            strokeWidth = 2.dp,
+                            strokeWidth = 3.dp,
                             color = Color.White,
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                     } else {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "Login",
+                                text = "Masuk Sekarang",
                                 color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 16.sp,
+                                letterSpacing = 0.5.sp
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Icon(
@@ -198,13 +209,13 @@ fun LoginScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 Text(
                     text = "Lupa Password?",
-                    color = OrangeStart,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    color = KebabPrimary,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
                     modifier = Modifier
                         .clip(CircleShape)
                         .clickable(enabled = !uiState.isLoading, onClick = onForgotPassword)
@@ -213,6 +224,7 @@ fun LoginScreen(
             }
         }
     }
+}
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -232,9 +244,9 @@ private fun LoginInputField(
         Text(
             text = label,
             fontSize = 14.sp,
-            fontWeight = FontWeight.Medium,
-            color = TextGray,
-            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+            fontWeight = FontWeight.SemiBold,
+            color = KebabTextDark,
+            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
         )
 
         OutlinedTextField(
@@ -245,13 +257,13 @@ private fun LoginInputField(
             placeholder = { 
                 Text(
                     text = placeholder, 
-                    color = TextGray.copy(alpha = 0.5f),
+                    color = KebabTextGray.copy(alpha = 0.7f),
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 ) 
             },
             leadingIcon = {
-                Icon(leadingIcon, contentDescription = null, tint = TextGray)
+                Icon(leadingIcon, contentDescription = null, tint = KebabTextGray)
             },
             trailingIcon = if (isPassword) {
                 {
@@ -262,7 +274,7 @@ private fun LoginInputField(
                         androidx.compose.material3.Icon(
                             imageVector = if (passwordVisible) VisibilityOffIcon else VisibilityIcon,
                             contentDescription = if (passwordVisible) "Sembunyikan password" else "Tampilkan password",
-                            tint = TextGray
+                            tint = KebabTextGray
                         )
                     }
                 }
@@ -277,18 +289,18 @@ private fun LoginInputField(
             keyboardOptions = KeyboardOptions(
                 keyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Text
             ),
-            textStyle = androidx.compose.ui.text.TextStyle(color = Color.Black, fontSize = 16.sp),
-            shape = RoundedCornerShape(50),
+            textStyle = androidx.compose.ui.text.TextStyle(color = KebabTextDark, fontSize = 16.sp, fontWeight = FontWeight.Medium),
+            shape = RoundedCornerShape(16.dp),
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = InputBg,
-                unfocusedContainerColor = InputBg,
-                disabledContainerColor = InputBg.copy(alpha = 0.7f),
-                focusedIndicatorColor = OrangeStart,
+                focusedContainerColor = KebabItemBg,
+                unfocusedContainerColor = KebabItemBg,
+                disabledContainerColor = KebabItemBg.copy(alpha = 0.5f),
+                focusedIndicatorColor = KebabPrimary,
                 unfocusedIndicatorColor = Color.Transparent,
                 disabledIndicatorColor = Color.Transparent,
-                focusedTextColor = Color.Black,
-                unfocusedTextColor = Color.Black,
-                cursorColor = OrangeStart
+                focusedTextColor = KebabTextDark,
+                unfocusedTextColor = KebabTextDark,
+                cursorColor = KebabPrimary
             ),
             singleLine = true
         )

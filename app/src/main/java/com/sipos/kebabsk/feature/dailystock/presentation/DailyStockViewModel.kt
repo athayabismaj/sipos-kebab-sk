@@ -16,6 +16,7 @@ data class DailyStockUiState(
     val items: List<DailyStockItem> = emptyList(),
     val sessionId: Long? = null,
     val errorMessage: String? = null,
+    val isCashReconciliationPending: Boolean = false,
 
     // Close session state
     val isClosing: Boolean = false,
@@ -38,6 +39,26 @@ class DailyStockViewModel(
     fun refresh() {
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
         viewModelScope.launch {
+            var isPending = false
+            try {
+                val statusResponse = com.sipos.kebabsk.data.network.NetworkModule.authApiService.sessionCurrentStatus("Bearer $token")
+                if (statusResponse.isSuccessful) {
+                    val body = statusResponse.body()
+                    if (body != null && body.has("data") && body.get("data").isJsonObject) {
+                        val data = body.getAsJsonObject("data")
+                        val stockStatus = data.get("stock_session_status")?.asString ?: data.get("stock_status")?.asString
+                        val sessionStatus = data.get("status")?.asString
+                        
+                        val isStockClosed = stockStatus?.uppercase() == "CLOSED" || stockStatus?.uppercase() == "RECONCILED"
+                        val isFinanciallyOpen = sessionStatus?.uppercase() == "OPEN"
+                        
+                        isPending = isStockClosed && isFinanciallyOpen
+                    }
+                }
+            } catch (e: Exception) {
+                // Ignore failure for current-status, continue to daily stock load
+            }
+
             repository.getDailyStock(token)
                 .onSuccess { result ->
                     _uiState.update {
@@ -45,6 +66,7 @@ class DailyStockViewModel(
                             isLoading = false,
                             items = result.items,
                             sessionId = result.sessionId,
+                            isCashReconciliationPending = isPending,
                             errorMessage = if (result.items.isEmpty() && result.sessionId == null) {
                                 "Sesi stok harian belum dibuka oleh admin hari ini."
                             } else null

@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -51,6 +52,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import android.widget.Toast
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material.icons.filled.Recycling
+import androidx.compose.material.icons.filled.DeleteForever
+
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -87,10 +99,124 @@ import java.util.Locale
 fun TransactionsScreen(
     viewModel: TransactionsViewModel,
     modifier: Modifier = Modifier,
+    sessionId: Long? = null,
     onForceLogout: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
+    var transactionToVoid by rememberSaveable { mutableStateOf<Long?>(null) }
+    val context = LocalContext.current
+
+    LaunchedEffect(uiState.voidSuccess, uiState.voidErrorMessage) {
+        if (uiState.voidSuccess) {
+            transactionToVoid = null
+            Toast.makeText(context, uiState.voidMessage ?: "Transaksi dibatalkan", Toast.LENGTH_SHORT).show()
+            viewModel.clearVoidState()
+            viewModel.fetchTransactions()
+        } else if (!uiState.voidErrorMessage.isNullOrBlank()) {
+            Toast.makeText(context, uiState.voidErrorMessage, Toast.LENGTH_SHORT).show()
+            viewModel.clearVoidState()
+        }
+    }
+
+    if (transactionToVoid != null) {
+        Dialog(
+            onDismissRequest = { if (!uiState.isVoiding) transactionToVoid = null },
+            properties = DialogProperties(dismissOnBackPress = !uiState.isVoiding, dismissOnClickOutside = !uiState.isVoiding)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = KebabCardBg,
+                tonalElevation = 6.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Title
+                    Text(
+                        text = "Alasan Pembatalan",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = KebabTextDark
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Subtitle
+                    Text(
+                        text = "Pilih kondisi bahan baku dari transaksi yang dibatalkan ini.",
+                        fontSize = 13.sp,
+                        color = KebabTextGray,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    if (uiState.isVoiding) {
+                        CircularProgressIndicator(color = KebabPrimary, modifier = Modifier.size(40.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("Membatalkan transaksi...", fontSize = 13.sp, color = KebabTextGray)
+                    } else {
+                        // Restock Button
+                        Button(
+                            onClick = {
+                                if (sessionId != null) {
+                                    viewModel.voidTransaction(transactionToVoid!!, VoidReason.RESTOCK, sessionId)
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = KebabSuccess),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth().height(48.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Recycling,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Kembalikan ke Stok (Restock)", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Waste Button
+                        OutlinedButton(
+                            onClick = {
+                                if (sessionId != null) {
+                                    viewModel.voidTransaction(transactionToVoid!!, VoidReason.WASTE, sessionId)
+                                }
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, KebabErrorText),
+                            modifier = Modifier.fillMaxWidth().height(48.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.DeleteForever,
+                                contentDescription = null,
+                                tint = KebabErrorText,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Buang sebagai Sampah (Waste)", color = KebabErrorText, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+                        HorizontalDivider(color = KebabDivider.copy(alpha = 0.4f))
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Dismiss Button — bersih di baris bawah, rata kanan
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                            TextButton(onClick = { transactionToVoid = null }) {
+                                Text("Batal", color = KebabTextGray, fontWeight = FontWeight.Medium)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     Column(
         modifier = modifier
@@ -124,127 +250,124 @@ fun TransactionsScreen(
         }
 
         // === SCROLLABLE CONTENT ===
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp)
         ) {
             // --- DATE SCROLLER ---
-            DateScroller(
-                currentDate = uiState.currentDate,
-                onDateSelected = { viewModel.setDate(it) }
-            )
+            item {
+                DateScroller(
+                    currentDate = uiState.currentDate,
+                    onDateSelected = { viewModel.setDate(it) }
+                )
+            }
 
-            if (uiState.isLoading) {
-                TransactionsSkeleton(modifier = Modifier.weight(1f))
-            } else {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
+            // --- SUMMARY METRICS ---
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // --- SUMMARY METRICS (real data) ---
-                    Row(
-                        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        SummaryMetricCard(
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            title = "Tot. Transaksi",
-                            value = "${uiState.allTransactions.size}",
-                            icon = Icons.AutoMirrored.Outlined.ReceiptLong
-                        )
-                        SummaryMetricCard(
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            title = "Tot. Pendapatan",
-                            value = formatShortRupiah(
-                                uiState.allTransactions
-                                    .filter { it.status.equals("Sukses", ignoreCase = true) }
-                                    .sumOf { it.total }
-                            ),
-                            icon = Icons.Outlined.Payments
+                    SummaryMetricCard(
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        title = "Tot. Transaksi",
+                        value = "${uiState.totalTransactionsCount}",
+                        icon = Icons.AutoMirrored.Outlined.ReceiptLong
+                    )
+                    SummaryMetricCard(
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        title = "Tot. Pendapatan",
+                        value = formatShortRupiah(uiState.totalRevenue),
+                        icon = Icons.Outlined.Payments
+                    )
+                }
+            }
+
+            // --- LIST CONTENT ---
+            when {
+                uiState.isLoading -> {
+                    item {
+                        TransactionsSkeleton(modifier = Modifier.fillMaxWidth())
+                    }
+                }
+                uiState.errorMessage != null -> {
+                    item {
+                        val isSessionExpired = uiState.errorMessage?.contains("Sesi login sudah berakhir", ignoreCase = true) == true
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(top = 40.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = uiState.errorMessage ?: "",
+                                    color = KebabErrorText,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                OutlinedButton(onClick = { if (isSessionExpired) onForceLogout() else viewModel.fetchTransactions() }) {
+                                    Text(if (isSessionExpired) "Login Ulang" else "Coba Lagi")
+                                }
+                            }
+                        }
+                    }
+                }
+                uiState.paginatedTransactions.isEmpty() -> {
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(top = 40.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Outlined.ReceiptLong,
+                                    contentDescription = null,
+                                    tint = KebabTextGray.copy(alpha = 0.4f),
+                                    modifier = Modifier.size(56.dp)
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = "Belum ada transaksi",
+                                    color = KebabTextGray,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "pada tanggal ini",
+                                    color = KebabTextGray.copy(alpha = 0.6f),
+                                    fontSize = 13.sp,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                }
+                else -> {
+                    items(uiState.paginatedTransactions) { trx ->
+                        TransactionItemCard(
+                            trx = trx,
+                            onVoidClicked = { transactionToVoid = trx.id }
                         )
                     }
 
-                    // --- MAIN CONTENT ---
-                    when {
-                        uiState.errorMessage != null -> {
-                            val isSessionExpired = uiState.errorMessage?.contains("Sesi login sudah berakhir", ignoreCase = true) == true
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        text = uiState.errorMessage ?: "",
-                                        color = KebabErrorText,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    OutlinedButton(onClick = { if (isSessionExpired) onForceLogout() else viewModel.fetchTransactions() }) {
-                                        Text(if (isSessionExpired) "Login Ulang" else "Coba Lagi")
-                                    }
-                                }
-                            }
-                        }
-                        uiState.paginatedTransactions.isEmpty() -> {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Icon(
-                                        Icons.AutoMirrored.Outlined.ReceiptLong,
-                                        contentDescription = null,
-                                        tint = KebabTextGray.copy(alpha = 0.4f),
-                                        modifier = Modifier.size(56.dp)
-                                    )
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    Text(
-                                        text = "Belum ada transaksi",
-                                        color = KebabTextGray,
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "pada tanggal ini",
-                                        color = KebabTextGray.copy(alpha = 0.6f),
-                                        fontSize = 13.sp,
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                    )
-                                }
-                            }
-                        }
-                        else -> {
-                            LazyColumn(
-                                modifier = Modifier.fillMaxSize(),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                items(uiState.paginatedTransactions) { trx ->
-                                    TransactionItemCard(trx = trx)
-                                }
-
-                                // Pagination
-                                if (uiState.totalPages > 1) {
-                                    item {
-                                        PaginationControls(
-                                            currentPage = uiState.currentPage,
-                                            totalPages = uiState.totalPages,
-                                            onPrevious = { viewModel.loadPreviousPage() },
-                                            onNext = { viewModel.loadNextPage() }
-                                        )
-                                    }
-                                }
-
-                                item { Spacer(modifier = Modifier.height(16.dp)) }
-                            }
+                    // Pagination
+                    if (uiState.totalPages > 1) {
+                        item {
+                            PaginationControls(
+                                currentPage = uiState.currentPage,
+                                totalPages = uiState.totalPages,
+                                onPrevious = { viewModel.loadPreviousPage() },
+                                onNext = { viewModel.loadNextPage() }
+                            )
                         }
                     }
                 }
@@ -395,10 +518,10 @@ private fun SummaryMetricCard(modifier: Modifier = Modifier, title: String, valu
 
 // === TRANSACTION ITEM CARD ===
 @Composable
-private fun TransactionItemCard(trx: TransactionHistoryItem) {
+private fun TransactionItemCard(trx: TransactionHistoryItem, onVoidClicked: () -> Unit) {
     val formatRupiah = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("id-ID"))
-    val isCancelled = !trx.status.equals("Sukses", ignoreCase = true)
-    val isSuccess = trx.status.equals("Sukses", ignoreCase = true)
+    val isSuccess = trx.status.equals("Sukses", ignoreCase = true) || trx.status.equals("Success", ignoreCase = true)
+    val isCancelled = !isSuccess
     val opacity = if (isCancelled) 0.6f else 1f
     val textDecoration = if (isCancelled) TextDecoration.LineThrough else null
     val badgeBg = if (isSuccess) KebabSuccessBg else KebabErrorBg
@@ -412,7 +535,7 @@ private fun TransactionItemCard(trx: TransactionHistoryItem) {
             .clip(RoundedCornerShape(16.dp))
             .background(KebabItemBg.copy(alpha = opacity))
             .border(1.dp, KebabDivider.copy(alpha = 0.3f * opacity), RoundedCornerShape(16.dp))
-            .clickable { /* detail transaksi */ }
+            .clickable { if (isSuccess) onVoidClicked() }
             .padding(16.dp)
     ) {
         // Top: icon + info + badge
@@ -458,19 +581,21 @@ private fun TransactionItemCard(trx: TransactionHistoryItem) {
                 }
             }
 
-            // Status badge
-            Surface(
-                color = badgeBg.copy(alpha = opacity),
-                shape = RoundedCornerShape(50)
-            ) {
-                Text(
-                    text = trx.status.uppercase(),
-                    color = badgeText.copy(alpha = opacity),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                    maxLines = 1
-                )
+            // Status badge and optional void button
+            Column(horizontalAlignment = Alignment.End) {
+                Surface(
+                    color = badgeBg.copy(alpha = opacity),
+                    shape = RoundedCornerShape(50)
+                ) {
+                    Text(
+                        text = trx.status.uppercase(),
+                        color = badgeText.copy(alpha = opacity),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        maxLines = 1
+                    )
+                }
             }
         }
 

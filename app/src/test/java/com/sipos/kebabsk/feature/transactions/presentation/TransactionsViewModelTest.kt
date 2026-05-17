@@ -29,6 +29,7 @@ class TransactionsViewModelTest {
         val fakeRepo = FakeTransactionsRepository(delayMs = 300)
         val viewModel = TransactionsViewModel(
             getTransactionsUseCase = GetTransactionsUseCase(fakeRepo),
+            repository = fakeRepo,
             token = "token"
         )
 
@@ -46,6 +47,7 @@ class TransactionsViewModelTest {
         val fakeRepo = FakeTransactionsRepository(delayMs = 0)
         val viewModel = TransactionsViewModel(
             getTransactionsUseCase = GetTransactionsUseCase(fakeRepo),
+            repository = fakeRepo,
             token = "token"
         )
 
@@ -72,6 +74,7 @@ class TransactionsViewModelTest {
         )
         val viewModel = TransactionsViewModel(
             getTransactionsUseCase = GetTransactionsUseCase(fakeRepo),
+            repository = fakeRepo,
             token = "token"
         )
 
@@ -131,5 +134,9 @@ private class FakeTransactionsRepository(
 
     override suspend fun getRevenueTrend(token: String, date: LocalDate): Result<List<Pair<String, Double>>> {
         return Result.success(emptyList())
+    }
+
+    override suspend fun voidTransaction(token: String, transactionId: Long, reason: String, sessionId: Long): Result<String> {
+        return Result.success("Success")
     }
 }

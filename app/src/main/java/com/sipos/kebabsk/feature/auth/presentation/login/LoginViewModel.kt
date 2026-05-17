@@ -9,6 +9,7 @@ import com.sipos.kebabsk.feature.auth.data.repository.AuthRepositoryImpl
 import com.sipos.kebabsk.feature.auth.domain.model.AuthSession
 import com.sipos.kebabsk.feature.auth.domain.repository.AuthRepository
 import com.sipos.kebabsk.feature.auth.domain.usecase.LoginUseCase
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,8 +22,25 @@ data class LoginUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val successMessage: String? = null,
-    val session: AuthSession? = null
+    val session: AuthSession? = null,
+    /**
+     * Status sinkronisasi sesi dengan server.
+     * - CHECKING: Sedang memvalidasi sesi ke server (saat splash).
+     * - SYNCED: Server mengkonfirmasi sesi aktif.
+     * - PENDING_SYNC: Tidak bisa menghubungi server (offline), izinkan masuk sementara.
+     * - DESYNCED: Server bilang sesi sudah tutup → force clear dilakukan otomatis.
+     * - IDLE: Tidak ada sesi lokal untuk divalidasi.
+     */
+    val sessionSyncState: SessionSyncState = SessionSyncState.IDLE
 )
+
+enum class SessionSyncState {
+    IDLE,
+    CHECKING,
+    SYNCED,
+    PENDING_SYNC,
+    DESYNCED
+}
 
 class LoginViewModel(
     private val authRepository: AuthRepository = AuthRepositoryImpl(NetworkModule.authApiService),
@@ -34,7 +52,48 @@ class LoginViewModel(
     init {
         val saved = AppSessionStore.loadSession()
         if (saved != null) {
-            _uiState.update { it.copy(session = saved) }
+            // Muat sesi lokal, lalu validasi terhadap server
+            _uiState.update { it.copy(session = saved, sessionSyncState = SessionSyncState.CHECKING) }
+            validateLocalSession(saved)
+        }
+    }
+
+    /**
+     * Self-Healing Logic:
+     * Saat startup, verifikasi apakah sesi lokal masih diakui oleh server.
+     * - Server bilang aktif → lanjut normal (SYNCED).
+     * - Server bilang tidak aktif → DESYNC terdeteksi, hapus sesi lokal paksa.
+     * - Network error → izinkan offline mode (PENDING_SYNC), beri indikator.
+     *
+     * HUKUM: Server adalah Single Source of Truth.
+     */
+    private fun validateLocalSession(session: AuthSession) {
+        viewModelScope.launch(Dispatchers.IO) {
+            authRepository.validateSessionOnServer(session.token)
+                .onSuccess { isActive ->
+                    if (isActive) {
+                        // Server mengkonfirmasi sesi aktif — aman
+                        _uiState.update { it.copy(sessionSyncState = SessionSyncState.SYNCED) }
+                    } else {
+                        // DESYNC: Server bilang sesi sudah tutup
+                        // EKSEKUSI: Hapus sesi lokal secara paksa
+                        AppSessionStore.clearSession()
+                        _uiState.update {
+                            it.copy(
+                                session = null,
+                                sessionSyncState = SessionSyncState.DESYNCED,
+                                password = "",
+                                errorMessage = null,
+                                successMessage = null
+                            )
+                        }
+                    }
+                }
+                .onFailure {
+                    // Network error (timeout/offline) — izinkan masuk sementara
+                    // UI akan menampilkan indikator "Menunggu Sinkronisasi"
+                    _uiState.update { it.copy(sessionSyncState = SessionSyncState.PENDING_SYNC) }
+                }
         }
     }
 

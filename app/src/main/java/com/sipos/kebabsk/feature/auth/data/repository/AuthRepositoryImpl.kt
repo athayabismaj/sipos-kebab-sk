@@ -301,5 +301,26 @@ class AuthRepositoryImpl(
         if (this == null || !isJsonPrimitive) return null
         return runCatching { asString }.getOrNull()
     }
+
+    /**
+     * Validasi sesi terhadap server.
+     * - HTTP 200 + active=true → Result.success(true)
+     * - HTTP 200 + active=false, atau HTTP 404/401 → Result.success(false) (Desync)
+     * - Network error (timeout, offline) → Result.failure (izinkan offline mode)
+     */
+    override suspend fun validateSessionOnServer(token: String): Result<Boolean> {
+        return runCatching {
+            val response = authApiService.sessionCurrentStatus("Bearer $token")
+
+            if (response.isSuccessful) {
+                val body = response.body()
+                val active = body?.get("active")?.asBoolean ?: false
+                active
+            } else {
+                // 404 = sesi tidak ditemukan, 401 = token invalid → desync
+                false
+            }
+        }
+    }
 }
 

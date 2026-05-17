@@ -67,4 +67,10 @@ interface AuthApiService {
         @Header("Authorization") authorization: String,
         @Body request: Map<String, String>
     ): Response<JsonObject>
+
+    @Headers("Accept: application/json")
+    @GET("sessions/current-status")
+    suspend fun sessionCurrentStatus(
+        @Header("Authorization") authorization: String
+    ): Response<JsonObject>
 }

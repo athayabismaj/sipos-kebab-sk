@@ -155,6 +155,40 @@ class TransactionsRepositoryImpl(
         }
     }
 
+    override suspend fun voidTransaction(token: String, transactionId: Long, reason: String, sessionId: Long): Result<String> {
+        return runCatching {
+            val idempotencyKey = java.util.UUID.randomUUID().toString()
+            val request = com.sipos.kebabsk.feature.transactions.data.remote.VoidTransactionRequest(
+                reason = reason,
+                currentSessionId = sessionId,
+                idempotencyKey = idempotencyKey
+            )
+            val response = retryNetworkRequest {
+                apiService.voidTransaction("Bearer $token", transactionId, request)
+            }
+
+            val body = response.body()
+            if (!response.isSuccessful || body?.success != true) {
+                throw IllegalStateException(
+                    mapHttpFailure(
+                        code = response.code(),
+                        rawMessage = body?.message,
+                        fallback = "Gagal membatalkan transaksi. Silakan coba lagi."
+                    )
+                )
+            }
+
+            body.message ?: "Transaksi berhasil dibatalkan."
+        }.recoverCatching { throwable ->
+            throw IllegalStateException(
+                mapThrowable(
+                    throwable = throwable,
+                    fallback = "Gagal membatalkan transaksi. Silakan coba lagi."
+                )
+            )
+        }
+    }
+
     private fun parseTransactionTime(createdAt: String?): String {
         if (createdAt.isNullOrBlank()) return "00:00"
         return try {
@@ -177,6 +211,10 @@ class TransactionsRepositoryImpl(
     }
 
     private fun mapHttpFailure(code: Int, rawMessage: String?, fallback: String): String {
+        // Jika server mengirimkan pesan spesifik (seperti alasan dari exception Laravel), utamakan itu!
+        if (!rawMessage.isNullOrBlank() && rawMessage != "The given data was invalid.") {
+            return rawMessage
+        }
         val httpMapped = mapHttpCodeToUserMessage(code, fallback)
         return if (httpMapped == fallback) {
             sanitizeUserMessage(rawMessage, fallback)

@@ -342,6 +342,10 @@ class MenuViewModel(
         }
     }
 
+    fun clearCheckoutMessage() {
+        _uiState.update { it.copy(checkoutMessage = null) }
+    }
+
     fun clear() {
         loadedToken = null
         _uiState.value = MenuUiState()

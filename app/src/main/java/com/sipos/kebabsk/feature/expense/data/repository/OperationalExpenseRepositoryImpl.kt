@@ -1,7 +1,9 @@
 package com.sipos.kebabsk.feature.expense.data.repository
 
 import com.google.gson.JsonParser
+import com.sipos.kebabsk.BuildConfig
 import com.sipos.kebabsk.common.retryNetworkRequest
+import com.sipos.kebabsk.data.network.ApiPathResolver
 import com.sipos.kebabsk.feature.expense.data.remote.OperationalExpenseApiService
 import com.sipos.kebabsk.feature.expense.data.remote.OperationalExpenseRequest
 
@@ -36,10 +38,11 @@ class OperationalExpenseRepositoryImpl(
             var mostRelevantFailureMessage: String? = null
 
             candidateEndpoints.forEach { endpoint ->
+                val resolvedEndpoint = ApiPathResolver.resolve(BuildConfig.API_BASE_URL, endpoint)
                 val response = retryNetworkRequest {
                     apiService.createExpense(
                         authorization = "Bearer $token",
-                        url = endpoint,
+                        url = resolvedEndpoint,
                         body = requestBody
                     )
                 }
@@ -51,7 +54,7 @@ class OperationalExpenseRepositoryImpl(
 
                 val rawError = response.errorBody()?.string()
                 val mappedMessage = body?.message ?: mapHttpError(response.code(), rawError)
-                attempts += endpoint to mappedMessage
+                attempts += resolvedEndpoint to mappedMessage
 
                 // Prefer non-404 errors when available because they are more actionable.
                 if (response.code() != 404) {

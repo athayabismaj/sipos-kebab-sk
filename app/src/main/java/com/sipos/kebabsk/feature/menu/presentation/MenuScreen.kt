@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -37,11 +38,18 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -128,7 +136,8 @@ fun MenuScreen(
     onPaidAmountChanged: (String) -> Unit,
     onNoteChanged: (String) -> Unit,
     onSubmitCheckout: () -> Unit,
-    onDismissCheckoutPreview: () -> Unit
+    onDismissCheckoutPreview: () -> Unit,
+    onClearCheckoutMessage: () -> Unit
 ) {
     val totalAmount = remember(uiState.cartItems) {
         uiState.cartItems.sumOf { it.price * it.qty }
@@ -160,6 +169,13 @@ fun MenuScreen(
         BackHandler { cashierPage = CashierPage.MENU }
     }
 
+    LaunchedEffect(uiState.checkoutMessage) {
+        if (!uiState.checkoutMessage.isNullOrBlank()) {
+            delay(3000)
+            onClearCheckoutMessage()
+        }
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = KebabBg,
@@ -186,40 +202,6 @@ fun MenuScreen(
                 .padding(paddingValues)
                 .padding(horizontal = 0.dp) // padding content
         ) {
-
-            // Removed CircularProgressIndicator, loading is handled below
-
-            if (!uiState.errorMessage.isNullOrBlank()) {
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = MaterialTheme.colorScheme.errorContainer,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
-                ) {
-                    Text(
-                        text = uiState.errorMessage,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(10.dp)
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-            }
-
-            if (!uiState.checkoutMessage.isNullOrBlank()) {
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
-                ) {
-                    Text(
-                        text = uiState.checkoutMessage,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(10.dp)
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-            }
 
             Box(modifier = Modifier.weight(1f)) {
                 when (cashierPage) {
@@ -281,6 +263,56 @@ fun MenuScreen(
                         )
                     }
                 }
+
+                // Banners Overlay
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .align(Alignment.TopCenter),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    AnimatedVisibility(
+                        visible = !uiState.errorMessage.isNullOrBlank(),
+                        enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+                        exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut()
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            modifier = Modifier.fillMaxWidth(),
+                            shadowElevation = 4.dp
+                        ) {
+                            Text(
+                                text = uiState.errorMessage ?: "",
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(10.dp)
+                            )
+                        }
+                    }
+
+                    AnimatedVisibility(
+                        visible = !uiState.checkoutMessage.isNullOrBlank(),
+                        enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+                        exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut()
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = KebabSuccessBg,
+                            modifier = Modifier.fillMaxWidth(),
+                            shadowElevation = 4.dp
+                        ) {
+                            Text(
+                                text = uiState.checkoutMessage ?: "",
+                                color = KebabSuccess,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -291,6 +323,8 @@ private fun MenuTopBar(cashierPage: CashierPage, onSearch: () -> Unit, onClose: 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(KebabBg)
+                .statusBarsPadding()
                 .padding(horizontal = 24.dp, vertical = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically

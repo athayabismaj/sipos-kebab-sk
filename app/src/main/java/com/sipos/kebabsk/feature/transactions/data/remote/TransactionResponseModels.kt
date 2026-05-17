@@ -51,3 +51,19 @@ data class RevenueTrendData(
     @SerializedName("date") val date: String?,
     @SerializedName("total_revenue") val totalRevenue: Double?
 )
+
+data class VoidTransactionRequest(
+    @SerializedName("reason") val reason: String,
+    @SerializedName("current_session_id") val currentSessionId: Long,
+    @SerializedName("idempotency_key") val idempotencyKey: String
+)
+
+data class VoidTransactionResponse(
+    @SerializedName("success") val success: Boolean?,
+    @SerializedName("message") val message: String?,
+    @SerializedName("data") val data: VoidTransactionData?
+)
+
+data class VoidTransactionData(
+    @SerializedName("new_drawer_balance") val newDrawerBalance: Double?
+)

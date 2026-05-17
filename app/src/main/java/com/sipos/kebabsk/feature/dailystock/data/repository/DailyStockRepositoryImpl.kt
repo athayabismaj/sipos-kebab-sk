@@ -3,8 +3,10 @@ package com.sipos.kebabsk.feature.dailystock.data.repository
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
+import com.sipos.kebabsk.BuildConfig
 import com.sipos.kebabsk.common.retryNetworkRequest
 import com.sipos.kebabsk.common.sanitizeUserMessage
+import com.sipos.kebabsk.data.network.ApiPathResolver
 import com.sipos.kebabsk.feature.dailystock.data.remote.DailyStockApiService
 import com.sipos.kebabsk.feature.menu.domain.model.DailyStockItem
 
@@ -31,9 +33,10 @@ class DailyStockRepositoryImpl(
         var firstFailure: Throwable? = null
 
         candidateEndpoints.forEach { endpoint ->
+            val resolvedEndpoint = ApiPathResolver.resolve(BuildConfig.API_BASE_URL, endpoint)
             runCatching {
                 retryNetworkRequest {
-                    apiService.getDailyStock("Bearer $token", endpoint)
+                    apiService.getDailyStock("Bearer $token", resolvedEndpoint)
                 }
             }.onSuccess { response ->
                 if (!response.isSuccessful) {

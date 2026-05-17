@@ -12,7 +12,7 @@ class TransactionsViewModelFactory(private val token: String) : ViewModelProvide
             val repository = TransactionsRepositoryImpl(NetworkModule.transactionsApiService)
             val useCase = GetTransactionsUseCase(repository)
             @Suppress("UNCHECKED_CAST")
-            return TransactionsViewModel(useCase, token) as T
+            return TransactionsViewModel(useCase, repository, token) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
