@@ -360,31 +360,36 @@ private fun MenuTopBar(cashierPage: CashierPage, onSearch: () -> Unit, onClose: 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CartFloatingActionButton(itemCount: Int, onClick: () -> Unit) {
-    FloatingActionButton(
+    Surface(
         onClick = onClick,
-        containerColor = KebabPrimary,
-        contentColor = Color.White,
         shape = CircleShape,
-        modifier = Modifier.padding(end = 12.dp, bottom = 4.dp)
+        color = KebabPrimary,
+        contentColor = Color.White,
+        shadowElevation = 6.dp,
+        modifier = Modifier
+            .padding(end = 12.dp, bottom = 4.dp)
+            .size(56.dp)
     ) {
-        BadgedBox(
-            badge = {
-                if (itemCount > 0) {
-                    Badge(
-                        containerColor = KebabSecondaryContainer, // Kuning
-                        contentColor = KebabTextDark,
-                        modifier = Modifier.offset(x = (-4).dp, y = 4.dp)
-                    ) {
-                        Text(text = itemCount.toString(), fontWeight = FontWeight.ExtraBold)
+        Box(contentAlignment = Alignment.Center) {
+            BadgedBox(
+                badge = {
+                    if (itemCount > 0) {
+                        Badge(
+                            containerColor = KebabSecondaryContainer, // Kuning
+                            contentColor = KebabTextDark,
+                            modifier = Modifier.offset(x = (-4).dp, y = 4.dp)
+                        ) {
+                            Text(text = itemCount.toString(), fontWeight = FontWeight.ExtraBold)
+                        }
                     }
                 }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ShoppingCart,
+                    contentDescription = "Keranjang",
+                    modifier = Modifier.size(28.dp)
+                )
             }
-        ) {
-            Icon(
-                imageVector = Icons.Default.ShoppingCart,
-                contentDescription = "Keranjang",
-                modifier = Modifier.size(28.dp)
-            )
         }
     }
 }

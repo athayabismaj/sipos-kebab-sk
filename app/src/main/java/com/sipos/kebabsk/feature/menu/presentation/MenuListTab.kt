@@ -24,10 +24,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -67,84 +67,87 @@ fun MenuListTab(
         cartItems.associate { it.variantId to it.qty }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Pilih Menu",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = KebabTextDark
-            )
-            IconButton(onClick = onRefresh) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "Refresh",
-                    tint = KebabPrimaryContainer
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        modifier = Modifier.fillMaxSize(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(bottom = 100.dp, start = 24.dp, end = 24.dp, top = 16.dp)
+    ) {
+        // --- HEADER ---
+        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Pilih Menu",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = KebabTextDark
                 )
+                IconButton(onClick = onRefresh) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Refresh",
+                        tint = KebabPrimaryContainer
+                    )
+                }
             }
         }
 
         // --- CATEGORY CHIPS ---
-        LazyRow(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-            contentPadding = PaddingValues(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            items(categories) { category ->
-                CategoryChip(
-                    title = category ?: "Semua",
-                    isSelected = category == selectedCategory,
-                    onClick = { onCategorySelected(category) }
-                )
+        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(categories) { category ->
+                    CategoryChip(
+                        title = category ?: "Semua",
+                        isSelected = category == selectedCategory,
+                        onClick = { onCategorySelected(category) }
+                    )
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
         if (menuItems.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {                    Icon(
-                        imageVector = Icons.Default.Restaurant,
-                        contentDescription = null,
-                        tint = KebabTextGray.copy(alpha = 0.6f),
-                        modifier = Modifier.size(36.dp)
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = emptyStateMessage,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = KebabTextGray,
-                        fontWeight = FontWeight.SemiBold,
-                        textAlign = TextAlign.Center
-                    )
+            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Default.Restaurant,
+                            contentDescription = null,
+                            tint = KebabTextGray.copy(alpha = 0.6f),
+                            modifier = Modifier.size(36.dp)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = emptyStateMessage,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = KebabTextGray,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
         } else {
             // --- MENU GRID ---
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 100.dp, start = 24.dp, end = 24.dp)
-            ) {
-                items(items = menuItems, key = { it.variantId }) { item ->
-                    MenuItemCard(
-                        item = item,
-                        qtyInCart = cartQtyMap[item.variantId] ?: 0,
-                        onAdd = { onAddVariant(item.menuName, item.variantId, item.variantName, item.price) },
-                        onRemove = { onRemoveVariant(item.variantId) }
-                    )
-                }
+            items(items = menuItems, key = { it.variantId }) { item ->
+                MenuItemCard(
+                    item = item,
+                    qtyInCart = cartQtyMap[item.variantId] ?: 0,
+                    onAdd = { onAddVariant(item.menuName, item.variantId, item.variantName, item.price) },
+                    onRemove = { onRemoveVariant(item.variantId) }
+                )
             }
         }
     }
@@ -193,7 +196,7 @@ private fun MenuItemCard(
         colors = CardDefaults.cardColors(
             containerColor = if (isInsufficientStock) KebabCardBg else KebabCardBg
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             // Gambar Menu (Rasio 1:1) placeholder
@@ -226,7 +229,7 @@ private fun MenuItemCard(
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 color = if (isInsufficientStock) KebabTextDark.copy(alpha = 0.7f) else KebabTextDark,
-                maxLines = 1,
+                maxLines = 2,
                 lineHeight = 18.sp,
                 overflow = TextOverflow.Ellipsis
             )
@@ -246,41 +249,34 @@ private fun MenuItemCard(
                     overflow = TextOverflow.Ellipsis,
                     color = if (isInsufficientStock) KebabTextGray.copy(alpha = 0.7f) else KebabTextGray
                 )
+            } else {
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
-            // Bottom row: Price and Add controls
-            Row(
+            // Bottom area: price first, quantity selector anchored at the lower-right.
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalAlignment = Alignment.End
             ) {
                 Text(
                     text = toRupiah(item.price),
+                    modifier = Modifier.fillMaxWidth(),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = if (isInsufficientStock) KebabPrimary.copy(alpha = 0.5f) else KebabPrimary
+                    color = if (isInsufficientStock) KebabPrimary.copy(alpha = 0.5f) else KebabPrimary,
+                    textAlign = TextAlign.Start
                 )
 
                 if (qtyInCart > 0 && isOrderable) {
-                    QtyControlCompact(qty = qtyInCart, onAdd = onAdd, onRemove = onRemove)
+                    QuantitySelector(
+                        qty = qtyInCart,
+                        onAdd = onAdd,
+                        onRemove = onRemove
+                    )
                 } else if (isOrderable) {
-                    Box(
-                        modifier = Modifier
-                            .size(26.dp)
-                            .clip(CircleShape)
-                            .background(KebabPrimaryContainer)
-                            .clickable(onClick = onAdd),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Tambah",
-                            tint = Color.White,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                    QuantityAddButton(onAdd = onAdd)
                 }
             }
 
@@ -324,51 +320,61 @@ private fun MenuItemCard(
 }
 
 @Composable
-private fun QtyControlCompact(qty: Int, onAdd: () -> Unit, onRemove: () -> Unit) {
+private fun QuantitySelector(qty: Int, onAdd: () -> Unit, onRemove: () -> Unit) {
     Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(24.dp)
+                .size(36.dp)
                 .clip(CircleShape)
-                .background(Color.LightGray)
+                .background(Color(0xFFF3E8DD))
                 .clickable(onClick = onRemove),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.Remove,
-                contentDescription = "Kurang",
-                tint = KebabTextDark,
-                modifier = Modifier.size(14.dp)
-            )
+            Icon(Icons.Outlined.Remove, contentDescription = "Kurang", tint = KebabPrimary, modifier = Modifier.size(20.dp))
         }
 
         Text(
             text = "$qty",
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.ExtraBold,
-            color = KebabTextDark,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            modifier = Modifier.weight(1f),
             textAlign = TextAlign.Center,
-            modifier = Modifier.widthIn(min = 22.dp)
+            color = KebabTextDark,
+            maxLines = 1
         )
 
         Box(
             modifier = Modifier
-                .size(24.dp)
+                .size(36.dp)
                 .clip(CircleShape)
                 .background(KebabPrimaryContainer)
                 .clickable(onClick = onAdd),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Tambah",
-                tint = Color.White,
-                modifier = Modifier.size(14.dp)
-            )
+            Icon(Icons.Outlined.Add, contentDescription = "Tambah", tint = Color.White, modifier = Modifier.size(20.dp))
         }
     }
 }
 
+@Composable
+private fun QuantityAddButton(onAdd: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        horizontalArrangement = Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(KebabPrimaryContainer)
+                .clickable(onClick = onAdd),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Outlined.Add, contentDescription = "Tambah", tint = Color.White, modifier = Modifier.size(20.dp))
+        }
+    }
+}

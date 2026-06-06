@@ -85,9 +85,6 @@ import com.sipos.kebabsk.feature.profile.presentation.ProfileScreen
 import com.sipos.kebabsk.feature.profile.presentation.RevenueSummaryScreen
 import com.sipos.kebabsk.feature.profile.presentation.RevenueViewModel
 import com.sipos.kebabsk.feature.profile.presentation.RevenueViewModelFactory
-import com.sipos.kebabsk.feature.shift.presentation.CloseShiftScreen
-import com.sipos.kebabsk.feature.shift.presentation.CloseShiftViewModel
-import com.sipos.kebabsk.feature.shift.presentation.CloseShiftViewModelFactory
 import com.sipos.kebabsk.feature.shift.presentation.ShiftSummaryUiState
 import com.sipos.kebabsk.feature.shift.presentation.ShiftSummaryViewModel
 import com.sipos.kebabsk.feature.shift.presentation.ShiftSummaryViewModelFactory
@@ -133,7 +130,6 @@ private enum class ProfilePage {
     OPERATIONAL_EXPENSE,
     BLUETOOTH_PRINTER,
     CLOSE_STOCK_SESSION,
-    CLOSE_SHIFT,
     EDIT,
     CHANGE_PASSWORD
 }
@@ -173,9 +169,7 @@ fun AuthRoot(
     onClearCheckoutMessage: () -> Unit
 ) {
     var showSplash by rememberSaveable { mutableStateOf(true) }
-    var route by remember(loginUiState.session) {
-        mutableStateOf(if (loginUiState.session == null) AuthRoute.LOGIN else AuthRoute.APP)
-    }
+    var route by rememberSaveable { mutableStateOf(AuthRoute.LOGIN) }
 
     // Splash minimum 700ms — tapi juga menunggu session validation selesai
     LaunchedEffect(Unit) {
@@ -190,13 +184,13 @@ fun AuthRoot(
         return
     }
 
-    // Self-Healing: Jika DESYNCED, paksa ke Login
-    if (loginUiState.sessionSyncState == SessionSyncState.DESYNCED) {
-        route = AuthRoute.LOGIN
-    }
-
-    if (loginUiState.session != null) {
-        route = AuthRoute.APP
+    LaunchedEffect(loginUiState.session?.token, loginUiState.sessionSyncState) {
+        route = when {
+            loginUiState.sessionSyncState == SessionSyncState.DESYNCED -> AuthRoute.LOGIN
+            loginUiState.session != null -> AuthRoute.APP
+            route == AuthRoute.FORGOT_PASSWORD -> AuthRoute.FORGOT_PASSWORD
+            else -> AuthRoute.LOGIN
+        }
     }
 
     LaunchedEffect(loginUiState.session?.token, route) {
@@ -288,7 +282,6 @@ private fun AppScaffold(
     var selectedTab by rememberSaveable { mutableStateOf(AppTab.CASHIER) }
     var profilePage by rememberSaveable { mutableStateOf(ProfilePage.SUMMARY) }
     var cashierTransactionStarted by rememberSaveable { mutableStateOf(false) }
-    var targetCloseShiftSessionId by rememberSaveable { mutableStateOf<Long?>(null) }
 
     // Shared DailyStockViewModel agar sessionId bisa diakses oleh Transactions tab (untuk Void)
     val sharedDsRepository = remember { DailyStockRepositoryImpl(NetworkModule.dailyStockApiService) }
@@ -320,8 +313,8 @@ private fun AppScaffold(
             NavigationBar(
                 modifier = Modifier
                     .fillMaxWidth(),
-                containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 4.dp
+                containerColor = KebabBg,
+                tonalElevation = 0.dp
             ) {
                 AppTab.entries.forEach { tab ->
                     val isSelected = selectedTab == tab
@@ -513,10 +506,7 @@ private fun AppScaffold(
                                 profilePage = ProfilePage.CLOSE_STOCK_SESSION
                             },
                             isCashReconciliationPending = sharedDailyStockUiState.isCashReconciliationPending,
-                            onNavigateToCloseShift = {
-                                targetCloseShiftSessionId = sharedDailyStockUiState.sessionId
-                                profilePage = ProfilePage.CLOSE_SHIFT
-                            }
+                            onSessionAlreadyClosed = onLogout
                         )
                     }
 
@@ -532,9 +522,7 @@ private fun AppScaffold(
 
                         LaunchedEffect(dailyStockUiState.closeSuccess) {
                             if (dailyStockUiState.closeSuccess) {
-                                targetCloseShiftSessionId = dailyStockUiState.sessionId
-                                dailyStockViewModel.clearCloseState()
-                                profilePage = ProfilePage.CLOSE_SHIFT
+                                onLogout()
                             }
                         }
 
@@ -576,35 +564,6 @@ private fun AppScaffold(
                         BluetoothPrinterScreen(
                             modifier = Modifier.padding(innerPadding),
                             onBack = { profilePage = ProfilePage.SUMMARY }
-                        )
-                    }
-
-                    ProfilePage.CLOSE_SHIFT -> {
-                        val dsRepository = remember { DailyStockRepositoryImpl(NetworkModule.dailyStockApiService) }
-                        val closeShiftFactory = remember(session.token, targetCloseShiftSessionId) {
-                            CloseShiftViewModelFactory(
-                                token = session.token,
-                                closeShiftApiService = NetworkModule.closeShiftApiService,
-                                dailyStockRepository = dsRepository,
-                                targetSessionId = targetCloseShiftSessionId
-                            )
-                        }
-                        val closeShiftViewModel: CloseShiftViewModel = viewModel(factory = closeShiftFactory)
-                        val closeShiftUiState by closeShiftViewModel.uiState.collectAsStateWithLifecycle()
-
-                        CloseShiftScreen(
-                            modifier = Modifier.padding(innerPadding),
-                            uiState = closeShiftUiState,
-                            onBack = {
-                                targetCloseShiftSessionId = null
-                                closeShiftViewModel.clearState()
-                                profilePage = ProfilePage.SUMMARY
-                            },
-                            onSubmit = { cash, notes ->
-                                closeShiftViewModel.submitCloseShift(cash, notes)
-                            },
-                            onRetryReadiness = closeShiftViewModel::checkReadiness,
-                            onSessionClosed = onLogout
                         )
                     }
                 }

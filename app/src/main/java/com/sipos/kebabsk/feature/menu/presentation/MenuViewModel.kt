@@ -222,7 +222,7 @@ class MenuViewModel(
     fun onPaidAmountChanged(value: String) {
         _uiState.update {
             it.copy(
-                paidAmountInput = value.filter { char -> char.isDigit() || char == '.' },
+                paidAmountInput = sanitizeMoneyInput(value),
                 errorMessage = null,
                 checkoutMessage = null,
                 checkoutTransactionCode = null,
@@ -267,7 +267,7 @@ class MenuViewModel(
                     return@withLock
                 }
 
-                val paidAmount = state.paidAmountInput.toDoubleOrNull()
+                val paidAmount = sanitizeMoneyInput(state.paidAmountInput).toDoubleOrNull()
                 if (paidAmount == null || paidAmount <= 0.0) {
                     _uiState.update { it.copy(errorMessage = "Nominal bayar tidak valid") }
                     return@withLock
@@ -376,5 +376,9 @@ class MenuViewModel(
                 "⚠️ Bahan tidak mencukupi resep. Hubungi admin untuk menambah stok bahan."
             else -> message
         }
+    }
+
+    private fun sanitizeMoneyInput(value: String): String {
+        return value.filter { it.isDigit() }
     }
 }

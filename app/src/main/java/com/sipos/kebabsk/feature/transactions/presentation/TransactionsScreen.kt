@@ -106,6 +106,7 @@ fun TransactionsScreen(
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
     var transactionToVoid by rememberSaveable { mutableStateOf<Long?>(null) }
     val context = LocalContext.current
+    val isSelectedDateToday = uiState.currentDate == AppTime.todayJakarta()
 
     LaunchedEffect(uiState.voidSuccess, uiState.voidErrorMessage) {
         if (uiState.voidSuccess) {
@@ -355,6 +356,7 @@ fun TransactionsScreen(
                     items(uiState.paginatedTransactions) { trx ->
                         TransactionItemCard(
                             trx = trx,
+                            isVoidable = isSelectedDateToday,
                             onVoidClicked = { transactionToVoid = trx.id }
                         )
                     }
@@ -518,7 +520,12 @@ private fun SummaryMetricCard(modifier: Modifier = Modifier, title: String, valu
 
 // === TRANSACTION ITEM CARD ===
 @Composable
-private fun TransactionItemCard(trx: TransactionHistoryItem, onVoidClicked: () -> Unit) {
+private fun TransactionItemCard(
+    trx: TransactionHistoryItem,
+    isVoidable: Boolean,
+    onVoidClicked: () -> Unit
+) {
+    val context = LocalContext.current
     val formatRupiah = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("id-ID"))
     val isSuccess = trx.status.equals("Sukses", ignoreCase = true) || trx.status.equals("Success", ignoreCase = true)
     val isCancelled = !isSuccess
@@ -535,7 +542,19 @@ private fun TransactionItemCard(trx: TransactionHistoryItem, onVoidClicked: () -
             .clip(RoundedCornerShape(16.dp))
             .background(KebabItemBg.copy(alpha = opacity))
             .border(1.dp, KebabDivider.copy(alpha = 0.3f * opacity), RoundedCornerShape(16.dp))
-            .clickable { if (isSuccess) onVoidClicked() }
+            .clickable {
+                if (isSuccess) {
+                    if (isVoidable) {
+                        onVoidClicked()
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "Transaksi hari sebelumnya tidak dapat dibatalkan.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            }
             .padding(16.dp)
     ) {
         // Top: icon + info + badge

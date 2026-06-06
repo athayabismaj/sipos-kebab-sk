@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -64,6 +66,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -257,11 +260,11 @@ fun PaymentTab(
             }
 
             // --- RINGKASAN ORDER ---
-            val paidDouble = uiState.paidAmountInput.replace(".", "").toDoubleOrNull() ?: 0.0
+            val paidDouble = sanitizeMoneyInput(uiState.paidAmountInput).toDoubleOrNull() ?: 0.0
             val kembalian = if (paidDouble > totalAmount) paidDouble - totalAmount else 0.0
             RingkasanOrderCard(uiState = uiState, kembalian = kembalian)
             
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(96.dp))
         }
 
         // --- FIXED FOOTER BUTTONS ---
@@ -271,8 +274,9 @@ fun PaymentTab(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(KebabBg)
+                .imePadding()
                 .padding(horizontal = 24.dp)
-                .padding(top = 10.dp, bottom = 14.dp)
+                .padding(top = 8.dp, bottom = 16.dp)
         ) {
             Button(
                 onClick = onSubmitCheckout,
@@ -305,11 +309,17 @@ private fun TotalTagihanCard(totalAmount: Double, itemsCount: Int) {
             .padding(24.dp)
     ) {
         Column {
-            Text(text = "Total Tagihan", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = KebabTextGray)
+            Text(
+                text = "Total Tagihan",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = KebabTextGray
+            )
             Spacer(modifier = Modifier.height(8.dp))
             // Gunakan toRupiahNoDecimal agar angka ratusan ribu/jutaan tidak berantakan
             Text(
                 text = toRupiahNoDecimal(totalAmount),
+                style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.ExtraBold,
                 color = KebabPrimary,
                 letterSpacing = (-1.5).sp,
@@ -319,7 +329,8 @@ private fun TotalTagihanCard(totalAmount: Double, itemsCount: Int) {
                     totalAmount >= 100_000    -> 44.sp  // >= 100 ribu
                     else                      -> 48.sp  // normal
                 },
-                maxLines = 1
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Spacer(modifier = Modifier.height(16.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -333,17 +344,33 @@ private fun TotalTagihanCard(totalAmount: Double, itemsCount: Int) {
 
 @Composable
 private fun PaymentMethodCard(modifier: Modifier, title: String, icon: ImageVector, isSelected: Boolean, onClick: () -> Unit) {
-    val bgColor = if (isSelected) KebabPrimary.copy(alpha = 0.1f) else KebabInputBg
-    val borderColor = if (isSelected) KebabPrimary else Color.Transparent
-    val contentColor = if (isSelected) KebabPrimary else KebabTextGray
+    val isCash = title.equals("Tunai", ignoreCase = true)
+    val bgColor = when {
+        isSelected && isCash -> KebabPrimary
+        isSelected -> KebabCyanBg
+        else -> KebabInputBg
+    }
+    val borderColor = when {
+        isSelected && isCash -> KebabPrimary
+        isSelected -> KebabCyan
+        isCash -> KebabPrimary.copy(alpha = 0.24f)
+        else -> KebabCyan.copy(alpha = 0.32f)
+    }
+    val contentColor = when {
+        isSelected && isCash -> Color.White
+        isSelected -> KebabCyan
+        isCash -> KebabPrimary
+        else -> KebabTextGray
+    }
 
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
             .background(bgColor)
-            .border(2.dp, borderColor, RoundedCornerShape(12.dp))
+            .border(1.5.dp, borderColor, RoundedCornerShape(12.dp))
             .clickable { onClick() }
-            .padding(vertical = 20.dp),
+            .heightIn(min = 88.dp)
+            .padding(horizontal = 12.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -355,6 +382,8 @@ private fun PaymentMethodCard(modifier: Modifier, title: String, icon: ImageVect
 
 @Composable
 private fun NominalCustomInput(value: String, onValueChange: (String) -> Unit) {
+    val displayValue = formatMoneyInputForDisplay(value)
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -363,7 +392,7 @@ private fun NominalCustomInput(value: String, onValueChange: (String) -> Unit) {
             .padding(horizontal = 16.dp, vertical = 20.dp)
     ) {
         BasicTextField(
-            value = value,
+            value = displayValue,
             onValueChange = onValueChange,
             textStyle = TextStyle(
                 fontSize = 24.sp,
@@ -423,17 +452,28 @@ private fun RingkasanOrderCard(uiState: MenuUiState, kembalian: Double) {
             
             // Loop Order Items
             uiState.cartItems.forEach { item ->
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(text = item.menuName, fontSize = 16.sp, color = KebabTextDark, fontWeight = FontWeight.Medium)
-                        val extra = if (item.variantName.equals("Regular", ignoreCase = true) || item.variantName.equals("Default", ignoreCase = true)) "" else " • ${item.variantName}"
-                        Text(text = "${item.qty}x$extra", fontSize = 13.sp, color = KebabTextGray)
+                    val hasVariant = !item.variantName.equals("Regular", ignoreCase = true) && !item.variantName.equals("Default", ignoreCase = true)
+                    val displayVariant = if (item.variantName.startsWith(item.menuName, ignoreCase = true)) {
+                        item.variantName.substring(item.menuName.length).trim().ifBlank { item.variantName }
+                    } else item.variantName
+
+                    if (hasVariant) {
+                        Text(text = item.menuName, fontSize = 15.sp, color = KebabTextDark, fontWeight = FontWeight.Bold)
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(text = displayVariant, fontSize = 13.sp, color = KebabTextGray)
+                            Text(text = toRupiah(item.price * item.qty), fontSize = 14.sp, color = KebabTextDark, fontWeight = FontWeight.Bold)
+                        }
+                    } else {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(text = item.menuName, fontSize = 15.sp, color = KebabTextDark, fontWeight = FontWeight.Bold)
+                            Text(text = toRupiah(item.price * item.qty), fontSize = 14.sp, color = KebabTextDark, fontWeight = FontWeight.Bold)
+                        }
                     }
-                    Text(text = toRupiah(item.price * item.qty), fontSize = 14.sp, color = KebabTextDark, fontWeight = FontWeight.Medium)
+                    
+                    Text(text = "${item.qty}x ${toRupiah(item.price)}", fontSize = 13.sp, color = KebabTextGray, modifier = Modifier.padding(top = 4.dp))
                 }
             }
             
@@ -531,20 +571,31 @@ private fun ReceiptSuccessDialog(
                         // Items List
                         Column(
                             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             uiState.checkoutReceiptItems.forEach { item ->
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.Top
+                                Column(
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Column(modifier = Modifier.weight(1f)) {
+                                    val hasVariant = !item.variantName.equals("Regular", ignoreCase = true) && !item.variantName.equals("Default", ignoreCase = true)
+                                    val displayVariant = if (item.variantName.startsWith(item.menuName, ignoreCase = true)) {
+                                        item.variantName.substring(item.menuName.length).trim().ifBlank { item.variantName }
+                                    } else item.variantName
+                                    
+                                    if (hasVariant) {
                                         Text(text = item.menuName, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
-                                        Text(text = "${item.qty}x @ ${toRupiah(item.price)} (${item.variantName})", fontSize = 12.sp, color = KebabTextGray)
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                            Text(text = displayVariant, fontSize = 12.sp, color = KebabTextGray)
+                                            Text(text = toRupiah(item.price * item.qty), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
+                                        }
+                                    } else {
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                            Text(text = item.menuName, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
+                                            Text(text = toRupiah(item.price * item.qty), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
+                                        }
                                     }
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(text = toRupiah(item.price * item.qty), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = KebabTextDark)
+                                    
+                                    Text(text = "${item.qty}x ${toRupiah(item.price)}", fontSize = 12.sp, color = KebabTextGray, modifier = Modifier.padding(top = 2.dp))
                                 }
                             }
                         }
@@ -652,11 +703,40 @@ private fun buildReceiptText(uiState: MenuUiState): String {
     sb.append("KEBAB SK\n")
     sb.append("-----------------------------\n")
     uiState.checkoutReceiptItems.forEach {
-        sb.append("${it.menuName}\n")
-        sb.append("${it.qty} x ${toRupiah(it.price)} = ${toRupiah(it.price * it.qty)}\n")
+        val hasVariant = !it.variantName.equals("Regular", ignoreCase = true) && !it.variantName.equals("Default", ignoreCase = true)
+        val displayVariant = if (it.variantName.startsWith(it.menuName, ignoreCase = true)) {
+            it.variantName.substring(it.menuName.length).trim().ifBlank { it.variantName }
+        } else it.variantName
+        
+        val totalStr = toRupiah(it.price * it.qty)
+        if (hasVariant) {
+            sb.append("${it.menuName}\n")
+            val spaces = " ".repeat(maxOf(1, 29 - displayVariant.length - totalStr.length))
+            sb.append("$displayVariant$spaces$totalStr\n")
+        } else {
+            val spaces = " ".repeat(maxOf(1, 29 - it.menuName.length - totalStr.length))
+            sb.append("${it.menuName}$spaces$totalStr\n")
+        }
+        
+        sb.append("${it.qty}x ${toRupiah(it.price)}\n")
     }
     sb.append("-----------------------------\n")
     sb.append("Total: ${toRupiah(uiState.checkoutTotalAmount ?: 0.0)}\n")
     return sb.toString()
+}
+
+private fun sanitizeMoneyInput(value: String): String {
+    return value.filter { it.isDigit() }
+}
+
+private fun formatMoneyInputForDisplay(value: String): String {
+    val clean = sanitizeMoneyInput(value)
+    if (clean.isBlank()) return ""
+
+    return clean
+        .reversed()
+        .chunked(3)
+        .joinToString(".")
+        .reversed()
 }
 

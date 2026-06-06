@@ -126,6 +126,9 @@ class LoginViewModel(
                         it.copy(
                             isLoading = false,
                             session = finalSession,
+                            sessionSyncState = SessionSyncState.SYNCED,
+                            errorMessage = null,
+                            successMessage = null,
                             password = ""
                         )
                     }
@@ -250,6 +253,7 @@ class LoginViewModel(
         _uiState.update {
             it.copy(
                 session = null,
+                sessionSyncState = SessionSyncState.IDLE,
                 password = "",
                 errorMessage = null,
                 successMessage = null

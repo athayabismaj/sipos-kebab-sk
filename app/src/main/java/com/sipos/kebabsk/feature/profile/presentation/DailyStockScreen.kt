@@ -76,7 +76,7 @@ fun DailyStockScreen(
     onForceLogout: () -> Unit = {},
     onCloseSession: () -> Unit,
     isCashReconciliationPending: Boolean = false,
-    onNavigateToCloseShift: () -> Unit = {}
+    onSessionAlreadyClosed: () -> Unit = {}
 ) {
     val dateFormatter = DateTimeFormatter.ofPattern("EEEE, dd MMM yyyy", Locale.forLanguageTag("id-ID"))
     val hariIni = AppTime.todayJakarta().format(dateFormatter)
@@ -148,18 +148,18 @@ fun DailyStockScreen(
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                     fontWeight = FontWeight.Bold
                                 )
-                                Spacer(modifier = Modifier.height(24.dp))
-                                androidx.compose.material3.Button(
-                                    onClick = onNavigateToCloseShift,
-                                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color(0xFFE0A800)),
-                                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Text(
-                                        text = "Lanjutkan Penutupan Shift\n(Rekonsiliasi Kas Pending)", 
-                                        color = Color.White, 
-                                        fontWeight = FontWeight.Bold, 
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            Spacer(modifier = Modifier.height(24.dp))
+                            androidx.compose.material3.Button(
+                                onClick = onSessionAlreadyClosed,
+                                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color(0xFFE0A800)),
+                                modifier = Modifier.fillMaxWidth().height(56.dp),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text(
+                                    text = "Sesi Sudah Ditutup\nKembali ke Login",
+                                    color = Color.White, 
+                                    fontWeight = FontWeight.Bold, 
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                     )
                                 }
                             }
