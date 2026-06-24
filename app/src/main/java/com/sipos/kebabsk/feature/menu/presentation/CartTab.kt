@@ -112,7 +112,7 @@ fun CartTab(
                 // Scrollable Items
                 LazyColumn(
                     modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(top = 24.dp, start = 16.dp, end = 16.dp, bottom = 24.dp),
+                    contentPadding = PaddingValues(top = 24.dp, start = 16.dp, end = 16.dp, bottom = 28.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     item {
@@ -224,15 +224,16 @@ fun CartTab(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 5.dp),
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 108.dp),
                     color = Color.White,
-                    shadowElevation = 16.dp,
-                    shape = RoundedCornerShape(16.dp)
+                    shadowElevation = 10.dp,
+                    shape = RoundedCornerShape(22.dp)
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 16.dp)
+                            .padding(16.dp)
                     ) {
                         // Total Info
                         Row(
@@ -254,12 +255,12 @@ fun CartTab(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
 
                         // Buttons Row
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             OutlinedButton(
                                 onClick = onBackToMenu,

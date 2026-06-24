@@ -65,6 +65,7 @@ import androidx.compose.material.icons.filled.DeleteForever
 
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -256,7 +257,7 @@ fun TransactionsScreen(
                 .fillMaxSize()
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp)
+            contentPadding = PaddingValues(top = 12.dp, bottom = 132.dp)
         ) {
             // --- DATE SCROLLER ---
             item {
@@ -274,13 +275,13 @@ fun TransactionsScreen(
                 ) {
                     SummaryMetricCard(
                         modifier = Modifier.weight(1f).fillMaxHeight(),
-                        title = "Tot. Transaksi",
+                        title = "Transaksi",
                         value = "${uiState.totalTransactionsCount}",
                         icon = Icons.AutoMirrored.Outlined.ReceiptLong
                     )
                     SummaryMetricCard(
                         modifier = Modifier.weight(1f).fillMaxHeight(),
-                        title = "Tot. Pendapatan",
+                        title = "Pendapatan",
                         value = formatShortRupiah(uiState.totalRevenue),
                         icon = Icons.Outlined.Payments
                     )
@@ -298,7 +299,11 @@ fun TransactionsScreen(
                     item {
                         val isSessionExpired = uiState.errorMessage?.contains("Sesi login sudah berakhir", ignoreCase = true) == true
                         Box(
-                            modifier = Modifier.fillMaxWidth().padding(top = 40.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(22.dp))
+                                .background(KebabErrorBg)
+                                .padding(20.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -319,7 +324,12 @@ fun TransactionsScreen(
                 uiState.paginatedTransactions.isEmpty() -> {
                     item {
                         Box(
-                            modifier = Modifier.fillMaxWidth().padding(top = 40.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(24.dp))
+                                .background(Color.White)
+                                .border(1.dp, KebabDivider.copy(alpha = 0.24f), RoundedCornerShape(24.dp))
+                                .padding(vertical = 36.dp, horizontal = 20.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(
@@ -385,22 +395,33 @@ private fun TransactionTopAppBar(onCalendarClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .background(KebabBg)
-            .padding(horizontal = 16.dp, vertical = 16.dp),
+            .padding(horizontal = 20.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Spacer(modifier = Modifier.width(48.dp))
+        Column {
+            Text(
+                text = "Riwayat Transaksi",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = KebabTextDark
+            )
+            Text(
+                text = "Pantau penjualan dan pembatalan",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = KebabTextGray
+            )
+        }
 
-        Text(
-            text = "RIWAYAT TRANSAKSI",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.ExtraBold,
-            color = KebabPrimary,
-            letterSpacing = 0.5.sp
-        )
-
-        IconButton(onClick = onCalendarClick) {
-            Icon(Icons.Default.CalendarToday, contentDescription = "Calendar", tint = KebabPrimary)
+        IconButton(
+            onClick = onCalendarClick,
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color.White)
+                .border(1.dp, KebabPrimary.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+        ) {
+            Icon(Icons.Default.CalendarToday, contentDescription = "Pilih tanggal", tint = KebabPrimary)
         }
     }
 }
@@ -446,14 +467,20 @@ private fun DateCard(label: String, date: String, month: String, isActive: Boole
 
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
+            .height(76.dp)
+            .clip(RoundedCornerShape(18.dp))
             .background(
                 brush = if (isActive) Brush.linearGradient(listOf(KebabPrimary, KebabPrimaryContainer))
-                else Brush.linearGradient(listOf(KebabDateInactiveBg, KebabDateInactiveBg))
+                else Brush.linearGradient(listOf(Color.White, KebabDateInactiveBg.copy(alpha = 0.45f)))
+            )
+            .border(
+                1.dp,
+                if (isActive) Color.Transparent else KebabDivider.copy(alpha = 0.35f),
+                RoundedCornerShape(18.dp)
             )
             .clickable { onClick() }
-            .padding(horizontal = 10.dp, vertical = 8.dp)
-            .widthIn(min = 44.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .widthIn(min = 66.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -485,8 +512,10 @@ private fun DateCard(label: String, date: String, month: String, isActive: Boole
 private fun SummaryMetricCard(modifier: Modifier = Modifier, title: String, value: String, icon: ImageVector) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .shadow(3.dp, RoundedCornerShape(20.dp), spotColor = Color.Black.copy(alpha = 0.04f))
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color.White)
+            .border(1.dp, KebabDivider.copy(alpha = 0.22f), RoundedCornerShape(20.dp))
             .padding(16.dp)
     ) {
         // Faded watermark icon
@@ -503,16 +532,17 @@ private fun SummaryMetricCard(modifier: Modifier = Modifier, title: String, valu
         Column {
             Text(
                 text = title,
-                fontSize = 11.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Medium
+                fontSize = 12.sp,
+                color = KebabTextGray,
+                fontWeight = FontWeight.SemiBold,
+                lineHeight = 15.sp
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = value,
-                fontSize = 22.sp,
+                fontSize = 24.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = KebabTextDark
             )
         }
     }
@@ -539,9 +569,10 @@ private fun TransactionItemCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(KebabItemBg.copy(alpha = opacity))
-            .border(1.dp, KebabDivider.copy(alpha = 0.3f * opacity), RoundedCornerShape(16.dp))
+            .shadow(2.dp, RoundedCornerShape(22.dp), spotColor = Color.Black.copy(alpha = 0.04f))
+            .clip(RoundedCornerShape(22.dp))
+            .background(Color.White.copy(alpha = opacity))
+            .border(1.dp, KebabDivider.copy(alpha = 0.22f * opacity), RoundedCornerShape(22.dp))
             .clickable {
                 if (isSuccess) {
                     if (isVoidable) {
@@ -555,7 +586,7 @@ private fun TransactionItemCard(
                     }
                 }
             }
-            .padding(16.dp)
+            .padding(18.dp)
     ) {
         // Top: icon + info + badge
         Row(
@@ -570,7 +601,7 @@ private fun TransactionItemCard(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .clip(CircleShape)
+                        .clip(RoundedCornerShape(16.dp))
                         .background(iconBgColor),
                     contentAlignment = Alignment.Center
                 ) {
@@ -590,8 +621,8 @@ private fun TransactionItemCard(
                     )
                     Text(
                         text = trx.code,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.ExtraBold,
                         color = KebabTextDark.copy(alpha = opacity),
                         textDecoration = textDecoration,
                         maxLines = 1,
@@ -611,7 +642,7 @@ private fun TransactionItemCard(
                         color = badgeText.copy(alpha = opacity),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                         maxLines = 1
                     )
                 }
@@ -649,6 +680,16 @@ private fun TransactionItemCard(
                 fontWeight = FontWeight.Bold,
                 color = if (isCancelled) KebabTextGray.copy(alpha = opacity) else KebabTextDark,
                 textDecoration = textDecoration
+            )
+        }
+
+        if (isSuccess) {
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = if (isVoidable) "Ketuk kartu untuk membatalkan transaksi" else "Transaksi lama tidak dapat dibatalkan",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = KebabTextGray.copy(alpha = 0.72f)
             )
         }
     }

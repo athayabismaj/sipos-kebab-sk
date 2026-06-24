@@ -1,6 +1,7 @@
 package com.sipos.kebabsk.feature.profile.presentation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -51,6 +53,7 @@ import com.sipos.kebabsk.ui.theme.KebabErrorText
 import com.sipos.kebabsk.ui.theme.KebabIconBg
 import com.sipos.kebabsk.ui.theme.KebabItemBg
 import com.sipos.kebabsk.ui.theme.KebabPrimary
+import com.sipos.kebabsk.ui.theme.KebabPrimaryContainer
 import com.sipos.kebabsk.ui.theme.KebabTextDark
 import com.sipos.kebabsk.ui.theme.KebabTextGray
 
@@ -80,27 +83,39 @@ fun ProfileScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp)
+                .height(72.dp)
                 .padding(horizontal = 20.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onEditProfile) {
-                Icon(
-                    Icons.Outlined.AccountCircle,
-                    contentDescription = "Akun",
-                    tint = KebabPrimary
+            Column {
+                Text(
+                    text = "Profil",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = KebabTextDark
+                )
+                Text(
+                    text = "Akun dan operasional kasir",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = KebabTextGray
                 )
             }
 
-            Text(
-                text = "Profil Kasir",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = KebabPrimary
-            )
-
-            Spacer(modifier = Modifier.width(48.dp))
+            IconButton(
+                onClick = onEditProfile,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.White)
+                    .border(1.dp, KebabPrimary.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+            ) {
+                Icon(
+                    Icons.Outlined.AccountCircle,
+                    contentDescription = "Edit profil",
+                    tint = KebabPrimary
+                )
+            }
         }
 
         // === SCROLLABLE CONTENT ===
@@ -108,8 +123,8 @@ fun ProfileScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // === KARTU PROFIL ===
             Box(
@@ -120,45 +135,69 @@ fun ProfileScreen(
                         shape = RoundedCornerShape(24.dp),
                         spotColor = Color.Black.copy(alpha = 0.06f)
                     )
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(KebabCardBg)
-                    .padding(24.dp),
-                contentAlignment = Alignment.Center
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(Brush.linearGradient(listOf(Color.White, Color(0xFFFFF8F2))))
+                    .border(1.dp, Color.White, RoundedCornerShape(28.dp))
+                    .padding(22.dp)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    // Avatar
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Box(
                         modifier = Modifier
-                            .size(96.dp)
+                            .size(82.dp)
                             .background(Color.White, CircleShape)
                             .padding(4.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF00658F)),
+                            .background(Brush.linearGradient(listOf(KebabPrimary, KebabPrimaryContainer))),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Default.Person,
                             contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.size(48.dp)
+                            modifier = Modifier.size(42.dp)
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
 
-                    Text(
-                        text = displayName,
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = KebabTextDark
-                    )
-                    Text(
-                        text = role?.replaceFirstChar { it.uppercase() } ?: "Kasir",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = KebabTextGray,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = displayName,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = KebabTextDark,
+                            lineHeight = 26.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(50))
+                                    .background(KebabPrimary.copy(alpha = 0.1f))
+                                    .padding(horizontal = 10.dp, vertical = 5.dp)
+                            ) {
+                                Text(
+                                    text = role?.uppercase() ?: "KASIR",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = KebabPrimary
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = username.ifBlank { email },
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = KebabTextGray
+                        )
+                    }
                 }
             }
 
@@ -166,16 +205,19 @@ fun ProfileScreen(
             MenuSection(title = "Operasional") {
                 ProfilMenuItem(
                     title = "Ringkasan Penjualan",
+                    subtitle = "Lihat omzet dan performa harian",
                     icon = Icons.AutoMirrored.Filled.TrendingUp,
                     onClick = onViewRevenue
                 )
                 ProfilMenuItem(
                     title = "Stok Bahan Harian",
+                    subtitle = "Pantau bahan dan tutup sesi stok",
                     icon = Icons.Default.Inventory,
                     onClick = onViewDailyStock
                 )
                 ProfilMenuItem(
                     title = "Pengeluaran Operasional",
+                    subtitle = "Catat dan cek biaya outlet",
                     icon = Icons.Default.Payments,
                     onClick = onViewOperationalExpense
                 )
@@ -187,18 +229,21 @@ fun ProfileScreen(
             MenuSection(title = "Akun") {
                 ProfilMenuItem(
                     title = "Printer Bluetooth",
+                    subtitle = "Hubungkan printer struk",
                     icon = Icons.Default.Print,
                     iconTint = KebabTextGray,
                     onClick = onConnectReceiptPrinter
                 )
                 ProfilMenuItem(
                     title = "Ubah Sandi",
+                    subtitle = "Perbarui password akun kasir",
                     icon = Icons.Default.LockReset,
                     iconTint = KebabTextGray,
                     onClick = onChangePassword
                 )
                 ProfilMenuItem(
-                    title = "Keluar / Logout",
+                    title = "Keluar",
+                    subtitle = "Akhiri akses dari perangkat ini",
                     icon = Icons.AutoMirrored.Filled.Logout,
                     iconTint = KebabErrorText,
                     iconBgColor = KebabErrorIconBg,
@@ -209,7 +254,7 @@ fun ProfileScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(116.dp))
         }
     }
 }
@@ -231,6 +276,7 @@ private fun MenuSection(title: String, content: @Composable () -> Unit) {
 @Composable
 private fun ProfilMenuItem(
     title: String,
+    subtitle: String? = null,
     icon: ImageVector,
     iconTint: Color = KebabPrimary,
     iconBgColor: Color = KebabIconBg,
@@ -242,10 +288,15 @@ private fun ProfilMenuItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .shadow(
+                elevation = if (containerColor == KebabItemBg) 1.dp else 0.dp,
+                shape = RoundedCornerShape(18.dp),
+                spotColor = Color.Black.copy(alpha = 0.04f)
+            )
+            .clip(RoundedCornerShape(18.dp))
             .background(containerColor)
             .clickable { onClick() }
-            .padding(16.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Ikon dalam lingkaran
@@ -266,13 +317,24 @@ private fun ProfilMenuItem(
 
         Spacer(modifier = Modifier.width(16.dp))
 
-        Text(
-            text = title,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium,
-            color = textColor,
-            modifier = Modifier.weight(1f)
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = textColor
+            )
+            if (!subtitle.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(3.dp))
+                Text(
+                    text = subtitle,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (textColor == KebabErrorText) KebabErrorText.copy(alpha = 0.72f) else KebabTextGray,
+                    lineHeight = 16.sp
+                )
+            }
+        }
 
         if (showChevron) {
             Icon(

@@ -51,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -294,6 +295,12 @@ private fun AppScaffold(
         sharedDailyStockViewModel.refresh()
     }
 
+    LaunchedEffect(selectedTab, profilePage, session.token) {
+        if (selectedTab == AppTab.PROFILE && profilePage == ProfilePage.DAILY_STOCK) {
+            sharedDailyStockViewModel.refresh()
+        }
+    }
+
     LaunchedEffect(cashierTransactionStarted, session.token) {
         if (cashierTransactionStarted) {
             onLoadMenus(session.token, false)
@@ -306,136 +313,96 @@ private fun AppScaffold(
         }
     }
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        containerColor = KebabBg,
-        bottomBar = {
-            NavigationBar(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                containerColor = KebabBg,
-                tonalElevation = 0.dp
-            ) {
-                AppTab.entries.forEach { tab ->
-                    val isSelected = selectedTab == tab
-                    NavigationBarItem(
-                        selected = isSelected,
-                        onClick = {
-                            selectedTab = tab
-                            if (tab != AppTab.PROFILE) profilePage = ProfilePage.SUMMARY
-                        },
-                        icon = {
-                            Icon(
-                                imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
-                                contentDescription = tab.label,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        },
-                        label = {
-                            Text(
-                                text = tab.label,
-                                fontSize = 11.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                            )
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = KebabPrimary,
-                            selectedTextColor = KebabPrimary,
-                            indicatorColor = Color(0xFFFFEDD5),
-                            unselectedIconColor = KebabNavInactiveText,
-                            unselectedTextColor = KebabNavInactiveText
-                        ),
-                        alwaysShowLabel = true
-                    )
-                }
-            }
-        }
-    ) { innerPadding ->
-        when (selectedTab) {
-            AppTab.CASHIER -> {
-                val repository = remember { TransactionsRepositoryImpl(NetworkModule.transactionsApiService) }
-                val shiftFactory = remember(session.token) { ShiftSummaryViewModelFactory(session.token, repository) }
-                val shiftSummaryViewModel: ShiftSummaryViewModel = viewModel(factory = shiftFactory)
-                val shiftSummaryUiState by shiftSummaryViewModel.uiState.collectAsStateWithLifecycle()
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = KebabBg
+        ) { innerPadding ->
+            when (selectedTab) {
+                AppTab.CASHIER -> {
+                    val repository = remember { TransactionsRepositoryImpl(NetworkModule.transactionsApiService) }
+                    val shiftFactory = remember(session.token) { ShiftSummaryViewModelFactory(session.token, repository) }
+                    val shiftSummaryViewModel: ShiftSummaryViewModel = viewModel(factory = shiftFactory)
+                    val shiftSummaryUiState by shiftSummaryViewModel.uiState.collectAsStateWithLifecycle()
 
-                if (!cashierTransactionStarted) {
-                    CashierDashboardScreen(
-                        modifier = Modifier.padding(innerPadding),
-                        cashierName = if (menuUiState.cashierName.isBlank()) session.displayName else menuUiState.cashierName,
-                        cashierRole = session.role ?: menuUiState.cashierRole ?: "kasir",
-                        isDailySessionOpen = menuUiState.isDailySessionOpen,
-                        dailySessionLabel = menuUiState.dailySessionStatusLabel,
-                        dailyTargetRevenue = menuUiState.dailyTargetRevenue,
-                        shiftSummaryUiState = shiftSummaryUiState,
-                        onRetryShiftSummary = shiftSummaryViewModel::refresh,
-                        onForceLogout = onLogout,
-                        onStartTransaction = { cashierTransactionStarted = true },
-                        isPendingSync = loginUiState.sessionSyncState == SessionSyncState.PENDING_SYNC
-                    )
-                } else {
-                    MenuScreen(
-                        modifier = Modifier.padding(innerPadding),
-                        session = session,
-                        uiState = menuUiState,
-                        onRefresh = { onLoadMenus(session.token, true) },
-                        onCategorySelected = onCategorySelected,
-                        onAddVariant = onAddVariant,
-                        onRemoveVariant = onRemoveVariant,
-                        onDeleteVariant = onDeleteVariant,
-                        onPaymentMethodSelected = onPaymentMethodSelected,
-                        onQuickAmountSelected = onQuickAmountSelected,
-                        onPaidAmountChanged = onPaidAmountChanged,
-                        onNoteChanged = onNoteChanged,
-                        onSubmitCheckout = { onSubmitCheckout(session.token) },
-                        onDismissCheckoutPreview = onDismissCheckoutPreview,
-                        onClearCheckoutMessage = onClearCheckoutMessage
-                    )
-                }
-            }
-
-            AppTab.TRANSACTIONS -> {
-                val factory = remember(session.token) { TransactionsViewModelFactory(session.token) }
-                val transactionsViewModel: TransactionsViewModel = viewModel(factory = factory)
-                TransactionsScreen(
-                    viewModel = transactionsViewModel, 
-                    modifier = Modifier.padding(innerPadding),
-                    sessionId = sharedDailyStockUiState.sessionId,
-                    onForceLogout = onLogout
-                )
-            }
-
-            AppTab.PROFILE -> {
-                when (profilePage) {
-                    ProfilePage.SUMMARY -> {
-                        ProfileScreen(
+                    if (!cashierTransactionStarted) {
+                        CashierDashboardScreen(
                             modifier = Modifier.padding(innerPadding),
-                            displayName = if (menuUiState.cashierName.isBlank()) session.displayName else menuUiState.cashierName,
-                            email = profileEmail,
-                            username = profileUsername,
-                            role = session.role ?: menuUiState.cashierRole,
-                            onEditProfile = {
-                                onClearProfileMessage()
-                                profilePage = ProfilePage.EDIT
-                            },
-                            onChangePassword = {
-                                onClearProfileMessage()
-                                profilePage = ProfilePage.CHANGE_PASSWORD
-                            },
-                            onViewRevenue = {
-                                profilePage = ProfilePage.REVENUE_SUMMARY
-                            },
-                            onViewDailyStock = {
-                                profilePage = ProfilePage.DAILY_STOCK
-                            },
-                            onViewOperationalExpense = {
-                                profilePage = ProfilePage.OPERATIONAL_EXPENSE
-                            },
-                            onConnectReceiptPrinter = {
-                                profilePage = ProfilePage.BLUETOOTH_PRINTER
-                            },
-                            onLogout = onLogout
+                            cashierName = if (menuUiState.cashierName.isBlank()) session.displayName else menuUiState.cashierName,
+                            cashierRole = session.role ?: menuUiState.cashierRole ?: "kasir",
+                            isDailySessionOpen = menuUiState.isDailySessionOpen,
+                            dailySessionLabel = menuUiState.dailySessionStatusLabel,
+                            dailyTargetRevenue = menuUiState.dailyTargetRevenue,
+                            shiftSummaryUiState = shiftSummaryUiState,
+                            onRetryShiftSummary = shiftSummaryViewModel::refresh,
+                            onForceLogout = onLogout,
+                            onStartTransaction = { cashierTransactionStarted = true },
+                            isPendingSync = loginUiState.sessionSyncState == SessionSyncState.PENDING_SYNC
+                        )
+                    } else {
+                        MenuScreen(
+                            modifier = Modifier.padding(innerPadding),
+                            session = session,
+                            uiState = menuUiState,
+                            onRefresh = { onLoadMenus(session.token, true) },
+                            onCategorySelected = onCategorySelected,
+                            onAddVariant = onAddVariant,
+                            onRemoveVariant = onRemoveVariant,
+                            onDeleteVariant = onDeleteVariant,
+                            onPaymentMethodSelected = onPaymentMethodSelected,
+                            onQuickAmountSelected = onQuickAmountSelected,
+                            onPaidAmountChanged = onPaidAmountChanged,
+                            onNoteChanged = onNoteChanged,
+                            onSubmitCheckout = { onSubmitCheckout(session.token) },
+                            onDismissCheckoutPreview = onDismissCheckoutPreview,
+                            onClearCheckoutMessage = onClearCheckoutMessage
                         )
                     }
+                }
+
+                AppTab.TRANSACTIONS -> {
+                    val factory = remember(session.token) { TransactionsViewModelFactory(session.token) }
+                    val transactionsViewModel: TransactionsViewModel = viewModel(factory = factory)
+                    TransactionsScreen(
+                        viewModel = transactionsViewModel,
+                        modifier = Modifier.padding(innerPadding),
+                        sessionId = sharedDailyStockUiState.sessionId,
+                        onForceLogout = onLogout
+                    )
+                }
+
+                AppTab.PROFILE -> {
+                    when (profilePage) {
+                        ProfilePage.SUMMARY -> {
+                            ProfileScreen(
+                                modifier = Modifier.padding(innerPadding),
+                                displayName = if (menuUiState.cashierName.isBlank()) session.displayName else menuUiState.cashierName,
+                                email = profileEmail,
+                                username = profileUsername,
+                                role = session.role ?: menuUiState.cashierRole,
+                                onEditProfile = {
+                                    onClearProfileMessage()
+                                    profilePage = ProfilePage.EDIT
+                                },
+                                onChangePassword = {
+                                    onClearProfileMessage()
+                                    profilePage = ProfilePage.CHANGE_PASSWORD
+                                },
+                                onViewRevenue = {
+                                    profilePage = ProfilePage.REVENUE_SUMMARY
+                                },
+                                onViewDailyStock = {
+                                    profilePage = ProfilePage.DAILY_STOCK
+                                },
+                                onViewOperationalExpense = {
+                                    profilePage = ProfilePage.OPERATIONAL_EXPENSE
+                                },
+                                onConnectReceiptPrinter = {
+                                    profilePage = ProfilePage.BLUETOOTH_PRINTER
+                                },
+                                onLogout = onLogout
+                            )
+                        }
 
                     ProfilePage.EDIT -> {
                         EditProfileScreen(
@@ -569,6 +536,77 @@ private fun AppScaffold(
                 }
             }
         }
+        }
+
+        BottomAppNavBar(
+            modifier = Modifier.align(Alignment.BottomCenter),
+            selectedTab = selectedTab,
+            onTabSelected = { tab ->
+                selectedTab = tab
+                if (tab != AppTab.PROFILE) profilePage = ProfilePage.SUMMARY
+            }
+        )
+    }
+}
+
+@Composable
+private fun BottomAppNavBar(
+    modifier: Modifier = Modifier,
+    selectedTab: AppTab,
+    onTabSelected: (AppTab) -> Unit
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = 18.dp, vertical = 10.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(6.dp, RoundedCornerShape(28.dp))
+                .clip(RoundedCornerShape(28.dp))
+                .background(Color.White)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                AppTab.entries.forEach { tab ->
+                    val isSelected = selectedTab == tab
+                    val itemColor = if (isSelected) Color.White else KebabNavInactiveText
+                    val itemBg = if (isSelected) KebabPrimary else Color.Transparent
+
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(58.dp)
+                            .clip(RoundedCornerShape(22.dp))
+                            .background(itemBg)
+                            .clickable { onTabSelected(tab) },
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
+                            contentDescription = tab.label,
+                            tint = itemColor,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = tab.label,
+                            color = itemColor,
+                            fontSize = 11.sp,
+                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -615,21 +653,55 @@ private fun CashierDashboardScreen(
             // Brand row
             Row(
                 modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Filled.RestaurantMenu,
-                    contentDescription = null,
-                    tint = KebabPrimary,
-                    modifier = Modifier.size(22.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = "Kebab SK",
-                    color = KebabPrimary,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 20.sp
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(KebabPrimary.copy(alpha = 0.1f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.RestaurantMenu,
+                            contentDescription = null,
+                            tint = KebabPrimary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "Kebab SK",
+                            color = KebabPrimary,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 20.sp
+                        )
+                        Text(
+                            text = "Dashboard kasir",
+                            color = KebabTextGray,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(Color.White)
+                        .border(1.dp, KebabPrimary.copy(alpha = 0.08f), RoundedCornerShape(50))
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = "Hari ini",
+                        color = KebabPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
             // Kasir info card
@@ -678,18 +750,27 @@ private fun CashierDashboardScreen(
         ) {
             when {
                 shiftSummaryUiState.isLoading -> {
-                    DashboardMetricCard(
-                        title = "TotalTransaksi",
-                        value = "...",
-                        subValue = "Memuat data shift",
-                        icon = Icons.AutoMirrored.Outlined.List
-                    )
-                    DashboardMetricCard(
-                        title = "ItemTerjual",
-                        value = "...",
-                        subValue = "Memuat data shift",
-                        icon = Icons.Outlined.ShoppingCart
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        DashboardMetricCard(
+                            modifier = Modifier.weight(1f),
+                            title = "Total Transaksi",
+                            value = "...",
+                            subValue = "Memuat",
+                            icon = Icons.AutoMirrored.Outlined.List,
+                            compact = true
+                        )
+                        DashboardMetricCard(
+                            modifier = Modifier.weight(1f),
+                            title = "Item Terjual",
+                            value = "...",
+                            subValue = "Memuat",
+                            icon = Icons.Outlined.ShoppingCart,
+                            compact = true
+                        )
+                    }
                     DashboardMetricCard(
                         title = "Pendapatan Hari Ini",
                         value = "...",
@@ -725,22 +806,31 @@ private fun CashierDashboardScreen(
                 }
 
                 else -> {
-                    DashboardMetricCard(
-                        title = "TotalTransaksi",
-                        value = shiftSummaryUiState.totalTransactions.toString(),
-                        subValue = shiftSummaryUiState.transactionGrowthPercentage?.let { pct ->
-                            val sign = if (pct >= 0) "+" else ""
-                            "${sign}${pct}% dari kemarin"
-                        } ?: if (shiftSummaryUiState.totalTransactions > 0) "Hari ini pertama" else "Belum ada transaksi",
-                        icon = Icons.AutoMirrored.Outlined.List
-                    )
-                    DashboardMetricCard(
-                        title = "ItemTerjual",
-                        value = shiftSummaryUiState.totalItemsSold.toString(),
-                        subValue = shiftSummaryUiState.dominantItemName?.let { "Dominan: $it" }
-                            ?: if (shiftSummaryUiState.totalItemsSold > 0) "Data dominan tersedia" else "Belum ada penjualan",
-                        icon = Icons.Outlined.ShoppingCart
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        DashboardMetricCard(
+                            modifier = Modifier.weight(1f),
+                            title = "Total Transaksi",
+                            value = shiftSummaryUiState.totalTransactions.toString(),
+                            subValue = shiftSummaryUiState.transactionGrowthPercentage?.let { pct ->
+                                val sign = if (pct >= 0) "+" else ""
+                                "${sign}${pct}%"
+                            } ?: if (shiftSummaryUiState.totalTransactions > 0) "Transaksi hari ini" else "Belum ada",
+                            icon = Icons.AutoMirrored.Outlined.List,
+                            compact = true
+                        )
+                        DashboardMetricCard(
+                            modifier = Modifier.weight(1f),
+                            title = "Item Terjual",
+                            value = shiftSummaryUiState.totalItemsSold.toString(),
+                            subValue = shiftSummaryUiState.dominantItemName?.let { "Top: $it" }
+                                ?: if (shiftSummaryUiState.totalItemsSold > 0) "Item terjual" else "Belum ada",
+                            icon = Icons.Outlined.ShoppingCart,
+                            compact = true
+                        )
+                    }
                     DashboardMetricCard(
                         title = "Pendapatan Hari Ini",
                         value = formatRupiah(shiftSummaryUiState.totalRevenue),
@@ -774,7 +864,7 @@ private fun CashierDashboardScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(104.dp))
         }
     }
 }
@@ -797,18 +887,21 @@ private fun UserInfoSection(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F1ED)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Box(
                     modifier = Modifier
-                        .size(56.dp)
+                        .size(58.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF9DD8D8))
-                        .border(2.dp, KebabPrimaryContainer, CircleShape),
+                        .background(Brush.linearGradient(listOf(Color(0xFFFF9800), Color(0xFFFFD08A))))
+                        .border(3.dp, Color.White, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -821,9 +914,13 @@ private fun UserInfoSection(
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                Column {
-                    Text("Halo, $cashierName", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color(0xFF1E1E1E))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Halo, $cashierName", fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = Color(0xFF1E1E1E))
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(20.dp))
@@ -837,9 +934,7 @@ private fun UserInfoSection(
                                 color = KebabPrimary
                             )
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Icon(Icons.Filled.Person, contentDescription = null, tint = KebabTextGray, modifier = Modifier.size(14.dp))
-                        Text(" $currentTime WIB", color = KebabTextGray, fontSize = 14.sp)
+                        Text("$currentTime WIB", color = KebabTextGray, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                     }
                 }
             }
@@ -849,12 +944,13 @@ private fun UserInfoSection(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
                     .background(if (isDailySessionOpen) KebabSuccessBg else Color(0xFFF9E8E8))
-                    .padding(horizontal = 12.dp, vertical = 10.dp)
+                    .padding(horizontal = 14.dp, vertical = 12.dp)
             ) {
                 Text(
                     text = statusLabel,
                     color = if (isDailySessionOpen) KebabSuccess else MaterialTheme.colorScheme.error,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 15.sp
                 )
             }
         }
@@ -863,16 +959,18 @@ private fun UserInfoSection(
 
 @Composable
 private fun DashboardMetricCard(
+    modifier: Modifier = Modifier,
     title: String,
     value: String,
     subValue: String,
     icon: ImageVector,
-    isPrimary: Boolean = false
+    isPrimary: Boolean = false,
+    compact: Boolean = false
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 148.dp),
+            .heightIn(min = if (compact) 132.dp else 148.dp),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isPrimary) Color.White else Color(0xFFF3EDE8)
@@ -881,16 +979,27 @@ private fun DashboardMetricCard(
     ) {
         Column(
             modifier = Modifier
-                .padding(20.dp)
+                .padding(if (compact) 16.dp else 20.dp)
                 .fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(title, color = KebabTextGray, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    title,
+                    color = KebabTextDark.copy(alpha = 0.78f),
+                    fontSize = if (compact) 13.sp else 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 17.sp,
+                    modifier = Modifier.weight(1f)
+                )
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(10.dp))
+                        .size(if (compact) 34.dp else 36.dp)
+                        .clip(RoundedCornerShape(12.dp))
                         .background(KebabPrimary.copy(alpha = 0.1f)),
                     contentAlignment = Alignment.Center
                 ) {
@@ -901,12 +1010,21 @@ private fun DashboardMetricCard(
             Column {
                 Text(
                     text = value,
-                    fontSize = if (isPrimary) 32.sp else 40.sp,
+                    fontSize = when {
+                        isPrimary -> 32.sp
+                        compact -> 34.sp
+                        else -> 40.sp
+                    },
                     fontWeight = FontWeight.ExtraBold,
                     color = if (isPrimary) KebabPrimary else Color.Black
                 )
                 if (subValue.isNotEmpty()) {
-                    Text(subValue, color = KebabTextGray, fontSize = 13.sp)
+                    Text(
+                        subValue,
+                        color = KebabTextGray,
+                        fontSize = if (compact) 12.sp else 13.sp,
+                        lineHeight = 16.sp
+                    )
                 }
             }
         }
@@ -923,7 +1041,7 @@ private fun MainActionButton(
         enabled = enabled,
         modifier = Modifier
             .fillMaxWidth()
-            .height(124.dp),
+            .height(108.dp),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
         shape = RoundedCornerShape(20.dp),
         colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
@@ -944,7 +1062,7 @@ private fun MainActionButton(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(52.dp)
+                            .size(50.dp)
                             .clip(CircleShape)
                             .background(Color.White.copy(alpha = 0.2f)),
                         contentAlignment = Alignment.Center
@@ -960,7 +1078,7 @@ private fun MainActionButton(
                     Spacer(Modifier.width(14.dp))
                     Column {
                         Text("Mulai Transaksi Baru", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color.White)
-                        Text("Buka antarmuka kasir utama", fontSize = 14.sp, color = Color.White.copy(alpha = 0.85f))
+                        Text("Buka kasir dan pilih menu", fontSize = 14.sp, color = Color.White.copy(alpha = 0.85f))
                     }
                 }
 

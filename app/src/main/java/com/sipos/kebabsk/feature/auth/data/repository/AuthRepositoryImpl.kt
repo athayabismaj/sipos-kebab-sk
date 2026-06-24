@@ -94,7 +94,8 @@ class AuthRepositoryImpl(
         return runCatching {
             val request = mapOf(
                 "email" to email,
-                "identifier" to email
+                "identifier" to email,
+                "username" to email
             )
             executeMultiEndpoint(
                 requests = listOf(
@@ -111,6 +112,8 @@ class AuthRepositoryImpl(
         return runCatching {
             val request = mapOf(
                 "email" to email,
+                "identifier" to email,
+                "username" to email,
                 "code" to code,
                 "otp" to code,
                 "token" to code
@@ -130,6 +133,8 @@ class AuthRepositoryImpl(
         return runCatching {
             val request = mapOf(
                 "email" to email,
+                "identifier" to email,
+                "username" to email,
                 "code" to code,
                 "otp" to code,
                 "token" to code,

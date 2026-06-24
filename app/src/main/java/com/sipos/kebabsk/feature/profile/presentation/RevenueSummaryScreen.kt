@@ -24,7 +24,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
@@ -39,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -91,6 +92,10 @@ fun RevenueSummaryScreen(
     }
     val dateFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.forLanguageTag("id-ID"))
 
+    LaunchedEffect(Unit) {
+        onRefresh()
+    }
+
     // Date Picker Dialog
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
@@ -120,15 +125,15 @@ fun RevenueSummaryScreen(
             .background(KebabBg)
     ) {
         // === TOP BAR ===
-        RingkasanTopBar(onBack = onBack, onRefresh = onRefresh)
+        RingkasanTopBar(onBack = onBack)
 
         // === SCROLLABLE CONTENT ===
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // --- FILTER & DATE ---
             FilterSection(
@@ -155,9 +160,9 @@ fun RevenueSummaryScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(20.dp))
                             .background(KebabErrorText.copy(alpha = 0.05f))
-                            .border(1.dp, KebabErrorText.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                            .border(1.dp, KebabErrorText.copy(alpha = 0.2f), RoundedCornerShape(20.dp))
                             .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -196,36 +201,48 @@ fun RevenueSummaryScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(116.dp))
         }
     }
 }
 
 // === TOP BAR ===
 @Composable
-private fun RingkasanTopBar(onBack: () -> Unit, onRefresh: () -> Unit) {
+private fun RingkasanTopBar(onBack: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(KebabBg)
-            .padding(horizontal = 16.dp, vertical = 16.dp),
+            .padding(horizontal = 20.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali", tint = KebabTextDark)
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color.White)
+                .border(1.dp, KebabPrimary.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+        ) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali", tint = KebabPrimary)
         }
 
-        Text(
-            text = "Ringkasan Penjualan",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = KebabTextDark
-        )
-
-        IconButton(onClick = onRefresh) {
-            Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = KebabTextDark)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = "Ringkasan",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = KebabTextDark
+            )
+            Text(
+                text = "Penjualan harian",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = KebabTextGray
+            )
         }
+
+        Spacer(modifier = Modifier.size(48.dp))
     }
 }
 
@@ -239,16 +256,17 @@ private fun FilterSection(
     onDateClick: () -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         // Tab Filter
         Row(
             modifier = Modifier
                 .clip(RoundedCornerShape(50))
                 .background(Color(0xFFF8F3EE))
-                .border(1.dp, KebabDivider, RoundedCornerShape(50))
+                .border(1.dp, KebabDivider.copy(alpha = 0.45f), RoundedCornerShape(50))
                 .padding(4.dp)
         ) {
             listOf("Hari Ini", "Kemarin").forEach { filter ->
@@ -258,7 +276,7 @@ private fun FilterSection(
                         .clip(RoundedCornerShape(50))
                         .background(if (isSelected) KebabPrimary else Color.Transparent)
                         .clickable { onFilterSelected(filter) }
-                        .padding(horizontal = 28.dp, vertical = 10.dp),
+                        .padding(horizontal = 26.dp, vertical = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -274,7 +292,11 @@ private fun FilterSection(
         // Date Display
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.clickable { onDateClick() }
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .background(KebabPrimary.copy(alpha = 0.08f))
+                .clickable { onDateClick() }
+                .padding(horizontal = 14.dp, vertical = 9.dp)
         ) {
             Icon(
                 Icons.Default.CalendarToday,
@@ -305,9 +327,11 @@ private fun MetricSummaryCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .shadow(4.dp, RoundedCornerShape(24.dp), spotColor = Color.Black.copy(alpha = 0.04f))
+            .clip(RoundedCornerShape(24.dp))
             .background(Color.White)
-            .padding(24.dp)
+            .border(1.dp, KebabDivider.copy(alpha = 0.18f), RoundedCornerShape(24.dp))
+            .padding(22.dp)
     ) {
         // Watermark Icon
         Icon(
@@ -330,8 +354,8 @@ private fun MetricSummaryCard(
             )
             Text(
                 text = value,
-                fontSize = 36.sp,
-                fontWeight = FontWeight.Bold,
+                fontSize = 34.sp,
+                fontWeight = FontWeight.ExtraBold,
                 color = valueColor
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -359,9 +383,11 @@ private fun ChartSection(trendData: List<Pair<String, Double>>) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .shadow(4.dp, RoundedCornerShape(24.dp), spotColor = Color.Black.copy(alpha = 0.04f))
+            .clip(RoundedCornerShape(24.dp))
             .background(Color.White)
-            .padding(24.dp)
+            .border(1.dp, KebabDivider.copy(alpha = 0.18f), RoundedCornerShape(24.dp))
+            .padding(22.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -371,10 +397,18 @@ private fun ChartSection(trendData: List<Pair<String, Double>>) {
             Text(
                 text = "Grafik Tren Penjualan",
                 fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.ExtraBold,
                 color = KebabTextDark
             )
-            Icon(Icons.Default.MoreVert, contentDescription = "More", tint = KebabTextDark)
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(KebabPrimary.copy(alpha = 0.08f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.MoreVert, contentDescription = "More", tint = KebabPrimary)
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -383,7 +417,9 @@ private fun ChartSection(trendData: List<Pair<String, Double>>) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp),
+                    .height(200.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color(0xFFF8F3EE)),
                 contentAlignment = Alignment.Center
             ) {
                 Text("Belum ada data tren", color = KebabTextGray, fontSize = 14.sp)
@@ -405,7 +441,7 @@ private fun BarChartFromTrend(trendData: List<Pair<String, Double>>) {
         modifier = Modifier
             .fillMaxWidth()
             .height(200.dp)
-            .background(Color(0xFFF8F3EE), RoundedCornerShape(12.dp))
+            .background(Color(0xFFF8F3EE), RoundedCornerShape(18.dp))
             .padding(horizontal = 16.dp, vertical = 16.dp)
     ) {
         // Grid lines
@@ -464,6 +500,6 @@ private fun ChartBar(heightPercentage: Float, isHighest: Boolean) {
         modifier = Modifier
             .width(24.dp)
             .fillMaxHeight(heightPercentage)
-            .background(barColor, RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+            .background(barColor, RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
     )
 }

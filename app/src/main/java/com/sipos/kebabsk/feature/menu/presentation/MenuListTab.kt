@@ -24,7 +24,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Remove
@@ -32,7 +31,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -59,7 +57,6 @@ fun MenuListTab(
     cartItems: List<CheckoutCartItem>,
     emptyStateMessage: String = "Tidak ada menu tersedia",
     onCategorySelected: (String?) -> Unit,
-    onRefresh: () -> Unit,
     onAddVariant: (String, Long, String, Double) -> Unit,
     onRemoveVariant: (Long) -> Unit
 ) {
@@ -87,13 +84,6 @@ fun MenuListTab(
                     fontWeight = FontWeight.ExtraBold,
                     color = KebabTextDark
                 )
-                IconButton(onClick = onRefresh) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Refresh",
-                        tint = KebabPrimaryContainer
-                    )
-                }
             }
         }
 

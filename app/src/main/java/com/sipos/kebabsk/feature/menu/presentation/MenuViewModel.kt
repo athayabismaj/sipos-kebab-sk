@@ -109,12 +109,13 @@ class MenuViewModel(
                     val paymentResult = getPaymentMethodsUseCase(token)
                     paymentResult
                         .onSuccess { methods ->
+                            val cashMethods = methods.filter { it.isCashPaymentMethod() }
                             _uiState.update {
                                 it.copy(
-                                    paymentMethods = methods,
-                                    selectedPaymentMethodId = methods.firstOrNull()?.id,
-                                    errorMessage = if (methods.isEmpty()) {
-                                        "Metode pembayaran belum tersedia. Hubungi admin untuk pengecekan."
+                                    paymentMethods = cashMethods,
+                                    selectedPaymentMethodId = cashMethods.firstOrNull()?.id,
+                                    errorMessage = if (cashMethods.isEmpty()) {
+                                        "Metode pembayaran tunai belum tersedia. Hubungi admin untuk pengecekan."
                                     } else {
                                         it.errorMessage
                                     }
@@ -263,7 +264,7 @@ class MenuViewModel(
 
                 val paymentMethodId = state.selectedPaymentMethodId
                 if (paymentMethodId == null) {
-                    _uiState.update { it.copy(errorMessage = "Pilih metode pembayaran") }
+                    _uiState.update { it.copy(errorMessage = "Metode pembayaran tunai belum tersedia") }
                     return@withLock
                 }
 
@@ -380,5 +381,10 @@ class MenuViewModel(
 
     private fun sanitizeMoneyInput(value: String): String {
         return value.filter { it.isDigit() }
+    }
+
+    private fun PaymentMethod.isCashPaymentMethod(): Boolean {
+        return name.equals("Cash", ignoreCase = true) ||
+            name.equals("Tunai", ignoreCase = true)
     }
 }

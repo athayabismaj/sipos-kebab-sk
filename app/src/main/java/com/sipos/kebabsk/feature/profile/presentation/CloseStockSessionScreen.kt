@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -217,6 +218,7 @@ fun CloseStockSessionScreen(
                             title = item.name,
                             stokAwal = "${formatDisplayQty(item.qty)} ${item.unit ?: "unit"}",
                             sisaValue = remainingInputs[item.ingredientId] ?: "",
+                            maxValue = item.qty,
                             onSisaChange = { newValue ->
                                 if (newValue.isEmpty() || newValue.matches(Regex("^\\d*\\.?\\d*$"))) {
                                     remainingInputs[item.ingredientId] = newValue
@@ -304,7 +306,7 @@ fun CloseStockSessionScreen(
                 
                 // Bottom Spacing (Buat Floating Button)
                 item {
-                    Spacer(modifier = Modifier.height(160.dp))
+                    Spacer(modifier = Modifier.height(if (step == 1) 220.dp else 280.dp))
                 }
             }
         }
@@ -315,9 +317,11 @@ fun CloseStockSessionScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
+                    .imePadding()
                     .background(KebabBg.copy(alpha = 0.9f))
                     .border(1.dp, KebabDivider, RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                    .padding(horizontal = 24.dp)
+                    .padding(top = 16.dp, bottom = 108.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -365,8 +369,10 @@ fun CloseStockSessionScreen(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
+                        .imePadding()
                         .background(Brush.verticalGradient(listOf(Color.Transparent, KebabBg, KebabBg)))
-                        .padding(horizontal = 24.dp, vertical = 24.dp)
+                        .padding(horizontal = 24.dp)
+                        .padding(top = 24.dp, bottom = 108.dp)
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),

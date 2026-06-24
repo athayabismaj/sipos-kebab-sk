@@ -22,7 +22,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Egg
 import androidx.compose.material.icons.outlined.LocalPizza
 import androidx.compose.material.icons.outlined.Restaurant
@@ -90,7 +89,7 @@ fun DailyStockScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             // === TOP BAR ===
-            StokTopBar(onBack = onBack, onRetry = onRetry, isLoading = isLoading)
+            StokTopBar(onBack = onBack)
 
             // === MAIN SCROLLABLE CONTENT ===
             Column(
@@ -239,8 +238,8 @@ fun DailyStockScreen(
                                 )
                             }
                             
-                            // Spacer akhir list scrollable
-                            item { Spacer(modifier = Modifier.height(100.dp)) }
+                            // Ruang aman agar tombol input sisa tidak menutup item terakhir.
+                            item { Spacer(modifier = Modifier.height(168.dp)) }
                         }
                     }
                 }
@@ -258,7 +257,8 @@ fun DailyStockScreen(
                             colors = listOf(Color.Transparent, KebabBg, KebabBg)
                         )
                     )
-                    .padding(horizontal = 24.dp, vertical = 24.dp)
+                    .padding(horizontal = 24.dp)
+                    .padding(top = 24.dp, bottom = 108.dp)
             ) {
                 Box(
                     modifier = Modifier
@@ -283,7 +283,7 @@ fun DailyStockScreen(
 }
 
 @Composable
-private fun StokTopBar(onBack: () -> Unit, onRetry: () -> Unit, isLoading: Boolean) {
+private fun StokTopBar(onBack: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -303,16 +303,7 @@ private fun StokTopBar(onBack: () -> Unit, onRetry: () -> Unit, isLoading: Boole
             color = KebabPrimary
         )
 
-        IconButton(
-            onClick = onRetry,
-            enabled = !isLoading
-        ) {
-            Icon(
-                Icons.Default.Refresh, 
-                contentDescription = "Refresh", 
-                tint = if (isLoading) KebabPrimary.copy(alpha = 0.5f) else KebabPrimary
-            )
-        }
+        Spacer(modifier = Modifier.size(48.dp))
     }
 }
 

@@ -1,6 +1,7 @@
 package com.sipos.kebabsk.feature.auth.presentation.login
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -75,13 +76,32 @@ fun LoginScreen(
             .background(KebabBg)
             .systemBarsPadding()
     ) {
-        // Decorative background elements
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Brush.verticalGradient(
-                    colors = listOf(KebabBg, KebabPrimaryContainer.copy(alpha = 0.2f))
-                ))
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFFFFFBF7),
+                            KebabBg,
+                            KebabPrimaryContainer.copy(alpha = 0.18f)
+                        )
+                    )
+                )
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .height(220.dp)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            KebabPrimaryContainer.copy(alpha = 0.16f),
+                            Color.Transparent
+                        )
+                    )
+                )
         )
 
         Column(
@@ -89,142 +109,179 @@ fun LoginScreen(
                 .fillMaxSize()
                 .imePadding()
                 .verticalScroll(scrollState)
-                .padding(vertical = 24.dp),
+                .padding(horizontal = 18.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Card(
                 modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .widthIn(max = 400.dp),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 40.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .fillMaxWidth()
+                    .widthIn(max = 420.dp)
+                    .border(1.dp, Color.White.copy(alpha = 0.9f), RoundedCornerShape(32.dp)),
+                shape = RoundedCornerShape(32.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFCFA)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(KebabPrimaryContainer),
-                    contentAlignment = Alignment.Center
+                Column(
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.ShoppingCart,
-                        contentDescription = null,
-                        tint = KebabPrimary,
-                        modifier = Modifier.size(40.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Text(
-                    text = "Selamat Datang, Kasir!",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = KebabTextDark,
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = "Masuk untuk memulai shift Anda di Kebab SK.",
-                    fontSize = 15.sp,
-                    color = KebabTextGray,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                LoginInputField(
-                    value = uiState.identifier,
-                    onValueChange = onIdentifierChanged,
-                    label = "Username",
-                    placeholder = "Masukkan username",
-                    leadingIcon = Icons.Default.Person,
-                    enabled = !uiState.isLoading
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                LoginInputField(
-                    value = uiState.password,
-                    onValueChange = onPasswordChanged,
-                    label = "Password",
-                    placeholder = "Masukkan password",
-                    leadingIcon = Icons.Default.Lock,
-                    isPassword = true,
-                    passwordVisible = passwordVisible,
-                    onTogglePassword = { passwordVisible = !passwordVisible },
-                    enabled = !uiState.isLoading
-                )
-
-                if (!uiState.errorMessage.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = uiState.errorMessage,
-                        color = Color(0xFFB3261E),
-                        fontSize = 13.sp,
-                        textAlign = TextAlign.Center
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Brush.horizontalGradient(listOf(KebabPrimary, KebabPrimaryContainer)))
-                        .clickable(enabled = !uiState.isLoading, onClick = onLogin),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (uiState.isLoading) {
-                        CircularProgressIndicator(
-                            strokeWidth = 3.dp,
-                            color = Color.White,
-                            modifier = Modifier.size(24.dp)
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .background(KebabPrimaryContainer.copy(alpha = 0.14f))
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ShoppingCart,
+                            contentDescription = null,
+                            tint = KebabPrimary,
+                            modifier = Modifier.size(18.dp)
                         )
-                    } else {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Kebab SK POS",
+                            color = KebabPrimary,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(22.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .size(86.dp)
+                            .clip(RoundedCornerShape(28.dp))
+                            .background(Brush.linearGradient(listOf(KebabPrimary, KebabPrimaryContainer))),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ShoppingCart,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(42.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Text(
+                        text = "Selamat Datang, Kasir!",
+                        fontSize = 27.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = KebabTextDark,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 32.sp
+                    )
+                    Text(
+                        text = "Masuk untuk memulai shift dan melayani pesanan hari ini.",
+                        fontSize = 15.sp,
+                        color = KebabTextGray,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 22.sp,
+                        modifier = Modifier.padding(top = 8.dp, start = 8.dp, end = 8.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(30.dp))
+
+                    LoginInputField(
+                        value = uiState.identifier,
+                        onValueChange = onIdentifierChanged,
+                        label = "Username",
+                        placeholder = "Masukkan username",
+                        leadingIcon = Icons.Default.Person,
+                        enabled = !uiState.isLoading
+                    )
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    LoginInputField(
+                        value = uiState.password,
+                        onValueChange = onPasswordChanged,
+                        label = "Password",
+                        placeholder = "Masukkan password",
+                        leadingIcon = Icons.Default.Lock,
+                        isPassword = true,
+                        passwordVisible = passwordVisible,
+                        onTogglePassword = { passwordVisible = !passwordVisible },
+                        enabled = !uiState.isLoading
+                    )
+
+                    if (!uiState.errorMessage.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color(0xFFFFEDEA))
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Text(
-                                text = "Masuk Sekarang",
-                                color = Color.White,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 16.sp,
-                                letterSpacing = 0.5.sp
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
+                                text = uiState.errorMessage,
+                                color = Color(0xFFB3261E),
+                                fontSize = 13.sp,
+                                textAlign = TextAlign.Center,
+                                lineHeight = 18.sp
                             )
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(30.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(58.dp)
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(Brush.horizontalGradient(listOf(KebabPrimary, KebabPrimaryContainer)))
+                            .clickable(enabled = !uiState.isLoading, onClick = onLogin),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (uiState.isLoading) {
+                            CircularProgressIndicator(
+                                strokeWidth = 3.dp,
+                                color = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "Masuk Sekarang",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 16.sp,
+                                    letterSpacing = 0.4.sp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    Text(
+                        text = "Lupa Password?",
+                        color = KebabPrimary,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .clickable(enabled = !uiState.isLoading, onClick = onForgotPassword)
+                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Text(
-                    text = "Lupa Password?",
-                    color = KebabPrimary,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .clickable(enabled = !uiState.isLoading, onClick = onForgotPassword)
-                        .padding(8.dp)
-                )
             }
         }
     }
-}
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -244,26 +301,33 @@ private fun LoginInputField(
         Text(
             text = label,
             fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
             color = KebabTextDark,
-            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+            modifier = Modifier.padding(start = 6.dp, bottom = 8.dp)
         )
 
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(62.dp),
             enabled = enabled,
             placeholder = { 
                 Text(
                     text = placeholder, 
-                    color = KebabTextGray.copy(alpha = 0.7f),
+                    color = KebabTextGray.copy(alpha = 0.66f),
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 ) 
             },
             leadingIcon = {
-                Icon(leadingIcon, contentDescription = null, tint = KebabTextGray)
+                Icon(
+                    leadingIcon,
+                    contentDescription = null,
+                    tint = KebabTextGray,
+                    modifier = Modifier.size(22.dp)
+                )
             },
             trailingIcon = if (isPassword) {
                 {
@@ -290,16 +354,20 @@ private fun LoginInputField(
                 keyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Text
             ),
             textStyle = androidx.compose.ui.text.TextStyle(color = KebabTextDark, fontSize = 16.sp, fontWeight = FontWeight.Medium),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(20.dp),
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = KebabItemBg,
-                unfocusedContainerColor = KebabItemBg,
+                focusedContainerColor = Color(0xFFF8F2ED),
+                unfocusedContainerColor = Color(0xFFF8F2ED),
                 disabledContainerColor = KebabItemBg.copy(alpha = 0.5f),
-                focusedIndicatorColor = KebabPrimary,
-                unfocusedIndicatorColor = Color.Transparent,
+                focusedIndicatorColor = KebabPrimary.copy(alpha = 0.75f),
+                unfocusedIndicatorColor = KebabPrimary.copy(alpha = 0.10f),
                 disabledIndicatorColor = Color.Transparent,
                 focusedTextColor = KebabTextDark,
                 unfocusedTextColor = KebabTextDark,
+                focusedLeadingIconColor = KebabPrimary,
+                unfocusedLeadingIconColor = KebabTextGray,
+                focusedTrailingIconColor = KebabPrimary,
+                unfocusedTrailingIconColor = KebabTextGray,
                 cursorColor = KebabPrimary
             ),
             singleLine = true

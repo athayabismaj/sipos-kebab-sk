@@ -38,12 +38,9 @@ import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothConnected
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Print
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -57,6 +54,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -311,43 +309,55 @@ fun BluetoothPrinterScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
+                .padding(horizontal = 20.dp, vertical = 14.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBack) {
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.White)
+                    .border(1.dp, KebabPrimary.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+            ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Kembali",
                     tint = KebabPrimary
                 )
             }
-            Text(
-                text = "Printer Struk",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = KebabPrimary
-            )
-            IconButton(onClick = { refreshDevices(startDiscovery = true) }) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "Muat Ulang",
-                    tint = KebabPrimary
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "Printer Struk",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = KebabTextDark
+                )
+                Text(
+                    text = "Bluetooth thermal",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = KebabTextGray
                 )
             }
+            Spacer(modifier = Modifier.size(48.dp))
         }
-
-        HorizontalDivider(color = KebabDivider.copy(alpha = 0.5f))
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 20.dp)
         ) {
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(4.dp, RoundedCornerShape(26.dp), spotColor = Color.Black.copy(alpha = 0.04f))
+                    .clip(RoundedCornerShape(26.dp))
+                    .background(Color.White)
+                    .border(1.dp, KebabDivider.copy(alpha = 0.18f), RoundedCornerShape(26.dp))
+                    .padding(18.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
@@ -368,14 +378,15 @@ fun BluetoothPrinterScreen(
                 Column {
                     Text(
                         text = "Koneksi Printer",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.ExtraBold,
                         color = KebabTextDark
                     )
                     Text(
-                        text = "Ketuk perangkat untuk menyambungkan printer",
-                        fontSize = 12.sp,
-                        color = KebabTextGray
+                        text = if (selectedAddress != null) "Printer siap mencetak struk" else "Pilih printer thermal Bluetooth",
+                        fontSize = 13.sp,
+                        color = KebabTextGray,
+                        lineHeight = 18.sp
                     )
                 }
             }
@@ -386,9 +397,9 @@ fun BluetoothPrinterScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(18.dp))
                         .background(Color(0xFFFFF5EC))
-                        .border(1.dp, Color(0xFFE8C9A0), RoundedCornerShape(12.dp))
+                        .border(1.dp, Color(0xFFE8C9A0), RoundedCornerShape(18.dp))
                         .padding(horizontal = 14.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -414,8 +425,9 @@ fun BluetoothPrinterScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(KebabPrimary)
+                        .height(56.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Brush.horizontalGradient(listOf(KebabPrimary, KebabPrimaryContainer)))
                         .clickable {
                             if (!hasPermission) {
                                 permissionLauncher.launch(bluetoothPermissions)
@@ -423,7 +435,7 @@ fun BluetoothPrinterScreen(
                                 context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
                             }
                         }
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
@@ -468,8 +480,52 @@ fun BluetoothPrinterScreen(
 
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                if (devices.isEmpty()) {
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(3.dp, RoundedCornerShape(24.dp), spotColor = Color.Black.copy(alpha = 0.04f))
+                                .clip(RoundedCornerShape(24.dp))
+                                .background(Color.White)
+                                .border(1.dp, KebabDivider.copy(alpha = 0.18f), RoundedCornerShape(24.dp))
+                                .padding(horizontal = 20.dp, vertical = 34.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(62.dp)
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(KebabPrimary.copy(alpha = 0.08f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Bluetooth,
+                                    contentDescription = null,
+                                    tint = KebabPrimary,
+                                    modifier = Modifier.size(30.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Text(
+                                text = if (isDiscovering) "Mencari printer..." else "Belum ada printer",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = KebabTextDark
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Pastikan printer menyala dan mode pairing aktif.",
+                                fontSize = 13.sp,
+                                color = KebabTextGray,
+                                lineHeight = 18.sp
+                            )
+                        }
+                    }
+                }
+
                 items(devices, key = { it.address }) { device ->
                     val isBonded = device.bondState == BluetoothDevice.BOND_BONDED
                     val isBonding = device.bondState == BluetoothDevice.BOND_BONDING || pairingAddress == device.address
@@ -479,23 +535,24 @@ fun BluetoothPrinterScreen(
                     val cardBackground = when {
                         selected -> KebabSuccessBg.copy(alpha = 0.5f)
                         isInProgress -> Color(0xFFFFF5EC)
-                        else -> MaterialTheme.colorScheme.surfaceVariant
+                        else -> Color.White
                     }
                     val borderColor = when {
                         selected -> KebabSuccess.copy(alpha = 0.6f)
                         isInProgress -> Color(0xFFE8C9A0)
-                        else -> Color.Transparent
+                        else -> KebabDivider.copy(alpha = 0.18f)
                     }
 
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
+                            .shadow(2.dp, RoundedCornerShape(20.dp), spotColor = Color.Black.copy(alpha = 0.04f))
+                            .clip(RoundedCornerShape(20.dp))
                             .background(cardBackground)
                             .border(
-                                width = if (selected || isInProgress) 1.5.dp else 0.dp,
+                                width = if (selected || isInProgress) 1.5.dp else 1.dp,
                                 color = borderColor,
-                                shape = RoundedCornerShape(14.dp)
+                                shape = RoundedCornerShape(20.dp)
                             )
                             .clickable(enabled = !isConnecting && !isBonding) {
                                 when {
@@ -521,13 +578,13 @@ fun BluetoothPrinterScreen(
                                     }
                                 }
                             }
-                            .padding(12.dp),
+                            .padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(42.dp)
-                                .clip(RoundedCornerShape(10.dp))
+                                .size(46.dp)
+                                .clip(RoundedCornerShape(16.dp))
                                 .background(
                                     when {
                                         selected -> KebabSuccess.copy(alpha = 0.15f)
@@ -554,7 +611,7 @@ fun BluetoothPrinterScreen(
                                 text = device.name,
                                 fontSize = 14.sp,
                                 color = KebabTextDark,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.ExtraBold,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -601,7 +658,7 @@ fun BluetoothPrinterScreen(
                     }
                 }
 
-                item { Spacer(modifier = Modifier.height(16.dp)) }
+                item { Spacer(modifier = Modifier.height(116.dp)) }
             }
         }
     }

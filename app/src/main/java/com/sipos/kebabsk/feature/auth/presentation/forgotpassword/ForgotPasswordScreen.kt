@@ -73,41 +73,26 @@ fun ForgotPasswordScreen(
                     .verticalScroll(scrollState),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(18.dp))
 
                 // --- STEPPER ---
                 StepperSecurityCheck(currentStep = uiState.step)
 
-                Spacer(modifier = Modifier.height(48.dp))
+                Spacer(modifier = Modifier.height(28.dp))
 
                 when (uiState.step) {
                     ForgotPasswordStep.REQUEST -> {
-                        // --- HEADER ICON & TEXT ---
-                        Box(
-                            modifier = Modifier
-                                .size(80.dp)
-                                .clip(RoundedCornerShape(24.dp))
-                                .background(KebabCardBg)
-                                .padding(16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Default.Lock, contentDescription = null, tint = KebabPrimary, modifier = Modifier.size(40.dp))
-                        }
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        Text("Lupa Kata Sandi?", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = KebabTextDark, textAlign = TextAlign.Center)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            "Masukkan email atau username yang terdaftar. Kami akan mengirimkan kode OTP untuk mengatur ulang kata sandi Anda.",
-                            fontSize = 14.sp, color = KebabTextGray, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 16.dp), lineHeight = 20.sp
+                        ForgotStepHeader(
+                            icon = Icons.Default.Lock,
+                            title = "Lupa Kata Sandi?",
+                            description = "Masukkan email atau username yang terdaftar. Kami akan mengirimkan kode OTP untuk mengatur ulang kata sandi."
                         )
 
-                        Spacer(modifier = Modifier.height(48.dp))
+                        Spacer(modifier = Modifier.height(28.dp))
 
                         // --- FORM INPUT ---
                         Column(modifier = Modifier.fillMaxWidth()) {
-                            Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Row(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 Text("EMAIL / USERNAME", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = KebabTextDark, letterSpacing = 1.sp)
                                 Icon(Icons.Default.Info, contentDescription = null, tint = KebabTextGray, modifier = Modifier.size(16.dp))
                             }
@@ -115,18 +100,18 @@ fun ForgotPasswordScreen(
                             OutlinedTextField(
                                 value = uiState.email,
                                 onValueChange = onEmailChanged,
-                                modifier = Modifier.fillMaxWidth(),
-                                placeholder = { Text("contoh@kebabulos.com", color = KebabTextGray.copy(alpha = 0.5f)) },
-                                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = KebabTextGray) },
+                                modifier = Modifier.fillMaxWidth().height(62.dp),
+                                placeholder = { Text("Email atau username", color = KebabTextGray.copy(alpha = 0.62f)) },
+                                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = KebabPrimary) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(18.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedContainerColor = KebabInputBg,
                                     unfocusedContainerColor = KebabInputBg,
                                     focusedBorderColor = KebabPrimary,
-                                    unfocusedBorderColor = KebabDivider,
+                                    unfocusedBorderColor = KebabDivider.copy(alpha = 0.75f),
                                 ),
-                                textStyle = androidx.compose.ui.text.TextStyle(color = Color.Black, fontSize = 16.sp),
+                                textStyle = androidx.compose.ui.text.TextStyle(color = KebabTextDark, fontSize = 16.sp, fontWeight = FontWeight.Medium),
                                 singleLine = true,
                                 enabled = !uiState.isLoading
                             )
@@ -134,85 +119,83 @@ fun ForgotPasswordScreen(
                     }
 
                     ForgotPasswordStep.VERIFY -> {
-                        Text("Verifikasi OTP", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = KebabTextDark, textAlign = TextAlign.Center)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("Kode telah dikirim ke email anda", fontSize = 14.sp, color = KebabTextGray, textAlign = TextAlign.Center)
-                        Spacer(modifier = Modifier.height(48.dp))
+                        ForgotStepHeader(
+                            icon = Icons.Default.Email,
+                            title = "Verifikasi OTP",
+                            description = "Masukkan 6 digit kode yang dikirim ke akun ${uiState.email.ifBlank { "Anda" }}."
+                        )
+                        Spacer(modifier = Modifier.height(30.dp))
 
                         OtpInputRow(
                             otpValue = uiState.code,
                             onOtpValueChange = onCodeChanged
                         )
 
-                        Spacer(modifier = Modifier.height(32.dp))
-                        Text("Kirim ulang kode (59s)", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = KebabPrimary, modifier = Modifier.clip(RoundedCornerShape(50)).clickable { }.padding(horizontal = 16.dp, vertical = 8.dp))
+                        Spacer(modifier = Modifier.height(22.dp))
+                        Text(
+                            "Kirim ulang kode (59s)",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = KebabPrimary,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(KebabPrimary.copy(alpha = 0.08f))
+                                .clickable { }
+                                .padding(horizontal = 18.dp, vertical = 10.dp)
+                        )
                     }
 
                     ForgotPasswordStep.RESET -> {
-                        Text("Reset Kata Sandi", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = KebabTextDark, textAlign = TextAlign.Center)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("Masukkan password baru Anda", fontSize = 14.sp, color = KebabTextGray, textAlign = TextAlign.Center)
-                        Spacer(modifier = Modifier.height(48.dp))
+                        ForgotStepHeader(
+                            icon = Icons.Default.Lock,
+                            title = "Reset Kata Sandi",
+                            description = "Buat kata sandi baru yang aman untuk akun kasir Anda."
+                        )
+                        Spacer(modifier = Modifier.height(28.dp))
 
-                        OutlinedTextField(
+                        ForgotPasswordInput(
                             value = uiState.newPassword,
                             onValueChange = onNewPasswordChanged,
-                            label = { Text("Password Baru") },
-                            modifier = Modifier.fillMaxWidth(),
-                            visualTransformation = PasswordVisualTransformation(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = KebabInputBg,
-                                unfocusedContainerColor = KebabInputBg,
-                                focusedBorderColor = KebabPrimary,
-                                unfocusedBorderColor = KebabDivider,
-                            ),
-                            textStyle = androidx.compose.ui.text.TextStyle(color = Color.Black, fontSize = 16.sp),
-                            singleLine = true,
+                            label = "Password Baru",
+                            placeholder = "Minimal 6 karakter",
                             enabled = !uiState.isLoading
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-                        OutlinedTextField(
+                        ForgotPasswordInput(
                             value = uiState.confirmPassword,
                             onValueChange = onConfirmPasswordChanged,
-                            label = { Text("Konfirmasi Password Baru") },
-                            modifier = Modifier.fillMaxWidth(),
-                            visualTransformation = PasswordVisualTransformation(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = KebabInputBg,
-                                unfocusedContainerColor = KebabInputBg,
-                                focusedBorderColor = KebabPrimary,
-                                unfocusedBorderColor = KebabDivider,
-                            ),
-                            textStyle = androidx.compose.ui.text.TextStyle(color = Color.Black, fontSize = 16.sp),
-                            singleLine = true,
+                            label = "Konfirmasi Password",
+                            placeholder = "Ulangi password baru",
                             enabled = !uiState.isLoading
                         )
                     }
 
                     ForgotPasswordStep.DONE -> {
-                        Box(
-                            modifier = Modifier.size(80.dp).clip(RoundedCornerShape(24.dp)).background(KebabPrimary.copy(alpha = 0.1f)).padding(16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = KebabPrimary, modifier = Modifier.size(40.dp))
-                        }
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Text("Selesai!", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = KebabTextDark, textAlign = TextAlign.Center)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("Password berhasil diubah. Silakan login kembali dengan password baru Anda.", fontSize = 14.sp, color = KebabTextGray, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 16.dp), lineHeight = 20.sp)
+                        ForgotStepHeader(
+                            icon = Icons.Default.Check,
+                            title = "Selesai!",
+                            description = "Password berhasil diubah. Silakan login kembali dengan password baru Anda.",
+                            success = true
+                        )
                     }
                 }
 
                 if (!uiState.errorMessage.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(text = uiState.errorMessage, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
+                    StatusMessageBox(
+                        text = uiState.errorMessage,
+                        containerColor = Color(0xFFFFEDEA),
+                        textColor = MaterialTheme.colorScheme.error
+                    )
                 }
 
                 if (!uiState.successMessage.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(text = uiState.successMessage, color = KebabSuccess, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
+                    StatusMessageBox(
+                        text = uiState.successMessage,
+                        containerColor = KebabSuccessBg,
+                        textColor = KebabSuccess
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -222,16 +205,21 @@ fun ForgotPasswordScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 32.dp),
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color.Transparent, KebabBg, KebabBg)
+                        )
+                    )
+                    .padding(top = 12.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Main Action Button
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
-                        .shadow(8.dp, RoundedCornerShape(12.dp), spotColor = KebabPrimaryContainer)
-                        .clip(RoundedCornerShape(12.dp))
+                        .height(58.dp)
+                        .shadow(8.dp, RoundedCornerShape(18.dp), spotColor = KebabPrimaryContainer)
+                        .clip(RoundedCornerShape(18.dp))
                         .background(if (uiState.isLoading) Brush.horizontalGradient(listOf(KebabPrimary.copy(alpha=0.6f), KebabPrimaryContainer.copy(alpha=0.6f))) else Brush.horizontalGradient(listOf(KebabPrimary, KebabPrimaryContainer)))
                         .clickable(enabled = !uiState.isLoading) {
                             when (uiState.step) {
@@ -255,7 +243,7 @@ fun ForgotPasswordScreen(
                                 ForgotPasswordStep.RESET -> if (uiState.isLoading) "Menyimpan..." else "Simpan Kata Sandi"
                                 ForgotPasswordStep.DONE -> "Kembali ke Login"
                             },
-                            color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp
+                            color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp
                         )
                         if (!uiState.isLoading) {
                             Spacer(modifier = Modifier.width(8.dp))
@@ -287,20 +275,149 @@ fun TopBarSecurityCheck(onBack: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .background(KebabBg)
-            .padding(horizontal = 16.dp, vertical = 16.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = onBack) {
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color.White)
+                .border(1.dp, KebabPrimary.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+        ) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali", tint = KebabPrimary)
         }
-        Text(
-            text = "Security Check",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = KebabPrimary
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = "Pemulihan Akun",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = KebabTextDark
+            )
+            Text(
+                text = "Verifikasi keamanan",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = KebabTextGray
+            )
+        }
         Spacer(modifier = Modifier.width(48.dp))
+    }
+}
+
+@Composable
+private fun ForgotStepHeader(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    description: String,
+    success: Boolean = false
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(28.dp), spotColor = Color.Black.copy(alpha = 0.04f))
+            .clip(RoundedCornerShape(28.dp))
+            .background(Color.White)
+            .padding(horizontal = 22.dp, vertical = 26.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(76.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(
+                    if (success) KebabSuccessBg else KebabPrimary.copy(alpha = 0.10f)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = if (success) KebabSuccess else KebabPrimary,
+                modifier = Modifier.size(38.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(20.dp))
+        Text(
+            title,
+            fontSize = 26.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = KebabTextDark,
+            textAlign = TextAlign.Center,
+            lineHeight = 31.sp
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Text(
+            description,
+            fontSize = 14.sp,
+            color = KebabTextGray,
+            textAlign = TextAlign.Center,
+            lineHeight = 20.sp
+        )
+    }
+}
+
+@Composable
+private fun ForgotPasswordInput(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    placeholder: String,
+    enabled: Boolean
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            label.uppercase(),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = KebabTextDark,
+            letterSpacing = 1.sp,
+            modifier = Modifier.padding(start = 4.dp, bottom = 10.dp)
+        )
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            placeholder = { Text(placeholder, color = KebabTextGray.copy(alpha = 0.62f)) },
+            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = KebabPrimary) },
+            modifier = Modifier.fillMaxWidth().height(62.dp),
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            shape = RoundedCornerShape(18.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = KebabInputBg,
+                unfocusedContainerColor = KebabInputBg,
+                focusedBorderColor = KebabPrimary,
+                unfocusedBorderColor = KebabDivider.copy(alpha = 0.75f),
+            ),
+            textStyle = androidx.compose.ui.text.TextStyle(color = KebabTextDark, fontSize = 16.sp, fontWeight = FontWeight.Medium),
+            singleLine = true,
+            enabled = enabled
+        )
+    }
+}
+
+@Composable
+private fun StatusMessageBox(
+    text: String,
+    containerColor: Color,
+    textColor: Color
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(containerColor)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            color = textColor,
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Center,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 
@@ -401,12 +518,14 @@ fun StepIconIndicator(number: String, label: String, status: StepStatus) {
 fun OtpInputRow(otpValue: String, onOtpValueChange: (String) -> Unit) {
     BasicTextField(
         value = otpValue,
-        onValueChange = onOtpValueChange,
+        onValueChange = { newValue ->
+            onOtpValueChange(newValue.filter { it.isDigit() }.take(6))
+        },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         modifier = Modifier.fillMaxWidth(),
         decorationBox = {
             Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 repeat(6) { index ->
@@ -416,7 +535,11 @@ fun OtpInputRow(otpValue: String, onOtpValueChange: (String) -> Unit) {
                     }
                     val isFocused = index == otpValue.length
                     
-                    OtpBox(char = char, isFocused = isFocused)
+                    OtpBox(
+                        char = char,
+                        isFocused = isFocused,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
         }
@@ -424,17 +547,20 @@ fun OtpInputRow(otpValue: String, onOtpValueChange: (String) -> Unit) {
 }
 
 @Composable
-fun OtpBox(char: String, isFocused: Boolean) {
+fun OtpBox(
+    char: String,
+    isFocused: Boolean,
+    modifier: Modifier = Modifier
+) {
     val bgColor = if (isFocused) KebabInputActiveBg else KebabInputBg
-    val borderColor = if (isFocused) KebabPrimary else Color.Transparent
+    val borderColor = if (isFocused) KebabPrimary else KebabDivider.copy(alpha = 0.35f)
 
     Box(
-        modifier = Modifier
-            .width(46.dp)
-            .height(56.dp)
-            .clip(RoundedCornerShape(12.dp))
+        modifier = modifier
+            .height(58.dp)
+            .clip(RoundedCornerShape(16.dp))
             .background(bgColor)
-            .border(if (isFocused) 2.dp else 0.dp, borderColor, RoundedCornerShape(12.dp)),
+            .border(if (isFocused) 2.dp else 1.dp, borderColor, RoundedCornerShape(16.dp)),
         contentAlignment = Alignment.Center
     ) {
         Text(

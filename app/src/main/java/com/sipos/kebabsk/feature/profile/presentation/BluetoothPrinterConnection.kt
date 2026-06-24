@@ -38,6 +38,17 @@ object BluetoothPrinterConnection {
         get() = if (isConnected) activeOutputStream else null
 
     /**
+     * Mengirim bytes ESC/POS ke printer yang sedang terkoneksi.
+     */
+    suspend fun print(bytes: ByteArray): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val stream = outputStream ?: throw IOException("Printer Bluetooth belum tersambung.")
+            stream.write(bytes)
+            stream.flush()
+        }
+    }
+
+    /**
      * Mencoba membuat koneksi RFCOMM ke perangkat Bluetooth.
      *
      * Fungsi ini HARUS dipanggil dari coroutine (suspend function).

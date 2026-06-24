@@ -20,7 +20,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
@@ -176,14 +176,26 @@ fun MenuScreen(
         }
     }
 
+    LaunchedEffect(cashierPage) {
+        if (cashierPage == CashierPage.MENU) {
+            onRefresh()
+        }
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = KebabBg,
         topBar = {
             MenuTopBar(
                 cashierPage = cashierPage,
-                onSearch = { /* TODO: Search */ },
-                onClose = { cashierPage = CashierPage.MENU }
+                itemCount = uiState.cartItems.sumOf { it.qty },
+                onBack = {
+                    cashierPage = if (cashierPage == CashierPage.PAYMENT) {
+                        CashierPage.CART
+                    } else {
+                        CashierPage.MENU
+                    }
+                }
             )
         },
         floatingActionButton = {
@@ -216,7 +228,6 @@ fun MenuScreen(
                                 cartItems = uiState.cartItems,
                                 emptyStateMessage = emptyStateMessage,
                                 onCategorySelected = onCategorySelected,
-                                onRefresh = onRefresh,
                                 onAddVariant = onAddVariant,
                                 onRemoveVariant = onRemoveVariant
                             )
@@ -319,41 +330,99 @@ fun MenuScreen(
 }
 
 @Composable
-private fun MenuTopBar(cashierPage: CashierPage, onSearch: () -> Unit, onClose: () -> Unit) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(KebabBg)
-                .statusBarsPadding()
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+private fun MenuTopBar(
+    cashierPage: CashierPage,
+    itemCount: Int,
+    onBack: () -> Unit
+) {
+    val title = when (cashierPage) {
+        CashierPage.MENU -> "Kebab SK"
+        CashierPage.CART -> "Keranjang"
+        CashierPage.PAYMENT -> "Pembayaran Tunai"
+    }
+    val subtitle = when (cashierPage) {
+        CashierPage.MENU -> "Pilih menu untuk pelanggan"
+        CashierPage.CART -> "Cek pesanan sebelum bayar"
+        CashierPage.PAYMENT -> "Masukkan uang diterima"
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(KebabBg)
+            .statusBarsPadding()
+            .padding(horizontal = 20.dp, vertical = 12.dp)
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(22.dp),
+            color = Color.White,
+            shadowElevation = 2.dp
         ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (cashierPage == CashierPage.MENU) {
-                Icon(Icons.Default.Menu, contentDescription = null, tint = KebabPrimary, modifier = Modifier.size(24.dp))
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Kebab SK",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = KebabPrimary
-                )
-            } else {
-                IconButton(onClick = onClose, modifier = Modifier.size(28.dp).padding(0.dp)) {
-                    Icon(CrossedUtensils, contentDescription = "Kebab SK", tint = KebabPrimary, modifier = Modifier.size(24.dp))
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (cashierPage == CashierPage.MENU) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(KebabPrimary.copy(alpha = 0.10f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Menu, contentDescription = null, tint = KebabPrimary, modifier = Modifier.size(24.dp))
+                        }
+                    } else {
+                        IconButton(
+                            onClick = onBack,
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(KebabPrimary.copy(alpha = 0.10f))
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali", tint = KebabPrimary, modifier = Modifier.size(22.dp))
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = title,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = KebabPrimary
+                        )
+                        Text(
+                            text = subtitle,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = KebabTextGray
+                        )
+                    }
                 }
-                Spacer(modifier = Modifier.width(12.dp))
+
+                val badgeText = when (cashierPage) {
+                    CashierPage.MENU -> if (itemCount > 0) "$itemCount item" else "Kasir"
+                    CashierPage.CART -> "$itemCount item"
+                    CashierPage.PAYMENT -> "Tunai"
+                }
                 Text(
-                    text = "Kebab SK",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontStyle = FontStyle.Italic,
-                    color = KebabPrimaryContainer
+                    text = badgeText,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = KebabPrimary,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(KebabPrimary.copy(alpha = 0.10f))
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
                 )
             }
         }
-        // Search icon dihilangkan sesuai permintaan
     }
 }
 
@@ -367,7 +436,7 @@ private fun CartFloatingActionButton(itemCount: Int, onClick: () -> Unit) {
         contentColor = Color.White,
         shadowElevation = 6.dp,
         modifier = Modifier
-            .padding(end = 12.dp, bottom = 4.dp)
+            .padding(end = 12.dp, bottom = 92.dp)
             .size(56.dp)
     ) {
         Box(contentAlignment = Alignment.Center) {
