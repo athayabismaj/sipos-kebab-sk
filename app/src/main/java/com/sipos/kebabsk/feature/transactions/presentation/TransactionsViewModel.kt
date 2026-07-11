@@ -1,11 +1,11 @@
 package com.sipos.kebabsk.feature.transactions.presentation
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sipos.kebabsk.common.AppTime
 import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionHistoryItem
+import com.sipos.kebabsk.feature.transactions.domain.model.TransactionReceipt
 import com.sipos.kebabsk.feature.transactions.domain.usecase.GetTransactionsUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,6 +14,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 enum class VoidReason { RESTOCK, WASTE }
 
@@ -30,13 +33,18 @@ data class TransactionsUiState(
     val isVoiding: Boolean = false,
     val voidSuccess: Boolean = false,
     val voidMessage: String? = null,
-    val voidErrorMessage: String? = null
+    val voidErrorMessage: String? = null,
+    val receiptTransactionId: Long? = null,
+    val isLoadingReceipt: Boolean = false,
+    val receipt: TransactionReceipt? = null,
+    val receiptErrorMessage: String? = null
 )
 
 class TransactionsViewModel(
     private val getTransactionsUseCase: GetTransactionsUseCase,
     private val repository: com.sipos.kebabsk.feature.transactions.domain.repository.TransactionsRepository,
-    private val token: String
+    private val token: String,
+    private val cashierName: String = "Kebab SK POS"
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TransactionsUiState())
@@ -130,9 +138,17 @@ class TransactionsViewModel(
 
     fun voidTransaction(transactionId: Long, reason: VoidReason, sessionId: Long) {
         if (_uiState.value.isVoiding) return
+        if (_uiState.value.currentDate != AppTime.todayJakarta()) {
+            _uiState.update {
+                it.copy(
+                    voidSuccess = false,
+                    voidErrorMessage = "Transaksi tanggal sebelumnya hanya dapat dicetak ulang, tidak dapat dibatalkan."
+                )
+            }
+            return
+        }
         _uiState.update { it.copy(isVoiding = true, voidSuccess = false, voidErrorMessage = null, voidMessage = null) }
         val reasonString = reason.name.lowercase()
-        Log.d("VoidPayload", "Sending reason: $reasonString for ID: $transactionId, session: $sessionId")
         viewModelScope.launch {
             val result = repository.voidTransaction(token, transactionId, reasonString, sessionId)
             result.onSuccess { message ->
@@ -158,5 +174,152 @@ class TransactionsViewModel(
 
     fun clearVoidState() {
         _uiState.update { it.copy(voidSuccess = false, voidMessage = null, voidErrorMessage = null) }
+    }
+
+    fun openReceipt(transaction: TransactionHistoryItem) {
+        openReceipt(transaction.id, transaction)
+    }
+
+    fun openReceipt(transactionId: Long) {
+        val transaction = _uiState.value.allTransactions.firstOrNull { it.id == transactionId }
+        openReceipt(transactionId, transaction)
+    }
+
+    private fun openReceipt(transactionId: Long, transaction: TransactionHistoryItem?) {
+        if (_uiState.value.isLoadingReceipt) return
+        val fallbackReceipt = transaction?.toFallbackReceipt(_uiState.value.currentDate)
+        _uiState.update {
+            it.copy(
+                receiptTransactionId = transactionId,
+                isLoadingReceipt = true,
+                receipt = fallbackReceipt,
+                receiptErrorMessage = null
+            )
+        }
+
+        viewModelScope.launch {
+            repository.getTransactionReceipt(token, transactionId, transaction?.code)
+                .onSuccess { receipt ->
+                    val resolvedReceipt = receipt
+                        .withResolvedCashierName()
+                        .withDailyDisplayCode(transactionId)
+                    _uiState.update {
+                        it.copy(
+                            isLoadingReceipt = false,
+                            receipt = resolvedReceipt,
+                            receiptErrorMessage = null
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    _uiState.update {
+                        it.copy(
+                            isLoadingReceipt = false,
+                            receipt = fallbackReceipt,
+                            receiptErrorMessage = if (fallbackReceipt == null) {
+                                sanitizeUserMessage(
+                                    error.message,
+                                    "Detail struk belum bisa dimuat. Silakan coba lagi."
+                                )
+                            } else {
+                                null
+                            }
+                        )
+                    }
+                }
+        }
+    }
+
+    fun dismissReceipt() {
+        _uiState.update {
+            it.copy(
+                receiptTransactionId = null,
+                isLoadingReceipt = false,
+                receipt = null,
+                receiptErrorMessage = null
+            )
+        }
+    }
+
+    private fun TransactionHistoryItem.toFallbackReceipt(selectedDate: LocalDate): TransactionReceipt {
+        return TransactionReceipt(
+            id = id,
+            code = code,
+            createdAtLabel = formatReceiptDateLabel(originalDate, selectedDate, time),
+            paymentMethod = "Tunai",
+            totalAmount = total,
+            paidAmount = total,
+            changeAmount = 0.0,
+            status = status,
+            items = emptyList(),
+            cashierName = resolvedCashierName(),
+            displayCode = dailyDisplayCodeFor(id),
+            isDetailed = false
+        )
+    }
+
+    private fun TransactionReceipt.withResolvedCashierName(): TransactionReceipt {
+        return if (cashierName.isValidCashierName()) {
+            this
+        } else {
+            copy(cashierName = resolvedCashierName())
+        }
+    }
+
+    private fun resolvedCashierName(): String {
+        return cashierName.trim().takeIf { it.isNotBlank() } ?: "Kasir"
+    }
+
+    private fun String.isValidCashierName(): Boolean {
+        val normalized = trim()
+        return normalized.isNotBlank() && !normalized.equals("Kebab SK POS", ignoreCase = true)
+    }
+
+    private fun TransactionReceipt.withDailyDisplayCode(transactionId: Long): TransactionReceipt {
+        return copy(displayCode = dailyDisplayCodeFor(transactionId))
+    }
+
+    private fun dailyDisplayCodeFor(transactionId: Long): String {
+        val orderedTransactions = _uiState.value.allTransactions
+            .sortedWith(
+                compareBy<TransactionHistoryItem> { transactionOrderKey(it) }
+                    .thenBy { it.id }
+            )
+        val dailyIndex = orderedTransactions.indexOfFirst { it.id == transactionId }
+            .takeIf { it >= 0 }
+            ?.plus(1)
+            ?: 1
+
+        return "TRX-${dailyIndex.toString().padStart(3, '0')}"
+    }
+
+    private fun transactionOrderKey(transaction: TransactionHistoryItem): String {
+        return transaction.originalDate
+            .takeIf { it.isNotBlank() }
+            ?: "${_uiState.value.currentDate} ${transaction.time}"
+    }
+
+    private fun formatReceiptDateLabel(originalDate: String, selectedDate: LocalDate, time: String): String {
+        if (originalDate.isNotBlank()) {
+            val parsed = runCatching {
+                val normalized = originalDate
+                    .replace("T", " ")
+                    .substringBefore(".")
+                    .substringBefore("+")
+                    .removeSuffix("Z")
+                    .trim()
+                LocalDateTime.parse(
+                    normalized.take(19),
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                )
+            }.getOrNull()
+
+            if (parsed != null) {
+                return parsed.format(DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm", Locale.forLanguageTag("id-ID")))
+            }
+        }
+
+        val safeTime = time.takeIf { it.isNotBlank() } ?: "00:00"
+        return "${selectedDate.format(DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.forLanguageTag("id-ID")))}, $safeTime"
     }
 }

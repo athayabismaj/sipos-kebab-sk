@@ -3,6 +3,7 @@ package com.sipos.kebabsk.feature.transactions.presentation
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionHistoryItem
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionPageData
 import com.sipos.kebabsk.feature.transactions.domain.model.RevenueSummaryResult
+import com.sipos.kebabsk.feature.transactions.domain.model.TransactionReceipt
 import com.sipos.kebabsk.feature.transactions.domain.repository.TransactionsRepository
 import com.sipos.kebabsk.feature.transactions.domain.usecase.GetTransactionsUseCase
 import com.sipos.kebabsk.testutil.MainDispatcherRule
@@ -130,6 +131,14 @@ private class FakeTransactionsRepository(
                 dailyTargetRevenue = null
             )
         )
+    }
+
+    override suspend fun getTransactionReceipt(
+        token: String,
+        transactionId: Long,
+        transactionCode: String?
+    ): Result<TransactionReceipt> {
+        return Result.failure(IllegalStateException("Detail struk belum tersedia"))
     }
 
     override suspend fun getRevenueTrend(token: String, date: LocalDate): Result<List<Pair<String, Double>>> {

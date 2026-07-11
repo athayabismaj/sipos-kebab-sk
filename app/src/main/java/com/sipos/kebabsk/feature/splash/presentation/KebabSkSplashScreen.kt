@@ -1,17 +1,11 @@
 package com.sipos.kebabsk.feature.splash.presentation
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,22 +14,22 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sipos.kebabsk.R
 
 private val ColorPrimary = Color(0xFF904D00)
 private val ColorPrimaryContainer = Color(0xFFFF8C00)
@@ -45,17 +39,6 @@ private val ColorOnSurfaceVariant = Color(0xFF564334)
 
 @Composable
 fun KebabSkSplashScreen() {
-    val infiniteTransition = rememberInfiniteTransition(label = "booting")
-    val progress by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "progress"
-    )
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -75,24 +58,14 @@ fun KebabSkSplashScreen() {
                     .size(128.dp)
                     .shadow(elevation = 20.dp, shape = CircleShape, clip = false)
                     .clip(CircleShape)
-                    .background(
-                        brush = Brush.linearGradient(
-                            colors = listOf(ColorPrimary, ColorPrimaryContainer)
-                        )
-                    ),
+                    .background(Color.Black),
                 contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.White.copy(alpha = 0.1f))
-                )
-
-                Icon(
-                    imageVector = Icons.Default.ShoppingCart,
-                    contentDescription = "Logo",
-                    tint = Color.White,
-                    modifier = Modifier.size(64.dp)
+                Image(
+                    painter = painterResource(id = R.drawable.kebab_sk_logo),
+                    contentDescription = "Logo Kebab SK",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
                 )
             }
 
@@ -108,7 +81,7 @@ fun KebabSkSplashScreen() {
             )
 
             Text(
-                text = "DIGITAL HEARTH POS",
+                text = "Aplikasi Kasir",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
                 color = ColorOnSurfaceVariant,
@@ -124,7 +97,7 @@ fun KebabSkSplashScreen() {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "BOOTING SYSTEM...",
+                text = "Menyiapkan aplikasi...",
                 fontSize = 10.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = ColorOnSurfaceVariant.copy(alpha = 0.7f),
@@ -133,24 +106,14 @@ fun KebabSkSplashScreen() {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Box(
+            LinearProgressIndicator(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(6.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(ColorSurfaceVariant)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(progress)
-                        .fillMaxHeight()
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(ColorPrimaryContainer, ColorPrimary)
-                            )
-                        )
-                )
-            }
+                    .clip(RoundedCornerShape(50)),
+                color = ColorPrimaryContainer,
+                trackColor = ColorSurfaceVariant
+            )
         }
     }
 }

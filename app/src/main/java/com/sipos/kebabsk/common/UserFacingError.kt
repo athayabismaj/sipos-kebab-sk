@@ -3,6 +3,7 @@ package com.sipos.kebabsk.common
 fun mapHttpCodeToUserMessage(code: Int, fallback: String): String {
     return when (code) {
         401 -> "Sesi login sudah berakhir. Silakan login ulang."
+        403 -> "Akses tidak diizinkan."
         404 -> fallback
         422 -> "Data permintaan belum valid. Silakan periksa kembali."
         429 -> "Permintaan terlalu sering. Coba lagi beberapa saat."

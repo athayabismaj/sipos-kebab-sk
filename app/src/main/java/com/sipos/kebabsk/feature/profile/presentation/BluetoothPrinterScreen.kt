@@ -113,7 +113,7 @@ fun BluetoothPrinterScreen(
     fun connectToDevice(device: PrinterDeviceItem) {
         connectingAddress = device.address
         infoMessage = "Menyambungkan ke ${device.name}..."
-        bluetoothAdapter?.cancelDiscovery()
+        bluetoothAdapter?.let(::safeCancelBluetoothDiscovery)
         scope.launch {
             val result = BluetoothPrinterConnection.connect(device.device)
             if (result.isSuccess) {
@@ -142,7 +142,7 @@ fun BluetoothPrinterScreen(
         syncSavedPrinterWithBondedDevices(devices)
     }
 
-    fun refreshDevices(startDiscovery: Boolean = true) {
+    fun refreshDevices(startDiscovery: Boolean = false) {
         hasPermission = hasBluetoothPermissionGranted(context)
         if (!hasPermission) {
             devices = emptyList()
@@ -159,7 +159,7 @@ fun BluetoothPrinterScreen(
             return
         }
 
-        if (!adapter.isEnabled) {
+        if (!isBluetoothEnabled(adapter)) {
             devices = emptyList()
             isDiscovering = false
             infoMessage = "Bluetooth masih mati. Nyalakan Bluetooth lalu coba lagi."
@@ -171,7 +171,7 @@ fun BluetoothPrinterScreen(
 
         if (!startDiscovery) {
             infoMessage = if (devices.isEmpty()) {
-                "Belum ada perangkat yang ditemukan."
+                "Belum ada printer tersimpan. Tekan Cari Printer jika ingin mencari perangkat baru."
             } else {
                 null
             }
@@ -191,7 +191,7 @@ fun BluetoothPrinterScreen(
     ) { result ->
         val granted = result.values.all { it }
         if (granted) {
-            refreshDevices(startDiscovery = true)
+            refreshDevices(startDiscovery = false)
         } else {
             hasPermission = false
             infoMessage = "Izin Bluetooth ditolak. Izinkan dulu agar aplikasi bisa pair printer langsung."
@@ -265,7 +265,7 @@ fun BluetoothPrinterScreen(
                                 infoMessage = "Bluetooth dimatikan. Nyalakan Bluetooth lalu coba lagi."
                             }
                             BluetoothAdapter.STATE_ON -> {
-                                refreshDevices(startDiscovery = true)
+                                refreshDevices(startDiscovery = false)
                             }
                         }
                     }
@@ -289,13 +289,13 @@ fun BluetoothPrinterScreen(
 
         onDispose {
             runCatching { context.unregisterReceiver(receiver) }
-            bluetoothAdapter?.cancelDiscovery()
+            bluetoothAdapter?.let(::safeCancelBluetoothDiscovery)
         }
     }
 
     LaunchedEffect(Unit) {
         if (hasBluetoothPermissionGranted(context)) {
-            refreshDevices(startDiscovery = true)
+            refreshDevices(startDiscovery = false)
         } else {
             permissionLauncher.launch(bluetoothPermissions)
         }
@@ -421,7 +421,7 @@ fun BluetoothPrinterScreen(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            if (!hasPermission || bluetoothAdapter == null || bluetoothAdapter.isEnabled.not()) {
+            if (!hasPermission || !isBluetoothEnabled(bluetoothAdapter)) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -450,6 +450,41 @@ fun BluetoothPrinterScreen(
                         text = if (!hasPermission) "Izinkan Akses Bluetooth" else "Buka Pengaturan Bluetooth",
                         color = Color.White,
                         fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(
+                            if (isDiscovering) {
+                                KebabPrimary.copy(alpha = 0.72f)
+                            } else {
+                                KebabPrimary
+                            }
+                        )
+                        .clickable(enabled = !isDiscovering) {
+                            refreshDevices(startDiscovery = true)
+                        }
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Bluetooth,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (isDiscovering) "Mencari Printer..." else "Cari Printer",
+                        color = Color.White,
+                        fontWeight = FontWeight.ExtraBold,
                         fontSize = 14.sp
                     )
                 }
@@ -569,7 +604,7 @@ fun BluetoothPrinterScreen(
                                         // Belum paired → pair dulu, nanti auto-connect setelah BOND_BONDED
                                         pairingAddress = device.address
                                         infoMessage = "Memulai pairing ke ${device.name}..."
-                                        bluetoothAdapter?.cancelDiscovery()
+                                        bluetoothAdapter?.let(::safeCancelBluetoothDiscovery)
                                         val started = runCatching { device.device.createBond() }.getOrDefault(false)
                                         if (!started) {
                                             pairingAddress = null
@@ -668,19 +703,21 @@ fun BluetoothPrinterScreen(
 private fun getKnownBluetoothDevices(context: Context): List<PrinterDeviceItem> {
     if (!hasBluetoothPermissionGranted(context)) return emptyList()
     val adapter = getBluetoothAdapter(context) ?: return emptyList()
-    return try {
+    return runCatching {
         adapter.bondedDevices
             ?.map { it.toPrinterDeviceItem() }
             .orEmpty()
             .sortedWith(deviceComparator)
-    } catch (_: SecurityException) {
-        emptyList()
-    }
+    }.getOrDefault(emptyList())
 }
 
 private fun getBluetoothAdapter(context: Context): BluetoothAdapter? {
     val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
     return manager?.adapter
+}
+
+private fun isBluetoothEnabled(adapter: BluetoothAdapter?): Boolean {
+    return runCatching { adapter?.isEnabled == true }.getOrDefault(false)
 }
 
 private fun Intent.getBluetoothDeviceExtra(): BluetoothDevice? {
@@ -694,12 +731,17 @@ private fun Intent.getBluetoothDeviceExtra(): BluetoothDevice? {
 
 @SuppressLint("MissingPermission")
 private fun startBluetoothDiscovery(adapter: BluetoothAdapter): Boolean {
+    safeCancelBluetoothDiscovery(adapter)
+    return runCatching { adapter.startDiscovery() }.getOrDefault(false)
+}
+
+@SuppressLint("MissingPermission")
+private fun safeCancelBluetoothDiscovery(adapter: BluetoothAdapter) {
     runCatching {
         if (adapter.isDiscovering) {
             adapter.cancelDiscovery()
         }
     }
-    return runCatching { adapter.startDiscovery() }.getOrDefault(false)
 }
 
 private fun hasBluetoothPermissionGranted(context: Context): Boolean {

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,11 +23,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -43,8 +44,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -54,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.vector.path
 
+import com.sipos.kebabsk.R
 import com.sipos.kebabsk.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,28 +85,31 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    Brush.verticalGradient(
+                    Brush.linearGradient(
                         colors = listOf(
-                            Color(0xFFFFFBF7),
-                            KebabBg,
-                            KebabPrimaryContainer.copy(alpha = 0.18f)
+                            Color(0xFFFFFCF9),
+                            Color(0xFFFFF5EA),
+                            Color(0xFFFFE7C7)
                         )
                     )
                 )
         )
+
         Box(
             modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .height(220.dp)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            KebabPrimaryContainer.copy(alpha = 0.16f),
-                            Color.Transparent
-                        )
-                    )
-                )
+                .align(Alignment.TopEnd)
+                .offset(x = 74.dp, y = (-64).dp)
+                .size(210.dp)
+                .clip(CircleShape)
+                .background(KebabPrimaryContainer.copy(alpha = 0.10f))
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .offset(x = (-88).dp, y = 82.dp)
+                .size(230.dp)
+                .clip(CircleShape)
+                .background(KebabPrimary.copy(alpha = 0.06f))
         )
 
         Column(
@@ -109,7 +117,7 @@ fun LoginScreen(
                 .fillMaxSize()
                 .imePadding()
                 .verticalScroll(scrollState)
-                .padding(horizontal = 18.dp, vertical = 24.dp),
+                .padding(horizontal = 20.dp, vertical = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -117,74 +125,94 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .widthIn(max = 420.dp)
-                    .border(1.dp, Color.White.copy(alpha = 0.9f), RoundedCornerShape(32.dp)),
-                shape = RoundedCornerShape(32.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFCFA)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    .shadow(
+                        elevation = 14.dp,
+                        shape = RoundedCornerShape(30.dp),
+                        ambientColor = KebabPrimary.copy(alpha = 0.10f),
+                        spotColor = KebabPrimary.copy(alpha = 0.16f)
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = Color.White.copy(alpha = 0.92f),
+                        shape = RoundedCornerShape(30.dp)
+                    ),
+                shape = RoundedCornerShape(30.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFDFC)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 26.dp)
                 ) {
                     Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .background(KebabPrimaryContainer.copy(alpha = 0.14f))
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.ShoppingCart,
-                            contentDescription = null,
-                            tint = KebabPrimary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Kebab SK POS",
-                            color = KebabPrimary,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.ExtraBold
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(54.dp)
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(Color.Black),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.kebab_sk_logo),
+                                contentDescription = "Logo Kebab SK",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Kebab SK",
+                                color = KebabTextDark,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                            Text(
+                                text = "Point of Sale",
+                                color = KebabTextGray,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                letterSpacing = 0.3.sp
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(KebabPrimaryContainer.copy(alpha = 0.12f))
+                                .padding(horizontal = 12.dp, vertical = 7.dp)
+                        ) {
+                            Text(
+                                text = "KASIR",
+                                color = KebabPrimary,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = 0.7.sp
+                            )
+                        }
                     }
 
-                    Spacer(modifier = Modifier.height(22.dp))
-
-                    Box(
-                        modifier = Modifier
-                            .size(86.dp)
-                            .clip(RoundedCornerShape(28.dp))
-                            .background(Brush.linearGradient(listOf(KebabPrimary, KebabPrimaryContainer))),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ShoppingCart,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(42.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(30.dp))
 
                     Text(
-                        text = "Selamat Datang, Kasir!",
-                        fontSize = 27.sp,
+                        text = "Selamat datang",
+                        fontSize = 28.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = KebabTextDark,
-                        textAlign = TextAlign.Center,
+                        textAlign = TextAlign.Start,
                         lineHeight = 32.sp
                     )
                     Text(
-                        text = "Masuk untuk memulai shift dan melayani pesanan hari ini.",
-                        fontSize = 15.sp,
+                        text = "Masuk untuk memulai shift dan melayani pelanggan.",
+                        fontSize = 14.sp,
                         color = KebabTextGray,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 22.sp,
-                        modifier = Modifier.padding(top = 8.dp, start = 8.dp, end = 8.dp)
+                        textAlign = TextAlign.Start,
+                        lineHeight = 20.sp,
+                        modifier = Modifier.padding(top = 6.dp)
                     )
 
-                    Spacer(modifier = Modifier.height(30.dp))
+                    Spacer(modifier = Modifier.height(26.dp))
 
                     LoginInputField(
                         value = uiState.identifier,
@@ -195,7 +223,7 @@ fun LoginScreen(
                         enabled = !uiState.isLoading
                     )
 
-                    Spacer(modifier = Modifier.height(18.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     LoginInputField(
                         value = uiState.password,
@@ -209,8 +237,29 @@ fun LoginScreen(
                         enabled = !uiState.isLoading
                     )
 
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+                        Text(
+                            text = "Lupa kata sandi?",
+                            color = KebabPrimary,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .clickable(
+                                    enabled = !uiState.isLoading,
+                                    onClick = onForgotPassword
+                                )
+                                .padding(horizontal = 4.dp, vertical = 8.dp)
+                        )
+                    }
+
                     if (!uiState.errorMessage.isNullOrBlank()) {
-                        Spacer(modifier = Modifier.height(14.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -229,14 +278,18 @@ fun LoginScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(30.dp))
+                    Spacer(modifier = Modifier.height(18.dp))
 
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(58.dp)
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(Brush.horizontalGradient(listOf(KebabPrimary, KebabPrimaryContainer)))
+                            .height(56.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(Color(0xFF9C5200), KebabPrimaryContainer)
+                                )
+                            )
                             .clickable(enabled = !uiState.isLoading, onClick = onLogin),
                         contentAlignment = Alignment.Center
                     ) {
@@ -249,7 +302,7 @@ fun LoginScreen(
                         } else {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = "Masuk Sekarang",
+                                    text = "Masuk",
                                     color = Color.White,
                                     fontWeight = FontWeight.ExtraBold,
                                     fontSize = 16.sp,
@@ -266,17 +319,14 @@ fun LoginScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(18.dp))
-
                     Text(
-                        text = "Lupa Password?",
-                        color = KebabPrimary,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
+                        text = "Akses khusus staf Kebab SK",
+                        color = KebabTextGray.copy(alpha = 0.70f),
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Center,
                         modifier = Modifier
-                            .clip(CircleShape)
-                            .clickable(enabled = !uiState.isLoading, onClick = onForgotPassword)
-                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                            .fillMaxWidth()
+                            .padding(top = 18.dp)
                     )
                 }
             }
@@ -300,10 +350,10 @@ private fun LoginInputField(
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = label,
-            fontSize = 14.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             color = KebabTextDark,
-            modifier = Modifier.padding(start = 6.dp, bottom = 8.dp)
+            modifier = Modifier.padding(start = 2.dp, bottom = 8.dp)
         )
 
         OutlinedTextField(
@@ -311,7 +361,7 @@ private fun LoginInputField(
             onValueChange = onValueChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(62.dp),
+                .height(58.dp),
             enabled = enabled,
             placeholder = { 
                 Text(
@@ -354,13 +404,13 @@ private fun LoginInputField(
                 keyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Text
             ),
             textStyle = androidx.compose.ui.text.TextStyle(color = KebabTextDark, fontSize = 16.sp, fontWeight = FontWeight.Medium),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(16.dp),
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color(0xFFF8F2ED),
-                unfocusedContainerColor = Color(0xFFF8F2ED),
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color(0xFFFAF6F2),
                 disabledContainerColor = KebabItemBg.copy(alpha = 0.5f),
-                focusedIndicatorColor = KebabPrimary.copy(alpha = 0.75f),
-                unfocusedIndicatorColor = KebabPrimary.copy(alpha = 0.10f),
+                focusedIndicatorColor = KebabPrimary,
+                unfocusedIndicatorColor = Color(0xFFE8D8CB),
                 disabledIndicatorColor = Color.Transparent,
                 focusedTextColor = KebabTextDark,
                 unfocusedTextColor = KebabTextDark,

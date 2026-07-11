@@ -1,5 +1,6 @@
 package com.sipos.kebabsk.feature.auth.presentation.forgotpassword
 
+import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sipos.kebabsk.common.sanitizeUserMessage
@@ -61,6 +62,11 @@ class ForgotPasswordViewModel : ViewModel() {
         val current = _uiState.value
         if (current.email.isBlank()) {
             _uiState.update { it.copy(errorMessage = "Email wajib diisi") }
+            return
+        }
+
+        if (!Patterns.EMAIL_ADDRESS.matcher(current.email.trim()).matches()) {
+            _uiState.update { it.copy(errorMessage = "Format email belum valid") }
             return
         }
 
@@ -144,6 +150,7 @@ class ForgotPasswordViewModel : ViewModel() {
                             step = ForgotPasswordStep.DONE,
                             successMessage = message,
                             errorMessage = null,
+                            code = "",
                             newPassword = "",
                             confirmPassword = ""
                         )

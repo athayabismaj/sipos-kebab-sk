@@ -63,12 +63,15 @@ class MenuRepositoryImpl(
                     )
                 }
 
+                val isDailySessionOpen = body.data.dailySession?.isOpen
+                    ?: body.data.isDailySessionOpen
+                    ?: false
+
                 val dailySession = DailySessionStatus(
-                    isOpen = body.data.dailySession?.isOpen
-                        ?: body.data.isDailySessionOpen
-                        ?: true,
+                    isOpen = isDailySessionOpen,
                     label = body.data.dailySession?.statusLabel
-                        ?: body.data.dailySessionStatusLabel,
+                        ?: body.data.dailySessionStatusLabel
+                        ?: if (isDailySessionOpen) "Sesi Harian Aktif" else "Sesi Harian Belum Dibuka",
                     targetRevenue = body.data.dailySession?.targetRevenue
                 )
 

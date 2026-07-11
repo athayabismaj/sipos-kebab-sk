@@ -1,6 +1,9 @@
 package com.sipos.kebabsk.feature.transactions.data.repository
 
 import com.google.gson.Gson
+import com.google.gson.JsonArray
+import com.google.gson.JsonElement
+import com.google.gson.JsonObject
 import com.google.gson.reflect.TypeToken
 import com.sipos.kebabsk.common.mapHttpCodeToUserMessage
 import com.sipos.kebabsk.common.mapThrowableToUserMessage
@@ -10,12 +13,16 @@ import com.sipos.kebabsk.feature.transactions.data.remote.TransactionItemRespons
 import com.sipos.kebabsk.feature.transactions.data.remote.TransactionsApiService
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionHistoryItem
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionPageData
+import com.sipos.kebabsk.feature.transactions.domain.model.TransactionReceipt
+import com.sipos.kebabsk.feature.transactions.domain.model.TransactionReceiptItem
 import com.sipos.kebabsk.feature.transactions.domain.model.RevenueSummaryResult
 import com.sipos.kebabsk.feature.transactions.domain.repository.TransactionsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 class TransactionsRepositoryImpl(
     private val apiService: TransactionsApiService
@@ -85,6 +92,76 @@ class TransactionsRepositoryImpl(
                 mapThrowable(
                     throwable = throwable,
                     fallback = "Riwayat transaksi belum bisa dimuat. Silakan coba lagi."
+                )
+            )
+        }
+    }
+
+    override suspend fun getTransactionReceipt(
+        token: String,
+        transactionId: Long,
+        transactionCode: String?
+    ): Result<TransactionReceipt> {
+        return runCatching {
+            val references = listOfNotNull(
+                transactionId.toString(),
+                transactionCode?.trim()?.takeIf { it.isNotBlank() }
+            ).distinct()
+
+            var lastCode = 0
+            var lastMessage: String? = null
+            var lastFailure: Throwable? = null
+
+            for (reference in references) {
+                val candidates = listOf(
+                    runCatching {
+                        retryNetworkRequest(maxAttempts = 1) {
+                            apiService.getTransactionDetail("Bearer $token", reference)
+                        }
+                    },
+                    runCatching {
+                        retryNetworkRequest(maxAttempts = 1) {
+                            apiService.getTransactionReceiptDetail("Bearer $token", reference)
+                        }
+                    }
+                )
+
+                candidates.forEach { result ->
+                    result
+                        .onSuccess { response ->
+                            lastCode = response.code()
+                            val body = response.body()
+                            lastMessage = body.extractApiMessage()
+
+                            if (response.isSuccessful) {
+                                val parsed = runCatching {
+                                    parseTransactionReceiptBody(body, transactionId)
+                                }
+                                if (parsed.isSuccess) {
+                                    return@runCatching parsed.getOrThrow()
+                                }
+                                lastFailure = parsed.exceptionOrNull()
+                            }
+                        }
+                        .onFailure { throwable ->
+                            lastFailure = throwable
+                        }
+                }
+            }
+
+            throw IllegalStateException(
+                lastFailure?.message?.takeIf { it.isNotBlank() }
+                    ?: mapHttpFailure(
+                        code = lastCode,
+                        rawMessage = lastMessage,
+                        fallback = "Detail struk belum bisa dimuat. Silakan coba lagi."
+                    )
+            )
+        }.recoverCatching { throwable ->
+            throw IllegalStateException(
+                mapThrowable(
+                    throwable = throwable,
+                    fallback = "Detail struk belum bisa dimuat. Silakan coba lagi."
                 )
             )
         }
@@ -207,6 +284,187 @@ class TransactionsRepositoryImpl(
             }
         } catch (_: Exception) {
             "00:00"
+        }
+    }
+
+    private suspend fun parseTransactionReceiptBody(body: JsonElement?, transactionId: Long): TransactionReceipt {
+        return withContext(Dispatchers.Default) {
+            if (body == null || body.isJsonNull || !body.isJsonObject) {
+                throw IllegalStateException("Respons detail struk tidak valid.")
+            }
+
+            val envelope = body.asJsonObject
+            val dataElement = envelope.get("data")?.takeIf { !it.isJsonNull } ?: body
+            val root = when {
+                dataElement.isJsonObject -> dataElement.asJsonObject
+                else -> throw IllegalStateException("Data detail struk tidak valid.")
+            }
+
+            val transaction = root.objectValue("transaction", "trx", "detail") ?: root
+            val itemsArray = transaction.arrayValue("items", "transaction_items", "details", "transaction_details")
+                ?: root.arrayValue("items", "transaction_items", "details", "transaction_details")
+
+            val totalAmount = transaction.doubleValue(
+                "total_amount",
+                "grand_total",
+                "total",
+                "subtotal"
+            ) ?: root.doubleValue("total_amount", "grand_total", "total", "subtotal") ?: 0.0
+
+            val paidAmount = transaction.doubleValue(
+                "paid_amount",
+                "amount_paid",
+                "cash_received",
+                "received_amount",
+                "dibayar"
+            ) ?: root.doubleValue(
+                "paid_amount",
+                "amount_paid",
+                "cash_received",
+                "received_amount",
+                "dibayar"
+            ) ?: totalAmount
+
+            val changeAmount = transaction.doubleValue(
+                "change_amount",
+                "change",
+                "cash_change",
+                "kembalian"
+            ) ?: root.doubleValue(
+                "change_amount",
+                "change",
+                "cash_change",
+                "kembalian"
+            ) ?: (paidAmount - totalAmount).coerceAtLeast(0.0)
+
+            val parsedItems = itemsArray
+                ?.mapNotNull { element ->
+                    if (!element.isJsonObject) return@mapNotNull null
+                    val item = element.asJsonObject
+                    val qty = item.intValue("qty", "quantity", "jumlah") ?: 1
+                    val subtotal = item.doubleValue("subtotal", "subtotal_amount", "total", "total_price")
+                    val price = item.doubleValue("price", "unit_price", "menu_price", "selling_price")
+                        ?: subtotal?.let { if (qty > 0) it / qty else it }
+                        ?: 0.0
+                    val safeSubtotal = subtotal ?: price * qty
+                    val menu = item.objectValue("menu", "product")
+                    val variant = item.objectValue("variant", "menu_variant")
+                    val name = item.stringValue("menu_name", "item_name", "product_name", "name")
+                        ?: menu?.stringValue("name")
+                        ?: variant?.objectValue("menu")?.stringValue("name")
+                        ?: return@mapNotNull null
+                    val variantName = item.stringValue("variant_name", "variant_label")
+                        ?: variant?.stringValue("name")
+
+                    TransactionReceiptItem(
+                        name = name,
+                        variantName = variantName,
+                        qty = qty,
+                        price = price,
+                        subtotal = safeSubtotal
+                    )
+                }
+                .orEmpty()
+
+            val paymentMethodObject = transaction.objectValue("payment_method", "paymentMethod")
+                ?: root.objectValue("payment_method", "paymentMethod")
+            val cashierObject = transaction.objectValue("cashier", "kasir", "user", "created_by", "createdBy")
+                ?: root.objectValue("cashier", "kasir", "user", "created_by", "createdBy")
+
+            TransactionReceipt(
+                id = transaction.longValue("id") ?: root.longValue("id") ?: transactionId,
+                code = transaction.stringValue("transaction_code", "code", "invoice_number")
+                    ?: root.stringValue("transaction_code", "code", "invoice_number")
+                    ?: "TRX-$transactionId",
+                createdAtLabel = formatReceiptDate(
+                    transaction.stringValue("created_at", "createdAt", "date", "tanggal")
+                        ?: root.stringValue("created_at", "createdAt", "date", "tanggal")
+                ),
+                paymentMethod = transaction.stringValue("payment_method_name", "payment_method", "payment")
+                    ?: root.stringValue("payment_method_name", "payment_method", "payment")
+                    ?: paymentMethodObject?.stringValue("name", "label", "type")
+                    ?: "Tunai",
+                totalAmount = totalAmount,
+                paidAmount = paidAmount,
+                changeAmount = changeAmount,
+                status = transaction.stringValue("status")
+                    ?: root.stringValue("status")
+                    ?: "Unknown",
+                items = parsedItems,
+                cashierName = transaction.stringValue("cashier_name", "kasir_name", "cashier", "kasir", "user_name", "created_by_name")
+                    ?: root.stringValue("cashier_name", "kasir_name", "cashier", "kasir", "user_name", "created_by_name")
+                    ?: cashierObject?.stringValue("name", "username", "full_name", "display_name")
+                    ?: "Kebab SK POS",
+                isDetailed = parsedItems.isNotEmpty()
+            )
+        }
+    }
+
+    private fun formatReceiptDate(createdAt: String?): String {
+        if (createdAt.isNullOrBlank()) return "-"
+        return runCatching {
+            val normalized = createdAt
+                .replace("T", " ")
+                .substringBefore(".")
+                .substringBefore("+")
+                .removeSuffix("Z")
+                .trim()
+            val dateTime = LocalDateTime.parse(
+                normalized.take(19),
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+            )
+            dateTime.format(DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm", Locale.forLanguageTag("id-ID")))
+        }.getOrElse { createdAt }
+    }
+
+    private fun JsonElement?.extractApiMessage(): String? {
+        if (this == null || isJsonNull || !isJsonObject) return null
+        return asJsonObject.stringValue("message", "error")
+    }
+
+    private fun JsonObject.stringValue(vararg keys: String): String? {
+        return keys.firstNotNullOfOrNull { key ->
+            val value = get(key) ?: return@firstNotNullOfOrNull null
+            if (value.isJsonNull || !value.isJsonPrimitive) return@firstNotNullOfOrNull null
+            runCatching { value.asString.trim().takeIf { it.isNotBlank() } }.getOrNull()
+        }
+    }
+
+    private fun JsonObject.doubleValue(vararg keys: String): Double? {
+        return keys.firstNotNullOfOrNull { key ->
+            val value = get(key) ?: return@firstNotNullOfOrNull null
+            if (value.isJsonNull || !value.isJsonPrimitive) return@firstNotNullOfOrNull null
+            runCatching { value.asDouble }.getOrNull()
+        }
+    }
+
+    private fun JsonObject.intValue(vararg keys: String): Int? {
+        return keys.firstNotNullOfOrNull { key ->
+            val value = get(key) ?: return@firstNotNullOfOrNull null
+            if (value.isJsonNull || !value.isJsonPrimitive) return@firstNotNullOfOrNull null
+            runCatching { value.asInt }.getOrNull()
+        }
+    }
+
+    private fun JsonObject.longValue(vararg keys: String): Long? {
+        return keys.firstNotNullOfOrNull { key ->
+            val value = get(key) ?: return@firstNotNullOfOrNull null
+            if (value.isJsonNull || !value.isJsonPrimitive) return@firstNotNullOfOrNull null
+            runCatching { value.asLong }.getOrNull()
+        }
+    }
+
+    private fun JsonObject.objectValue(vararg keys: String): JsonObject? {
+        return keys.firstNotNullOfOrNull { key ->
+            val value = get(key) ?: return@firstNotNullOfOrNull null
+            if (value.isJsonObject) value.asJsonObject else null
+        }
+    }
+
+    private fun JsonObject.arrayValue(vararg keys: String): JsonArray? {
+        return keys.firstNotNullOfOrNull { key ->
+            val value = get(key) ?: return@firstNotNullOfOrNull null
+            if (value.isJsonArray) value.asJsonArray else null
         }
     }
 

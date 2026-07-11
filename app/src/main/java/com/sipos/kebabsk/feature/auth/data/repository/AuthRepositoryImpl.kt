@@ -92,11 +92,7 @@ class AuthRepositoryImpl(
 
     override suspend fun forgotPassword(email: String): Result<String> {
         return runCatching {
-            val request = mapOf(
-                "email" to email,
-                "identifier" to email,
-                "username" to email
-            )
+            val request = mapOf("email" to email)
             executeMultiEndpoint(
                 requests = listOf(
                     { authApiService.forgotPasswordAuth(request) },
@@ -112,8 +108,6 @@ class AuthRepositoryImpl(
         return runCatching {
             val request = mapOf(
                 "email" to email,
-                "identifier" to email,
-                "username" to email,
                 "code" to code,
                 "otp" to code,
                 "token" to code
@@ -133,8 +127,6 @@ class AuthRepositoryImpl(
         return runCatching {
             val request = mapOf(
                 "email" to email,
-                "identifier" to email,
-                "username" to email,
                 "code" to code,
                 "otp" to code,
                 "token" to code,
@@ -308,22 +300,20 @@ class AuthRepositoryImpl(
     }
 
     /**
-     * Validasi sesi terhadap server.
-     * - HTTP 200 + active=true → Result.success(true)
-     * - HTTP 200 + active=false, atau HTTP 404/401 → Result.success(false) (Desync)
-     * - Network error (timeout, offline) → Result.failure (izinkan offline mode)
+     * Validasi token login terhadap server.
+     * Status sesi harian/shift tidak boleh dianggap sebagai status token login.
      */
     override suspend fun validateSessionOnServer(token: String): Result<Boolean> {
         return runCatching {
-            val response = authApiService.sessionCurrentStatus("Bearer $token")
+            val response = authApiService.me("Bearer $token")
 
-            if (response.isSuccessful) {
-                val body = response.body()
-                val active = body?.get("active")?.asBoolean ?: false
-                active
-            } else {
-                // 404 = sesi tidak ditemukan, 401 = token invalid → desync
-                false
+            when {
+                response.isSuccessful -> true
+                response.code() == 401 || response.code() == 403 -> false
+                else -> throw IllegalStateException(
+                    extractErrorMessage(response.errorBody()?.string(), response.body())
+                        ?: "Sesi belum bisa divalidasi."
+                )
             }
         }
     }

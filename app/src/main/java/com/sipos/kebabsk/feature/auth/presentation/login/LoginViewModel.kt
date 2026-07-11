@@ -28,7 +28,7 @@ data class LoginUiState(
      * - CHECKING: Sedang memvalidasi sesi ke server (saat splash).
      * - SYNCED: Server mengkonfirmasi sesi aktif.
      * - PENDING_SYNC: Tidak bisa menghubungi server (offline), izinkan masuk sementara.
-     * - DESYNCED: Server bilang sesi sudah tutup → force clear dilakukan otomatis.
+     * - DESYNCED: Token login/akun ditolak server → force clear dilakukan otomatis.
      * - IDLE: Tidak ada sesi lokal untuk divalidasi.
      */
     val sessionSyncState: SessionSyncState = SessionSyncState.IDLE
@@ -46,54 +46,72 @@ class LoginViewModel(
     private val authRepository: AuthRepository = AuthRepositoryImpl(NetworkModule.authApiService),
     private val loginUseCase: LoginUseCase = LoginUseCase(authRepository)
 ) : ViewModel() {
+    private companion object {
+        const val CASHIER_ROLE = "kasir"
+        const val CASHIER_ONLY_MESSAGE =
+            "Aplikasi mobile hanya dapat diakses oleh akun kasir."
+    }
+
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
     init {
         val saved = AppSessionStore.loadSession()
         if (saved != null) {
-            // Muat sesi lokal, lalu validasi terhadap server
-            _uiState.update { it.copy(session = saved, sessionSyncState = SessionSyncState.CHECKING) }
-            validateLocalSession(saved)
+            if (saved.hasCashierRole()) {
+                // Muat sesi kasir lokal, lalu validasi kembali terhadap server.
+                _uiState.update { it.copy(session = saved, sessionSyncState = SessionSyncState.CHECKING) }
+                validateLocalSession(saved)
+            } else {
+                rejectNonCashierSession()
+            }
         }
     }
 
     /**
      * Self-Healing Logic:
      * Saat startup, verifikasi apakah sesi lokal masih diakui oleh server.
-     * - Server bilang aktif → lanjut normal (SYNCED).
-     * - Server bilang tidak aktif → DESYNC terdeteksi, hapus sesi lokal paksa.
+     * - `/auth/me` sukses → token login masih valid, lanjut normal (SYNCED).
+     * - `/auth/me` gagal karena token invalid → interceptor global akan clear session.
      * - Network error → izinkan offline mode (PENDING_SYNC), beri indikator.
      *
-     * HUKUM: Server adalah Single Source of Truth.
+     * Catatan: status sesi harian/shift tidak boleh dipakai untuk menentukan validitas login.
+     * Kasir boleh tetap masuk dan melihat dashboard "Sesi Harian Ditutup".
      */
     private fun validateLocalSession(session: AuthSession) {
         viewModelScope.launch(Dispatchers.IO) {
-            authRepository.validateSessionOnServer(session.token)
-                .onSuccess { isActive ->
-                    if (isActive) {
-                        // Server mengkonfirmasi sesi aktif — aman
-                        _uiState.update { it.copy(sessionSyncState = SessionSyncState.SYNCED) }
-                    } else {
-                        // DESYNC: Server bilang sesi sudah tutup
-                        // EKSEKUSI: Hapus sesi lokal secara paksa
-                        AppSessionStore.clearSession()
-                        _uiState.update {
-                            it.copy(
-                                session = null,
-                                sessionSyncState = SessionSyncState.DESYNCED,
-                                password = "",
-                                errorMessage = null,
-                                successMessage = null
-                            )
-                        }
+            val profileResult = authRepository.me(session.token)
+            profileResult.onSuccess { freshSession ->
+                if (!freshSession.hasCashierRole()) {
+                    rejectNonCashierSession()
+                    return@launch
+                }
+
+                AppSessionStore.saveSession(freshSession)
+                _uiState.update {
+                    it.copy(
+                        session = freshSession,
+                        sessionSyncState = SessionSyncState.SYNCED
+                    )
+                }
+            }.onFailure {
+                if (AppSessionStore.loadSession() == null) {
+                    _uiState.update {
+                        it.copy(
+                            session = null,
+                            sessionSyncState = SessionSyncState.DESYNCED,
+                            password = "",
+                            errorMessage = null,
+                            successMessage = null
+                        )
                     }
+                    return@launch
                 }
-                .onFailure {
-                    // Network error (timeout/offline) — izinkan masuk sementara
-                    // UI akan menampilkan indikator "Menunggu Sinkronisasi"
-                    _uiState.update { it.copy(sessionSyncState = SessionSyncState.PENDING_SYNC) }
-                }
+
+                // Mode offline hanya boleh memakai sesi lokal yang sudah terverifikasi sebagai kasir.
+                _uiState.update { it.copy(sessionSyncState = SessionSyncState.PENDING_SYNC) }
+                return@launch
+            }
         }
     }
 
@@ -120,8 +138,28 @@ class LoginViewModel(
 
             result
                 .onSuccess { session ->
-                    val meResult = authRepository.me(session.token)
-                    val finalSession = meResult.getOrElse { session }
+                    val finalSession = authRepository.me(session.token)
+                        .getOrElse { error ->
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    session = null,
+                                    sessionSyncState = SessionSyncState.IDLE,
+                                    password = "",
+                                    errorMessage = sanitizeUserMessage(
+                                        error.message,
+                                        "Hak akses akun belum dapat diverifikasi. Silakan coba lagi."
+                                    )
+                                )
+                            }
+                            return@launch
+                        }
+
+                    if (!finalSession.hasCashierRole()) {
+                        rejectNonCashierSession()
+                        return@launch
+                    }
+
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -150,6 +188,11 @@ class LoginViewModel(
         viewModelScope.launch {
             authRepository.me(session.token)
                 .onSuccess { fresh ->
+                    if (!fresh.hasCashierRole()) {
+                        rejectNonCashierSession()
+                        return@onSuccess
+                    }
+
                     _uiState.update {
                         it.copy(session = fresh, errorMessage = null)
                     }
@@ -257,6 +300,24 @@ class LoginViewModel(
                 password = "",
                 errorMessage = null,
                 successMessage = null
+            )
+        }
+    }
+
+    private fun AuthSession.hasCashierRole(): Boolean {
+        return role?.trim()?.equals(CASHIER_ROLE, ignoreCase = true) == true
+    }
+
+    private fun rejectNonCashierSession() {
+        AppSessionStore.clearSession()
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                session = null,
+                sessionSyncState = SessionSyncState.DESYNCED,
+                password = "",
+                successMessage = null,
+                errorMessage = CASHIER_ONLY_MESSAGE
             )
         }
     }

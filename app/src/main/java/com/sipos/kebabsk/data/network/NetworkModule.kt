@@ -2,6 +2,7 @@ package com.sipos.kebabsk.data.network
 
 import android.content.Context
 import com.sipos.kebabsk.BuildConfig
+import com.sipos.kebabsk.common.AppSessionStore
 import com.sipos.kebabsk.common.AuthSessionEvents
 import com.sipos.kebabsk.feature.auth.data.remote.AuthApiService
 import com.sipos.kebabsk.feature.checkout.data.remote.CheckoutApiService
@@ -9,12 +10,10 @@ import com.sipos.kebabsk.feature.dailystock.data.remote.DailyStockApiService
 import com.sipos.kebabsk.feature.expense.data.remote.OperationalExpenseApiService
 import com.sipos.kebabsk.feature.menu.data.remote.MenuApiService
 import com.sipos.kebabsk.feature.shift.data.remote.CloseShiftApiService
-import okhttp3.Cache
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import java.io.File
 import java.util.concurrent.TimeUnit
 
 object NetworkModule {
@@ -28,24 +27,16 @@ object NetworkModule {
     }
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = if (BuildConfig.DEBUG) {
-            HttpLoggingInterceptor.Level.BODY // Tampilkan response body di Logcat
-        } else {
-            HttpLoggingInterceptor.Level.NONE
-        }
-    }
-
-    private val httpCache: Cache? by lazy {
-        val context = appContext ?: return@lazy null
-        runCatching {
-            Cache(File(context.cacheDir, "http_cache"), 15L * 1024L * 1024L)
-        }.getOrNull()
+        level = HttpLoggingInterceptor.Level.HEADERS
+        redactHeader("Authorization")
+        redactHeader("Cookie")
+        redactHeader("Set-Cookie")
+        redactHeader("X-CSRF-TOKEN")
+        redactHeader("X-XSRF-TOKEN")
+        redactHeader("X-API-KEY")
     }
 
     private val httpClient = OkHttpClient.Builder()
-        .apply {
-            httpCache?.let { cache(it) }
-        }
         // Explicit connection pool: max 5 connections, kept alive 5 min
         .connectionPool(okhttp3.ConnectionPool(5, 5, TimeUnit.MINUTES))
         .addInterceptor { chain ->
@@ -60,7 +51,7 @@ object NetworkModule {
             // Cek apakah server mengembalikan HTML (biasanya halaman error/keamanan)
             val contentType = response.header("Content-Type") ?: ""
             if (contentType.contains("text/html", ignoreCase = true)) {
-                val bodyString = response.peekBody(Long.MAX_VALUE).string()
+                val bodyString = response.peekBody(2_048).string()
                 val snippet = if (bodyString.length > 100) bodyString.take(100) + "..." else bodyString
                 throw java.io.IOException("Server mengembalikan halaman Web/HTML, bukan JSON. Cek konfigurasi server/domain Anda. Snippet: $snippet")
             }
@@ -70,11 +61,16 @@ object NetworkModule {
         .addInterceptor { chain ->
             val response = chain.proceed(chain.request())
             if (response.code == 401) {
+                AppSessionStore.clearSession()
                 AuthSessionEvents.notifyForceLogout()
             }
             response
         }
-        .addInterceptor(loggingInterceptor)
+        .apply {
+            if (BuildConfig.DEBUG) {
+                addInterceptor(loggingInterceptor)
+            }
+        }
         // Reduced timeouts — fail fast on old/weak networks
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
@@ -120,6 +116,14 @@ object NetworkModule {
     }
 
     private fun normalizeBaseUrl(baseUrl: String): String {
-        return if (baseUrl.endsWith('/')) baseUrl else "$baseUrl/"
+        val sanitizedBaseUrl = baseUrl
+            .trim()
+            .replace(Regex("\\s+"), "")
+
+        return if (sanitizedBaseUrl.endsWith('/')) {
+            sanitizedBaseUrl
+        } else {
+            "$sanitizedBaseUrl/"
+        }
     }
 }

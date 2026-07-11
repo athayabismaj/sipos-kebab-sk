@@ -1,4 +1,5 @@
 import java.util.Properties
+import org.gradle.api.GradleException
 
 plugins {
     alias(libs.plugins.android.application)
@@ -12,6 +13,18 @@ val localProps = Properties().apply {
 }
 val apiRelease = localProps.getProperty("API_BASE_URL_RELEASE", "https://your-domain.com/api/")
 val apiDebug = localProps.getProperty("API_BASE_URL_DEBUG", "http://your-local-ip:8000/api/")
+val isReleaseTask = gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
+
+if (isReleaseTask) {
+    val normalizedReleaseUrl = apiRelease.trim()
+    val invalidReleaseHost = listOf("localhost", "127.0.0.1", "10.0.2.2", "your-domain.com")
+        .any { normalizedReleaseUrl.contains(it, ignoreCase = true) }
+    if (!normalizedReleaseUrl.startsWith("https://", ignoreCase = true) || invalidReleaseHost) {
+        throw GradleException(
+            "API_BASE_URL_RELEASE harus memakai HTTPS production domain, bukan localhost/debug/staging placeholder."
+        )
+    }
+}
 
 android {
     namespace = "com.sipos.kebabsk"
@@ -32,6 +45,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             isDebuggable = false
+            manifestPlaceholders["usesCleartextTraffic"] = false
             buildConfigField("String", "API_BASE_URL", "\"$apiRelease\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -41,6 +55,7 @@ android {
         debug {
             isMinifyEnabled = false
             isShrinkResources = false
+            manifestPlaceholders["usesCleartextTraffic"] = true
             buildConfigField("String", "API_BASE_URL", "\"$apiDebug\"")
         }
     }

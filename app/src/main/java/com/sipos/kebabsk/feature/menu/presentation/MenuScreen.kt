@@ -3,6 +3,7 @@ package com.sipos.kebabsk.feature.menu.presentation
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -57,10 +58,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sipos.kebabsk.R
 import com.sipos.kebabsk.feature.auth.domain.model.AuthSession
 import com.sipos.kebabsk.ui.theme.*
 
@@ -372,11 +376,16 @@ private fun MenuTopBar(
                         Box(
                             modifier = Modifier
                                 .size(44.dp)
-                                .clip(CircleShape)
-                                .background(KebabPrimary.copy(alpha = 0.10f)),
+                                .clip(RoundedCornerShape(15.dp))
+                                .background(Color.Black),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.Menu, contentDescription = null, tint = KebabPrimary, modifier = Modifier.size(24.dp))
+                            Image(
+                                painter = painterResource(id = R.drawable.kebab_sk_logo),
+                                contentDescription = "Logo Kebab SK",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
                         }
                     } else {
                         IconButton(

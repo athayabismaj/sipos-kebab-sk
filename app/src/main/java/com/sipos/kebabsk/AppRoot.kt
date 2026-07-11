@@ -2,6 +2,7 @@ package com.sipos.kebabsk
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,7 +26,6 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.RestaurantMenu
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.Button
@@ -55,6 +55,8 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -289,11 +291,8 @@ private fun AppScaffold(
     val sharedDsFactory = remember(session.token) { DailyStockViewModelFactory(session.token, sharedDsRepository) }
     val sharedDailyStockViewModel: DailyStockViewModel = viewModel(factory = sharedDsFactory)
     val sharedDailyStockUiState by sharedDailyStockViewModel.uiState.collectAsStateWithLifecycle()
-
-    // Fetch session saat pertama kali masuk AppScaffold
-    LaunchedEffect(session.token) {
-        sharedDailyStockViewModel.refresh()
-    }
+    val isDashboardDailySessionOpen = sharedDailyStockUiState.isSessionOpen ?: menuUiState.isDailySessionOpen
+    val dashboardDailySessionLabel = sharedDailyStockUiState.sessionStatusLabel ?: menuUiState.dailySessionStatusLabel
 
     LaunchedEffect(selectedTab, profilePage, session.token) {
         if (selectedTab == AppTab.PROFILE && profilePage == ProfilePage.DAILY_STOCK) {
@@ -330,8 +329,8 @@ private fun AppScaffold(
                             modifier = Modifier.padding(innerPadding),
                             cashierName = if (menuUiState.cashierName.isBlank()) session.displayName else menuUiState.cashierName,
                             cashierRole = session.role ?: menuUiState.cashierRole ?: "kasir",
-                            isDailySessionOpen = menuUiState.isDailySessionOpen,
-                            dailySessionLabel = menuUiState.dailySessionStatusLabel,
+                            isDailySessionOpen = isDashboardDailySessionOpen,
+                            dailySessionLabel = dashboardDailySessionLabel,
                             dailyTargetRevenue = menuUiState.dailyTargetRevenue,
                             shiftSummaryUiState = shiftSummaryUiState,
                             onRetryShiftSummary = shiftSummaryViewModel::refresh,
@@ -361,7 +360,14 @@ private fun AppScaffold(
                 }
 
                 AppTab.TRANSACTIONS -> {
-                    val factory = remember(session.token) { TransactionsViewModelFactory(session.token) }
+                    val transactionCashierName = if (menuUiState.cashierName.isBlank()) {
+                        session.displayName
+                    } else {
+                        menuUiState.cashierName
+                    }
+                    val factory = remember(session.token, transactionCashierName) {
+                        TransactionsViewModelFactory(session.token, transactionCashierName)
+                    }
                     val transactionsViewModel: TransactionsViewModel = viewModel(factory = factory)
                     TransactionsScreen(
                         viewModel = transactionsViewModel,
@@ -661,14 +667,14 @@ private fun CashierDashboardScreen(
                         modifier = Modifier
                             .size(42.dp)
                             .clip(RoundedCornerShape(14.dp))
-                            .background(KebabPrimary.copy(alpha = 0.1f)),
+                            .background(Color.Black),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.RestaurantMenu,
-                            contentDescription = null,
-                            tint = KebabPrimary,
-                            modifier = Modifier.size(22.dp)
+                        Image(
+                            painter = painterResource(id = R.drawable.kebab_sk_logo),
+                            contentDescription = "Logo Kebab SK",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
                         )
                     }
                     Spacer(modifier = Modifier.width(12.dp))
@@ -857,14 +863,64 @@ private fun CashierDashboardScreen(
             )
 
             if (!isDailySessionOpen) {
-                Text(
-                    text = "Sesi harian belum dibuka admin, transaksi belum dapat dilakukan.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
-                )
+                ClosedSessionNotice(dailySessionLabel = dailySessionLabel)
             }
 
             Spacer(modifier = Modifier.height(104.dp))
+        }
+    }
+}
+
+@Composable
+private fun ClosedSessionNotice(
+    dailySessionLabel: String?
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF7EA)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, BrandOrange.copy(alpha = 0.18f), RoundedCornerShape(20.dp))
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(BrandOrange.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.ShoppingCart,
+                    contentDescription = null,
+                    tint = KebabPrimary,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Text(
+                    text = dailySessionLabel?.takeIf { it.isNotBlank() } ?: "Sesi Harian Belum Dibuka",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = KebabTextDark
+                )
+                Text(
+                    text = "Transaksi akan aktif setelah admin membuka sesi harian.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = KebabTextGray,
+                    lineHeight = 18.sp
+                )
+            }
         }
     }
 }
@@ -879,10 +935,10 @@ private fun UserInfoSection(
     isDailySessionOpen: Boolean,
     dailySessionLabel: String?
 ) {
-    val statusLabel = if (isDailySessionOpen) {
-        dailySessionLabel ?: "Sesi Harian Aktif"
-    } else {
-        "Sesi Belum Dibuka"
+    val statusLabel = when {
+        isDailySessionOpen -> dailySessionLabel ?: "Sesi Harian Aktif"
+        !dailySessionLabel.isNullOrBlank() -> dailySessionLabel
+        else -> "Sesi Harian Belum Dibuka"
     }
 
     Card(

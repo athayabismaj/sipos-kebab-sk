@@ -28,7 +28,7 @@ data class MenuUiState(
     val errorMessage: String? = null,
     val cashierName: String = "",
     val cashierRole: String? = null,
-    val isDailySessionOpen: Boolean = true,
+    val isDailySessionOpen: Boolean = false,
     val dailySessionStatusLabel: String? = null,
     val dailyTargetRevenue: Double? = null,
     val dailyStockItems: List<DailyStockItem> = emptyList(),

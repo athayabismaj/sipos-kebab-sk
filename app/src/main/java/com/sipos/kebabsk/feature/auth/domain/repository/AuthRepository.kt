@@ -12,9 +12,8 @@ interface AuthRepository {
     suspend fun resetPassword(email: String, code: String, newPassword: String): Result<String>
 
     /**
-     * Validasi status sesi terhadap server.
-     * @return Result<Boolean> — true jika sesi aktif, false jika sesi tidak aktif (desync).
-     * Failure jika network error (timeout/offline).
+     * Validasi token login terhadap server.
+     * Status sesi harian/shift tidak boleh dianggap sebagai status token login.
      */
     suspend fun validateSessionOnServer(token: String): Result<Boolean>
 }
