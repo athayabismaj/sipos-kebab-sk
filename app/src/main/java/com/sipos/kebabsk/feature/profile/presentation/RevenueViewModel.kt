@@ -2,6 +2,7 @@ package com.sipos.kebabsk.feature.profile.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sipos.kebabsk.common.AppSessionStore
 import com.sipos.kebabsk.common.AppTime
 import com.sipos.kebabsk.feature.transactions.domain.repository.TransactionsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,7 +23,6 @@ data class RevenueUiState(
 )
 
 class RevenueViewModel(
-    private val token: String,
     private val repository: TransactionsRepository
 ) : ViewModel() {
 
@@ -48,6 +48,7 @@ class RevenueViewModel(
 
         viewModelScope.launch {
             try {
+                val token = AppSessionStore.loadSession()?.token ?: ""
                 val summaryDeferred = async { repository.getRevenueSummary(token, currentDate) }
                 val trendDeferred = async { repository.getRevenueTrend(token, currentDate) }
                 
@@ -92,3 +93,4 @@ class RevenueViewModel(
         }
     }
 }
+

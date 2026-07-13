@@ -4,8 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sipos.kebabsk.common.AppSessionStore
 import com.sipos.kebabsk.common.sanitizeUserMessage
-import com.sipos.kebabsk.data.network.NetworkModule
-import com.sipos.kebabsk.feature.auth.data.repository.AuthRepositoryImpl
 import com.sipos.kebabsk.feature.auth.domain.model.AuthSession
 import com.sipos.kebabsk.feature.auth.domain.repository.AuthRepository
 import com.sipos.kebabsk.feature.auth.domain.usecase.LoginUseCase
@@ -43,7 +41,7 @@ enum class SessionSyncState {
 }
 
 class LoginViewModel(
-    private val authRepository: AuthRepository = AuthRepositoryImpl(NetworkModule.authApiService),
+    private val authRepository: AuthRepository,
     private val loginUseCase: LoginUseCase = LoginUseCase(authRepository)
 ) : ViewModel() {
     private companion object {

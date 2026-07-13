@@ -4,8 +4,7 @@ import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sipos.kebabsk.common.sanitizeUserMessage
-import com.sipos.kebabsk.data.network.NetworkModule
-import com.sipos.kebabsk.feature.auth.data.repository.AuthRepositoryImpl
+import com.sipos.kebabsk.feature.auth.domain.repository.AuthRepository
 import com.sipos.kebabsk.feature.auth.domain.usecase.ForgotPasswordUseCase
 import com.sipos.kebabsk.feature.auth.domain.usecase.ResetPasswordUseCase
 import com.sipos.kebabsk.feature.auth.domain.usecase.VerifyResetCodeUseCase
@@ -33,8 +32,9 @@ data class ForgotPasswordUiState(
     val successMessage: String? = null
 )
 
-class ForgotPasswordViewModel : ViewModel() {
-    private val repository = AuthRepositoryImpl(NetworkModule.authApiService)
+class ForgotPasswordViewModel(
+    private val repository: AuthRepository
+) : ViewModel() {
     private val forgotPasswordUseCase = ForgotPasswordUseCase(repository)
     private val verifyResetCodeUseCase = VerifyResetCodeUseCase(repository)
     private val resetPasswordUseCase = ResetPasswordUseCase(repository)

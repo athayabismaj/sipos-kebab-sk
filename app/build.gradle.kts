@@ -111,6 +111,10 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
 
+    // Navigation & Dependency Injection (Koin)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.koin.androidx.compose)
+
     // Network
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)

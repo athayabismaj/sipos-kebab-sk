@@ -2,6 +2,7 @@ package com.sipos.kebabsk.feature.shift.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sipos.kebabsk.common.AppSessionStore
 import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.feature.dailystock.data.repository.DailyStockRepositoryImpl
 import com.sipos.kebabsk.feature.shift.data.remote.CloseSessionData
@@ -30,10 +31,8 @@ data class CloseShiftUiState(
 )
 
 class CloseShiftViewModel(
-    private val token: String,
     private val closeShiftApiService: CloseShiftApiService,
-    private val dailyStockRepository: DailyStockRepositoryImpl,
-    private val targetSessionId: Long? = null
+    private val dailyStockRepository: DailyStockRepositoryImpl
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CloseShiftUiState())
@@ -48,7 +47,7 @@ class CloseShiftViewModel(
      * Jika ada item dengan remainingQty == null, kasir WAJIB mengisi stok
      * terlebih dahulu sebelum bisa menutup sesi.
      */
-    fun checkReadiness() {
+    fun checkReadiness(targetSessionId: Long? = null) {
         if (targetSessionId != null) {
             _uiState.update {
                 it.copy(
@@ -70,6 +69,7 @@ class CloseShiftViewModel(
             )
         }
 
+        val token = AppSessionStore.loadSession()?.token ?: ""
         viewModelScope.launch(Dispatchers.IO) {
             dailyStockRepository.getDailyStock(token)
                 .onSuccess { result ->
@@ -118,6 +118,7 @@ class CloseShiftViewModel(
 
         _uiState.update { state -> state.copy(isSubmitting = true, errorMessage = null) }
 
+        val token = AppSessionStore.loadSession()?.token ?: ""
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val request = CloseSessionRequest(
@@ -185,3 +186,4 @@ class CloseShiftViewModel(
         }
     }
 }
+

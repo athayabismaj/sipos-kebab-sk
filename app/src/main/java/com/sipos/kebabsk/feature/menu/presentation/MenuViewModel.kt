@@ -3,15 +3,14 @@ package com.sipos.kebabsk.feature.menu.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sipos.kebabsk.common.sanitizeUserMessage
-import com.sipos.kebabsk.data.network.NetworkModule
-import com.sipos.kebabsk.feature.checkout.data.repository.CheckoutRepositoryImpl
+import com.sipos.kebabsk.feature.checkout.domain.repository.CheckoutRepository
+import com.sipos.kebabsk.feature.menu.domain.repository.MenuRepository
 import com.sipos.kebabsk.feature.checkout.domain.model.CheckoutCartItem
 import com.sipos.kebabsk.feature.checkout.domain.model.CheckoutItemInput
 import com.sipos.kebabsk.feature.checkout.domain.model.CheckoutRequestData
 import com.sipos.kebabsk.feature.checkout.domain.model.PaymentMethod
 import com.sipos.kebabsk.feature.checkout.domain.usecase.CreateTransactionUseCase
 import com.sipos.kebabsk.feature.checkout.domain.usecase.GetPaymentMethodsUseCase
-import com.sipos.kebabsk.feature.menu.data.repository.MenuRepositoryImpl
 import com.sipos.kebabsk.feature.menu.domain.model.DailyStockItem
 import com.sipos.kebabsk.feature.menu.domain.model.MenuItem
 import com.sipos.kebabsk.feature.menu.domain.usecase.GetMenusUseCase
@@ -49,10 +48,13 @@ data class MenuUiState(
 )
 
 class MenuViewModel(
-    private val getMenusUseCase: GetMenusUseCase = GetMenusUseCase(MenuRepositoryImpl(NetworkModule.menuApiService)),
-    private val getPaymentMethodsUseCase: GetPaymentMethodsUseCase = GetPaymentMethodsUseCase(CheckoutRepositoryImpl(NetworkModule.checkoutApiService)),
-    private val createTransactionUseCase: CreateTransactionUseCase = CreateTransactionUseCase(CheckoutRepositoryImpl(NetworkModule.checkoutApiService))
+    private val menuRepository: MenuRepository,
+    private val checkoutRepository: CheckoutRepository
 ) : ViewModel() {
+
+    private val getMenusUseCase: GetMenusUseCase = GetMenusUseCase(menuRepository)
+    private val getPaymentMethodsUseCase: GetPaymentMethodsUseCase = GetPaymentMethodsUseCase(checkoutRepository)
+    private val createTransactionUseCase: CreateTransactionUseCase = CreateTransactionUseCase(checkoutRepository)
 
     private val _uiState = MutableStateFlow(MenuUiState())
     val uiState: StateFlow<MenuUiState> = _uiState.asStateFlow()

@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -19,9 +19,9 @@ import com.sipos.kebabsk.ui.theme.SiposKebabSkTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
-    private val loginViewModel: LoginViewModel by viewModels()
-    private val forgotPasswordViewModel: ForgotPasswordViewModel by viewModels()
-    private val menuViewModel: MenuViewModel by viewModels()
+    private val loginViewModel: LoginViewModel by viewModel()
+    private val forgotPasswordViewModel: ForgotPasswordViewModel by viewModel()
+    private val menuViewModel: MenuViewModel by viewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen().setKeepOnScreenCondition { false }

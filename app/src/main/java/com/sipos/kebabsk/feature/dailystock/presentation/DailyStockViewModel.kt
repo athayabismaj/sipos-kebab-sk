@@ -2,7 +2,9 @@ package com.sipos.kebabsk.feature.dailystock.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sipos.kebabsk.common.AppSessionStore
 import com.sipos.kebabsk.common.sanitizeUserMessage
+import com.sipos.kebabsk.feature.auth.data.remote.AuthApiService
 import com.sipos.kebabsk.feature.dailystock.data.repository.DailyStockRepositoryImpl
 import com.sipos.kebabsk.feature.menu.domain.model.DailyStockItem
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,8 +30,8 @@ data class DailyStockUiState(
 )
 
 class DailyStockViewModel(
-    private val token: String,
-    private val repository: DailyStockRepositoryImpl
+    private val repository: DailyStockRepositoryImpl,
+    private val authApiService: AuthApiService
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DailyStockUiState())
     val uiState: StateFlow<DailyStockUiState> = _uiState.asStateFlow()
@@ -45,7 +47,8 @@ class DailyStockViewModel(
             var isSessionOpen: Boolean? = null
             var sessionStatusLabel: String? = null
             try {
-                val statusResponse = com.sipos.kebabsk.data.network.NetworkModule.authApiService.sessionCurrentStatus("Bearer $token")
+                val token = AppSessionStore.loadSession()?.token ?: ""
+                val statusResponse = authApiService.sessionCurrentStatus("Bearer $token")
                 if (statusResponse.isSuccessful) {
                     val body = statusResponse.body()
                     val rootActive = body.getBooleanOrNull("active")
@@ -81,6 +84,7 @@ class DailyStockViewModel(
                 // Ignore failure for current-status, continue to daily stock load
             }
 
+            val token = AppSessionStore.loadSession()?.token ?: ""
             repository.getDailyStock(token)
                 .onSuccess { result ->
                     _uiState.update {
@@ -117,6 +121,7 @@ class DailyStockViewModel(
 
     fun closeSession(remaining: Map<Long, Double>, notes: String?) {
         _uiState.update { it.copy(isClosing = true, closeErrorMessage = null, closeSuccess = false) }
+        val token = AppSessionStore.loadSession()?.token ?: ""
         viewModelScope.launch {
             repository.closeSession(token, remaining, notes)
                 .onSuccess { message ->

@@ -2,6 +2,7 @@ package com.sipos.kebabsk.feature.expense.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sipos.kebabsk.common.AppSessionStore
 import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.feature.expense.data.repository.OperationalExpenseRepositoryImpl
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +21,6 @@ data class OperationalExpenseUiState(
 )
 
 class OperationalExpenseViewModel(
-    private val token: String,
     private val repository: OperationalExpenseRepositoryImpl
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(OperationalExpenseUiState())
@@ -71,6 +71,7 @@ class OperationalExpenseViewModel(
         }
 
         _uiState.update { it.copy(isSaving = true, successMessage = null, errorMessage = null) }
+        val token = AppSessionStore.loadSession()?.token ?: ""
         viewModelScope.launch {
             repository.submitExpense(
                 token = token,
@@ -103,3 +104,4 @@ class OperationalExpenseViewModel(
         }
     }
 }
+

@@ -2,8 +2,10 @@ package com.sipos.kebabsk.feature.transactions.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sipos.kebabsk.common.AppSessionStore
 import com.sipos.kebabsk.common.AppTime
 import com.sipos.kebabsk.common.sanitizeUserMessage
+import com.sipos.kebabsk.feature.transactions.domain.repository.TransactionsRepository
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionHistoryItem
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionReceipt
 import com.sipos.kebabsk.feature.transactions.domain.usecase.GetTransactionsUseCase
@@ -41,11 +43,10 @@ data class TransactionsUiState(
 )
 
 class TransactionsViewModel(
-    private val getTransactionsUseCase: GetTransactionsUseCase,
-    private val repository: com.sipos.kebabsk.feature.transactions.domain.repository.TransactionsRepository,
-    private val token: String,
-    private val cashierName: String = "Kebab SK POS"
+    private val repository: TransactionsRepository
 ) : ViewModel() {
+    
+    private val getTransactionsUseCase = GetTransactionsUseCase(repository)
 
     private val _uiState = MutableStateFlow(TransactionsUiState())
     val uiState: StateFlow<TransactionsUiState> = _uiState.asStateFlow()
@@ -61,6 +62,7 @@ class TransactionsViewModel(
     fun fetchTransactions() {
         fetchJob?.cancel()
         fetchJob = viewModelScope.launch {
+            val token = AppSessionStore.loadSession()?.token ?: ""
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             val summaryResult = repository.getRevenueSummary(token, _uiState.value.currentDate)
             val summary = summaryResult.getOrNull()
@@ -145,6 +147,7 @@ class TransactionsViewModel(
         }
         _uiState.update { it.copy(isVoiding = true, voidSuccess = false, voidErrorMessage = null, voidMessage = null) }
         val reasonString = reason.name.lowercase()
+        val token = AppSessionStore.loadSession()?.token ?: ""
         viewModelScope.launch {
             val result = repository.voidTransaction(token, transactionId, reasonString, sessionId)
             result.onSuccess { message ->
@@ -193,6 +196,7 @@ class TransactionsViewModel(
             )
         }
 
+        val token = AppSessionStore.loadSession()?.token ?: ""
         viewModelScope.launch {
             repository.getTransactionReceipt(token, transactionId, transaction?.code)
                 .onSuccess { receipt ->
@@ -261,7 +265,8 @@ class TransactionsViewModel(
     }
 
     private fun resolvedCashierName(): String {
-        return cashierName.trim().takeIf { it.isNotBlank() } ?: "Kasir"
+        val name = AppSessionStore.loadSession()?.displayName ?: "Kasir"
+        return name.trim().takeIf { it.isNotBlank() } ?: "Kasir"
     }
 
     private fun String.isValidCashierName(): Boolean {
@@ -293,3 +298,4 @@ class TransactionsViewModel(
         return "${selectedDate.format(DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.forLanguageTag("id-ID")))}, $safeTime"
     }
 }
+

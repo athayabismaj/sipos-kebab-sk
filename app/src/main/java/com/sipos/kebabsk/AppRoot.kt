@@ -63,19 +63,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sipos.kebabsk.common.AppTime
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.sipos.kebabsk.data.network.NetworkModule
+import org.koin.androidx.compose.koinViewModel
 import com.sipos.kebabsk.feature.auth.presentation.forgotpassword.ForgotPasswordScreen
 import com.sipos.kebabsk.feature.auth.presentation.forgotpassword.ForgotPasswordUiState
 import com.sipos.kebabsk.feature.auth.presentation.login.LoginScreen
 import com.sipos.kebabsk.feature.auth.presentation.login.LoginUiState
 import com.sipos.kebabsk.feature.auth.presentation.login.SessionSyncState
-import com.sipos.kebabsk.feature.dailystock.data.repository.DailyStockRepositoryImpl
 import com.sipos.kebabsk.feature.dailystock.presentation.DailyStockViewModel
-import com.sipos.kebabsk.feature.dailystock.presentation.DailyStockViewModelFactory
-import com.sipos.kebabsk.feature.expense.data.repository.OperationalExpenseRepositoryImpl
 import com.sipos.kebabsk.feature.expense.presentation.OperationalExpenseViewModel
-import com.sipos.kebabsk.feature.expense.presentation.OperationalExpenseViewModelFactory
 import com.sipos.kebabsk.feature.menu.presentation.MenuScreen
 import com.sipos.kebabsk.feature.menu.presentation.MenuUiState
 import com.sipos.kebabsk.feature.profile.presentation.ChangePasswordScreen
@@ -87,15 +82,11 @@ import com.sipos.kebabsk.feature.profile.presentation.OperationalExpenseScreen
 import com.sipos.kebabsk.feature.profile.presentation.ProfileScreen
 import com.sipos.kebabsk.feature.profile.presentation.RevenueSummaryScreen
 import com.sipos.kebabsk.feature.profile.presentation.RevenueViewModel
-import com.sipos.kebabsk.feature.profile.presentation.RevenueViewModelFactory
 import com.sipos.kebabsk.feature.shift.presentation.ShiftSummaryUiState
 import com.sipos.kebabsk.feature.shift.presentation.ShiftSummaryViewModel
-import com.sipos.kebabsk.feature.shift.presentation.ShiftSummaryViewModelFactory
 import com.sipos.kebabsk.feature.splash.presentation.KebabSkSplashScreen
-import com.sipos.kebabsk.feature.transactions.data.repository.TransactionsRepositoryImpl
 import com.sipos.kebabsk.feature.transactions.presentation.TransactionsScreen
 import com.sipos.kebabsk.feature.transactions.presentation.TransactionsViewModel
-import com.sipos.kebabsk.feature.transactions.presentation.TransactionsViewModelFactory
 import com.sipos.kebabsk.ui.theme.BrandAmber
 import com.sipos.kebabsk.ui.theme.BrandOrange
 import com.sipos.kebabsk.ui.theme.KebabBg
@@ -287,9 +278,7 @@ private fun AppScaffold(
     var cashierTransactionStarted by rememberSaveable { mutableStateOf(false) }
 
     // Shared DailyStockViewModel agar sessionId bisa diakses oleh Transactions tab (untuk Void)
-    val sharedDsRepository = remember { DailyStockRepositoryImpl(NetworkModule.dailyStockApiService) }
-    val sharedDsFactory = remember(session.token) { DailyStockViewModelFactory(session.token, sharedDsRepository) }
-    val sharedDailyStockViewModel: DailyStockViewModel = viewModel(factory = sharedDsFactory)
+    val sharedDailyStockViewModel: DailyStockViewModel = koinViewModel()
     val sharedDailyStockUiState by sharedDailyStockViewModel.uiState.collectAsStateWithLifecycle()
     val isDashboardDailySessionOpen = sharedDailyStockUiState.isSessionOpen ?: menuUiState.isDailySessionOpen
     val dashboardDailySessionLabel = sharedDailyStockUiState.sessionStatusLabel ?: menuUiState.dailySessionStatusLabel
@@ -319,9 +308,7 @@ private fun AppScaffold(
         ) { innerPadding ->
             when (selectedTab) {
                 AppTab.CASHIER -> {
-                    val repository = remember { TransactionsRepositoryImpl(NetworkModule.transactionsApiService) }
-                    val shiftFactory = remember(session.token) { ShiftSummaryViewModelFactory(session.token, repository) }
-                    val shiftSummaryViewModel: ShiftSummaryViewModel = viewModel(factory = shiftFactory)
+                    val shiftSummaryViewModel: ShiftSummaryViewModel = koinViewModel()
                     val shiftSummaryUiState by shiftSummaryViewModel.uiState.collectAsStateWithLifecycle()
 
                     if (!cashierTransactionStarted) {
@@ -360,15 +347,7 @@ private fun AppScaffold(
                 }
 
                 AppTab.TRANSACTIONS -> {
-                    val transactionCashierName = if (menuUiState.cashierName.isBlank()) {
-                        session.displayName
-                    } else {
-                        menuUiState.cashierName
-                    }
-                    val factory = remember(session.token, transactionCashierName) {
-                        TransactionsViewModelFactory(session.token, transactionCashierName)
-                    }
-                    val transactionsViewModel: TransactionsViewModel = viewModel(factory = factory)
+                    val transactionsViewModel: TransactionsViewModel = koinViewModel()
                     TransactionsScreen(
                         viewModel = transactionsViewModel,
                         modifier = Modifier.padding(innerPadding),
@@ -447,9 +426,7 @@ private fun AppScaffold(
                     }
 
                     ProfilePage.REVENUE_SUMMARY -> {
-                        val repository = remember { TransactionsRepositoryImpl(NetworkModule.transactionsApiService) }
-                        val factory = remember(session.token) { RevenueViewModelFactory(session.token, repository) }
-                        val revenueViewModel: RevenueViewModel = viewModel(factory = factory)
+                        val revenueViewModel: RevenueViewModel = koinViewModel()
                         val revenueUiState by revenueViewModel.uiState.collectAsStateWithLifecycle()
 
                         RevenueSummaryScreen(
@@ -484,9 +461,7 @@ private fun AppScaffold(
                     }
 
                     ProfilePage.CLOSE_STOCK_SESSION -> {
-                        val repository = remember { DailyStockRepositoryImpl(NetworkModule.dailyStockApiService) }
-                        val factory = remember(session.token) { DailyStockViewModelFactory(session.token, repository) }
-                        val dailyStockViewModel: DailyStockViewModel = viewModel(factory = factory)
+                        val dailyStockViewModel: DailyStockViewModel = koinViewModel()
                         val dailyStockUiState by dailyStockViewModel.uiState.collectAsStateWithLifecycle()
 
                         LaunchedEffect(Unit) {
@@ -515,9 +490,7 @@ private fun AppScaffold(
                     }
 
                     ProfilePage.OPERATIONAL_EXPENSE -> {
-                        val repository = remember { OperationalExpenseRepositoryImpl(NetworkModule.operationalExpenseApiService) }
-                        val factory = remember(session.token) { OperationalExpenseViewModelFactory(session.token, repository) }
-                        val expenseViewModel: OperationalExpenseViewModel = viewModel(factory = factory)
+                        val expenseViewModel: OperationalExpenseViewModel = koinViewModel()
                         val expenseUiState by expenseViewModel.uiState.collectAsStateWithLifecycle()
 
                         OperationalExpenseScreen(

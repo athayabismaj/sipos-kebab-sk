@@ -2,6 +2,7 @@ package com.sipos.kebabsk.feature.shift.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sipos.kebabsk.common.AppSessionStore
 import com.sipos.kebabsk.common.AppTime
 import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.feature.transactions.domain.repository.TransactionsRepository
@@ -25,7 +26,6 @@ data class ShiftSummaryUiState(
 )
 
 class ShiftSummaryViewModel(
-    private val token: String,
     private val repository: TransactionsRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ShiftSummaryUiState())
@@ -36,6 +36,7 @@ class ShiftSummaryViewModel(
     }
 
     fun refresh() {
+        val token = AppSessionStore.loadSession()?.token ?: ""
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
         val today = AppTime.todayJakarta()
 
@@ -94,3 +95,4 @@ class ShiftSummaryViewModel(
         }
     }
 }
+
