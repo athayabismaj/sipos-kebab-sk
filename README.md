@@ -1,6 +1,9 @@
-# Kebab SK — Point of Sale & Inventory 🥙
+# Sipos Kebab SK - Point of Sale & Inventory 🥙
 
-Aplikasi kasir (POS) dan manajemen inventaris modern untuk bisnis kebab, dibangun dengan **Kotlin + Jetpack Compose** dan terhubung ke backend **Laravel REST API**.
+[![id](https://img.shields.io/badge/lang-id-red.svg)](README-id.md)
+[![en](https://img.shields.io/badge/lang-en-blue.svg)](README.md)
+
+A modern, robust Point of Sale (POS) and inventory management Android application tailored for Kebab businesses. Built with **Kotlin** and **Jetpack Compose**, and seamlessly integrated with a **Laravel REST API** (`siinv-kebab-sk`).
 
 ![Android](https://img.shields.io/badge/Android-26%2B-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.0-7F52FF?logo=kotlin&logoColor=white)
@@ -9,184 +12,102 @@ Aplikasi kasir (POS) dan manajemen inventaris modern untuk bisnis kebab, dibangu
 ![API](https://img.shields.io/badge/API-Laravel-FF2D20?logo=laravel&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
----
+## ✨ Features
 
-## ✨ Fitur
+- **🛒 Cashier / POS**: Fast checkout process with automatic calculations, supporting Cash and QRIS payment methods.
+- **📦 Menu & Variant Management**: Manage products, variants, pricing, and stock availability in real-time.
+- **🧾 Digital Receipts**: Print physical receipts via **Bluetooth Thermal Printers** (ESC/POS) or share digital receipts as text.
+- **📊 Transaction History**: Comprehensive daily sales reports and revenue summaries.
+- **🏪 Daily Stock Management**: Open/close stock sessions, log incoming ingredients, and automatic recipe validation.
+- **💰 Operational Expenses**: Record and track daily operational expenses directly from the app.
+- **👤 Profile & Authentication**: Secure JWT/Token-based login, profile management, and password updates.
+- **🔐 Forgot Password**: Secure password reset flow using Email OTP.
+- **🎨 Premium UI/UX**: Modern design system utilizing Material 3, custom kebab-themed assets, splash screens, and smooth micro-animations.
 
-- 🛒 **Kasir / POS** — Checkout cepat dengan kalkulasi otomatis, metode pembayaran tunai & QRIS
-- 📦 **Manajemen Menu & Varian** — Kelola menu, varian, harga jual, dan ketersediaan stok
-- 🧾 **Struk Digital** — Cetak struk via **Bluetooth Thermal Printer** atau bagikan sebagai teks
-- 📊 **Riwayat Transaksi** — Laporan penjualan harian dengan ringkasan pendapatan
-- 🏪 **Stok Harian** — Buka/tutup sesi stok, input bahan masuk, validasi resep otomatis
-- 💰 **Pengeluaran Operasional** — Catat pengeluaran harian langsung dari aplikasi
-- 👤 **Profil & Autentikasi** — Login aman dengan token API, ubah profil & password
-- 🔐 **Lupa Password** — Reset password via kode OTP email
-- 🎨 **UI Premium** — Desain modern dengan tema kebab, splash screen, dan micro-animations
+## 🏗️ Architecture
 
----
+This project strictly follows **Clean Architecture** principles to ensure scalability, testability, and separation of concerns.
 
-## 🏗️ Arsitektur
-
-```
+```text
 app/
 ├── common/              # Utility & helper functions
 ├── data/
 │   └── network/         # NetworkModule (Retrofit + OkHttp)
-├── feature/
-│   ├── auth/            # Login, Register, Forgot Password
-│   ├── checkout/        # Proses pembayaran & struk
-│   ├── dailystock/      # Sesi stok harian
-│   ├── expense/         # Pengeluaran operasional
-│   ├── inventory/       # Manajemen inventaris
-│   ├── menu/            # Daftar menu, varian, keranjang
-│   ├── profile/         # Profil user, Bluetooth printer
-│   ├── shift/           # Manajemen shift kasir
-│   ├── splash/          # Splash screen
-│   └── transactions/    # Riwayat transaksi & laporan
+├── feature/             # Feature modules (Auth, Checkout, Menu, etc.)
+│   ├── presentation/    # UI Layer: Jetpack Compose + ViewModels
+│   ├── domain/          # Domain Layer: UseCases & Models
+│   └── data/            # Data Layer: Repositories & API Services
 └── ui/
-    └── theme/           # Warna, tipografi, tema Material3
+    └── theme/           # Material 3 Theme, Typography, Colors
 ```
-
-Setiap feature mengikuti pola **Clean Architecture** dengan layer:
-
-```
-presentation/ → domain/ → data/
-(ViewModel + Compose UI)  (Model & UseCase)  (Repository + API Service)
-```
-
----
 
 ## 🛠️ Tech Stack
 
-| Layer | Teknologi |
+| Category | Technology |
 |---|---|
 | **Language** | Kotlin 2.0 |
 | **UI Framework** | Jetpack Compose + Material 3 |
 | **State Management** | ViewModel + StateFlow |
 | **Networking** | Retrofit 2.11 + OkHttp 4.12 |
 | **Serialization** | Gson |
-| **Bluetooth** | Android Bluetooth API (ESC/POS) |
+| **Hardware Integration** | Android Bluetooth API (ESC/POS Thermal Printers) |
 | **Build System** | Gradle 9.1 + Version Catalog (TOML) |
-| **Backend** | Laravel REST API |
+| **Backend Integration** | Laravel REST API (`siinv-kebab-sk`) |
 | **Min SDK** | Android 8.0 (API 26) |
 | **Target SDK** | Android 16 (API 36) |
 
----
+## 📋 Prerequisites
 
-## 📋 Prasyarat
+Before you begin, ensure you have met the following requirements:
+- **Android Studio** Ladybug (or newer).
+- **JDK 11** (or newer).
+- **Android SDK** API 36.
+- The **Laravel REST API** (`siinv-kebab-sk`) must be running locally or deployed to a server.
 
-- **Android Studio** Ladybug atau lebih baru
-- **JDK 11** atau lebih baru
-- **Android SDK** API 36
-- Backend Laravel REST API sudah berjalan (production atau lokal)
+## 🚀 Getting Started
 
----
-
-## 🚀 Instalasi & Menjalankan
-
+### 1. Clone the Repository
 ```bash
-# Clone repository
 git clone https://github.com/username/sipos-kebab-sk.git
-
 cd sipos-kebab-sk
 ```
 
-### Konfigurasi API
+### 2. API Configuration
+You need to point the app to your backend API. Create or edit `local.properties` in the project root and add your API URLs:
 
-URL API dikonfigurasi di `app/build.gradle.kts`:
-
-```kotlin
-buildTypes {
-    release {
-        buildConfigField("String", "API_BASE_URL", "\"https://your-domain.com/api/\"")
-    }
-    debug {
-        buildConfigField("String", "API_BASE_URL", "\"http://your-local-ip:8000/api/\"")
-    }
-}
+```properties
+API_BASE_URL_DEBUG=http://your-local-ip:8000/api/
+API_BASE_URL_RELEASE=https://your-production-domain.com/api/
 ```
+*Note: Release builds strictly require HTTPS domains.*
 
-> Sesuaikan URL dengan alamat server backend Anda.
-
-### Build & Run
-
+### 3. Build & Run
+You can run the app directly via Android Studio or using Gradle commands:
 ```bash
-# Build debug APK
+# Build the debug APK
 ./gradlew assembleDebug
 
-# Build release APK (minified + optimized)
-./gradlew assembleRelease
-
-# Install ke device yang terhubung
+# Install to a connected device/emulator
 ./gradlew installDebug
 ```
 
-Atau langsung tekan ▶️ **Run** di Android Studio.
+## 🖨️ Bluetooth Printer Setup
 
----
+The app supports printing receipts using standard Bluetooth Thermal Printers (ESC/POS protocol):
+1. Pair your thermal printer in your Android device's **Bluetooth Settings**.
+2. Open the app and navigate to **Profile** → **Bluetooth Printer**.
+3. Select your paired printer from the list.
+4. The configuration will be saved for future transactions.
 
-## 📦 Perintah yang Tersedia
+## 🤝 Contributing
 
-| Perintah | Deskripsi |
-|---|---|
-| `./gradlew assembleDebug` | Build APK debug |
-| `./gradlew assembleRelease` | Build APK release (minified) |
-| `./gradlew installDebug` | Install langsung ke device |
-| `./gradlew test` | Jalankan unit test |
-| `./gradlew connectedAndroidTest` | Jalankan instrumented test |
-| `./gradlew lint` | Jalankan Android Lint |
-| `./gradlew clean` | Bersihkan build cache |
+Contributions are welcome! Please follow these steps:
+1. Fork the project.
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`).
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`).
+4. Push to the branch (`git push origin feature/AmazingFeature`).
+5. Open a Pull Request.
 
----
+## 📄 License
 
-## 🖨️ Konfigurasi Printer Bluetooth
-
-Aplikasi mendukung cetak struk via printer thermal Bluetooth (ESC/POS):
-
-1. Pair printer di **Pengaturan Bluetooth** HP
-2. Buka menu **Profil** → **Printer Bluetooth**
-3. Pilih printer dari daftar perangkat
-4. Printer akan tersimpan untuk sesi berikutnya
-
-
----
-
-## 📁 Struktur Proyek
-
-```
-sipos-kebab-sk/
-├── app/
-│   ├── build.gradle.kts          # Konfigurasi app module
-│   ├── proguard-rules.pro        # Aturan R8/ProGuard
-│   └── src/main/
-│       ├── AndroidManifest.xml   # Permissions & activity
-│       ├── java/.../kebabsk/     # Source code Kotlin
-│       └── res/                  # Resources (drawable, values, xml)
-├── gradle/
-│   └── libs.versions.toml        # Version catalog
-├── build.gradle.kts              # Konfigurasi root project
-├── gradle.properties             # Gradle JVM & Android settings
-└── settings.gradle.kts           # Module settings
-```
-
----
-
-## 🤝 Kontribusi
-
-1. Fork repository ini
-2. Buat branch fitur (`git checkout -b fitur/fitur-baru`)
-3. Commit perubahan (`git commit -m 'Tambah fitur baru'`)
-4. Push ke branch (`git push origin fitur/fitur-baru`)
-5. Buat Pull Request
-
----
-
-## 📄 Lisensi
-
-Proyek ini dilisensikan di bawah [MIT License](LICENSE).
-
----
-
-<p align="center">
-  Dibuat dengan ❤️ untuk <strong>Kebab SK</strong>
-</p>
+Distributed under the MIT License. See `LICENSE` for more information.

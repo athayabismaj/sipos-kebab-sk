@@ -1620,25 +1620,7 @@ private fun receiptPaymentDisplay(paymentMethod: String): String {
 }
 
 private fun receiptDisplayCode(receipt: TransactionReceipt): String {
-    receipt.displayCode?.takeIf { it.isNotBlank() }?.let { return it }
-
-    val sequenceFromCode = Regex("""^TRX-\d{8}-(.+)$""", RegexOption.IGNORE_CASE)
-        .find(receipt.code)
-        ?.groupValues
-        ?.getOrNull(1)
-        ?.takeLast(3)
-    val sequencePart = sequenceFromCode
-        ?: receipt.code.substringAfterLast('-', missingDelimiterValue = receipt.code)
-            .takeIf { it.isNotBlank() && !it.equals(receipt.code, ignoreCase = true) }
-            ?.takeLast(3)
-
-    return if (sequencePart != null) {
-        "TRX-${sequencePart.uppercase(Locale.US)}"
-    } else {
-        receipt.code
-            .replace(Regex("""TRX-\d{8}-""", RegexOption.IGNORE_CASE), "TRX-")
-            .take(12)
-    }
+    return receipt.code.trim().takeIf { it.isNotBlank() } ?: "TRX-${receipt.id}"
 }
 
 private fun receiptPrintHelperText(receipt: TransactionReceipt): String {

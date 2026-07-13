@@ -202,7 +202,6 @@ class TransactionsViewModel(
                 .onSuccess { receipt ->
                     val resolvedReceipt = receipt
                         .withResolvedCashierName()
-                        .withDailyDisplayCode(transactionId)
                     _uiState.update {
                         it.copy(
                             isLoadingReceipt = false,
@@ -253,7 +252,6 @@ class TransactionsViewModel(
             status = status,
             items = emptyList(),
             cashierName = resolvedCashierName(),
-            displayCode = dailyDisplayCodeFor(id),
             isDetailed = false
         )
     }
@@ -273,30 +271,6 @@ class TransactionsViewModel(
     private fun String.isValidCashierName(): Boolean {
         val normalized = trim()
         return normalized.isNotBlank() && !normalized.equals("Kebab SK POS", ignoreCase = true)
-    }
-
-    private fun TransactionReceipt.withDailyDisplayCode(transactionId: Long): TransactionReceipt {
-        return copy(displayCode = dailyDisplayCodeFor(transactionId))
-    }
-
-    private fun dailyDisplayCodeFor(transactionId: Long): String {
-        val orderedTransactions = _uiState.value.allTransactions
-            .sortedWith(
-                compareBy<TransactionHistoryItem> { transactionOrderKey(it) }
-                    .thenBy { it.id }
-            )
-        val dailyIndex = orderedTransactions.indexOfFirst { it.id == transactionId }
-            .takeIf { it >= 0 }
-            ?.plus(1)
-            ?: 1
-
-        return "TRX-${dailyIndex.toString().padStart(3, '0')}"
-    }
-
-    private fun transactionOrderKey(transaction: TransactionHistoryItem): String {
-        return transaction.originalDate
-            .takeIf { it.isNotBlank() }
-            ?: "${_uiState.value.currentDate} ${transaction.time}"
     }
 
     private fun formatReceiptDateLabel(originalDate: String, selectedDate: LocalDate, time: String): String {
