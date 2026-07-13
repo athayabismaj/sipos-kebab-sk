@@ -93,14 +93,16 @@ class AuthRepositoryImpl(
     override suspend fun forgotPassword(email: String): Result<String> {
         return runCatching {
             val request = mapOf("email" to email)
-            executeMultiEndpoint(
-                requests = listOf(
-                    { authApiService.forgotPasswordAuth(request) },
-                    { authApiService.forgotPassword(request) },
-                    { authApiService.forgotPasswordLegacy(request) }
-                ),
-                fallbackError = "Permintaan reset sandi belum berhasil. Silakan coba lagi."
-            )
+            val response = authApiService.forgotPasswordAuth(request)
+            val body = response.body()
+
+            if (response.isSuccessful) {
+                extractMessage(body) ?: "Instruksi reset sandi telah dikirim."
+            } else {
+                val msg = extractErrorMessage(response.errorBody()?.string(), body)
+                    ?: "Permintaan reset sandi belum berhasil. Silakan coba lagi."
+                throw IllegalStateException(msg)
+            }
         }
     }
 
@@ -108,18 +110,19 @@ class AuthRepositoryImpl(
         return runCatching {
             val request = mapOf(
                 "email" to email,
-                "code" to code,
                 "otp" to code,
                 "token" to code
             )
-            executeMultiEndpoint(
-                requests = listOf(
-                    { authApiService.verifyResetCodeAuth(request) },
-                    { authApiService.verifyResetCode(request) },
-                    { authApiService.verifyResetCodeLegacy(request) }
-                ),
-                fallbackError = "Verifikasi kode belum berhasil. Silakan coba lagi."
-            )
+            val response = authApiService.verifyResetCodeAuth(request)
+            val body = response.body()
+
+            if (response.isSuccessful) {
+                extractMessage(body) ?: "Kode verifikasi valid."
+            } else {
+                val msg = extractErrorMessage(response.errorBody()?.string(), body)
+                    ?: "Kode reset tidak valid. Silakan periksa kembali email Anda."
+                throw IllegalStateException(msg)
+            }
         }
     }
 
@@ -127,7 +130,6 @@ class AuthRepositoryImpl(
         return runCatching {
             val request = mapOf(
                 "email" to email,
-                "code" to code,
                 "otp" to code,
                 "token" to code,
                 "password" to newPassword,
@@ -135,14 +137,16 @@ class AuthRepositoryImpl(
                 "new_password" to newPassword,
                 "newPassword" to newPassword
             )
-            executeMultiEndpoint(
-                requests = listOf(
-                    { authApiService.resetPasswordAuth(request) },
-                    { authApiService.resetPassword(request) },
-                    { authApiService.resetPasswordLegacy(request) }
-                ),
-                fallbackError = "Ganti password belum berhasil. Silakan coba lagi."
-            )
+            val response = authApiService.resetPasswordAuth(request)
+            val body = response.body()
+
+            if (response.isSuccessful) {
+                extractMessage(body) ?: "Sandi baru berhasil disimpan."
+            } else {
+                val msg = extractErrorMessage(response.errorBody()?.string(), body)
+                    ?: "Sandi baru gagal disimpan. Silakan coba lagi."
+                throw IllegalStateException(msg)
+            }
         }
     }
 
@@ -318,4 +322,5 @@ class AuthRepositoryImpl(
         }
     }
 }
+
 

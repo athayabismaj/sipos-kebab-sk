@@ -18,37 +18,19 @@ interface AuthApiService {
     @POST("auth/forgot-password")
     suspend fun forgotPasswordAuth(@Body request: Map<String, String>): Response<JsonObject>
 
-    @Headers("Accept: application/json")
-    @POST("forgot-password")
-    suspend fun forgotPassword(@Body request: Map<String, String>): Response<JsonObject>
 
-    @Headers("Accept: application/json")
-    @POST("password/email")
-    suspend fun forgotPasswordLegacy(@Body request: Map<String, String>): Response<JsonObject>
 
     @Headers("Accept: application/json")
     @POST("auth/verify-reset-code")
     suspend fun verifyResetCodeAuth(@Body request: Map<String, String>): Response<JsonObject>
 
-    @Headers("Accept: application/json")
-    @POST("verify-reset-code")
-    suspend fun verifyResetCode(@Body request: Map<String, String>): Response<JsonObject>
 
-    @Headers("Accept: application/json")
-    @POST("password/verify-otp")
-    suspend fun verifyResetCodeLegacy(@Body request: Map<String, String>): Response<JsonObject>
 
     @Headers("Accept: application/json")
     @POST("auth/reset-password")
     suspend fun resetPasswordAuth(@Body request: Map<String, String>): Response<JsonObject>
 
-    @Headers("Accept: application/json")
-    @POST("reset-password")
-    suspend fun resetPassword(@Body request: Map<String, String>): Response<JsonObject>
 
-    @Headers("Accept: application/json")
-    @POST("password/reset")
-    suspend fun resetPasswordLegacy(@Body request: Map<String, String>): Response<JsonObject>
 
     @Headers("Accept: application/json")
     @GET("auth/me")
