@@ -26,6 +26,13 @@ object NetworkModule {
         }
     }
 
+    private val publicAuthPaths = setOf(
+        "/api/auth/login",
+        "/api/auth/forgot-password",
+        "/api/auth/verify-reset-code",
+        "/api/auth/reset-password"
+    )
+
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.HEADERS
         redactHeader("Authorization")
@@ -51,19 +58,39 @@ object NetworkModule {
             // Cek apakah server mengembalikan HTML (biasanya halaman error/keamanan)
             val contentType = response.header("Content-Type") ?: ""
             if (contentType.contains("text/html", ignoreCase = true)) {
-                val bodyString = response.peekBody(2_048).string()
-                val snippet = if (bodyString.length > 100) bodyString.take(100) + "..." else bodyString
-                throw java.io.IOException("Server mengembalikan halaman Web/HTML, bukan JSON. Cek konfigurasi server/domain Anda. Snippet: $snippet")
+                val code = response.code
+                val path = request.url.encodedPath
+
+                response.close()
+
+                throw java.io.IOException(
+                    "Server mengembalikan respons non-JSON. HTTP $code pada $path"
+                )
             }
             
             response
         }
         .addInterceptor { chain ->
-            val response = chain.proceed(chain.request())
-            if (response.code == 401) {
+            val request = chain.request()
+            val response = chain.proceed(request)
+            
+            val authorizationHeader = request.header("Authorization")
+            val hasBearerToken = authorizationHeader?.startsWith("Bearer ", ignoreCase = true) == true &&
+                authorizationHeader.substringAfter("Bearer ", "").trim().isNotEmpty()
+
+            val requestPath = request.url.encodedPath.trimEnd('/')
+            val isPublicAuthEndpoint = requestPath in publicAuthPaths
+
+            val shouldForceLogout =
+                response.code == 401 &&
+                hasBearerToken &&
+                !isPublicAuthEndpoint
+
+            if (shouldForceLogout) {
                 AppSessionStore.clearSession()
                 AuthSessionEvents.notifyForceLogout()
             }
+            
             response
         }
         .apply {
