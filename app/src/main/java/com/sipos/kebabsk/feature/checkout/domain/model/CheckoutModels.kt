@@ -10,12 +10,12 @@ data class CheckoutCartItem(
     val menuName: String,
     val variantName: String,
     val qty: Int,
-    val price: Double
+    val price: Long
 )
 
 data class CheckoutRequestData(
     val paymentMethodId: Long,
-    val paidAmount: Double,
+    val paidAmount: Long,
     val items: List<CheckoutItemInput>,
     val note: String?
 )
@@ -28,7 +28,7 @@ data class CheckoutItemInput(
 data class CheckoutResult(
     val transactionId: Long,
     val transactionCode: String,
-    val totalAmount: Double,
-    val paidAmount: Double,
-    val changeAmount: Double
+    val totalAmount: Long,
+    val paidAmount: Long,
+    val changeAmount: Long
 )

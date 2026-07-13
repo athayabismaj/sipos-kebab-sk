@@ -379,7 +379,7 @@ private fun MetricSummaryCard(
 
 // === CHART SECTION ===
 @Composable
-private fun ChartSection(trendData: List<Pair<String, Double>>) {
+private fun ChartSection(trendData: List<Pair<String, Long>>) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -433,8 +433,8 @@ private fun ChartSection(trendData: List<Pair<String, Double>>) {
 
 // === BAR CHART ===
 @Composable
-private fun BarChartFromTrend(trendData: List<Pair<String, Double>>) {
-    val maxRevenue = trendData.maxOfOrNull { it.second }?.takeIf { it > 0 } ?: 1.0
+private fun BarChartFromTrend(trendData: List<Pair<String, Long>>) {
+    val maxRevenue = trendData.maxOfOrNull { it.second }?.takeIf { it > 0L } ?: 1L
 
     // Chart bars
     Box(
@@ -465,7 +465,7 @@ private fun BarChartFromTrend(trendData: List<Pair<String, Double>>) {
         ) {
             val highestIndex = trendData.indices.maxByOrNull { trendData[it].second } ?: -1
             trendData.forEachIndexed { index, (_, value) ->
-                val percentage = (value / maxRevenue).toFloat().coerceIn(0.05f, 1f)
+                val percentage = (value.toFloat() / maxRevenue.toFloat()).coerceIn(0.05f, 1f)
                 val isHighest = index == highestIndex
                 ChartBar(heightPercentage = percentage, isHighest = isHighest)
             }

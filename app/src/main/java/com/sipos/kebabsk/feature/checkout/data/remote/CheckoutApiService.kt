@@ -25,7 +25,7 @@ data class PaymentMethodResponse(
 
 data class CreateTransactionRequest(
     @SerializedName("payment_method_id") val paymentMethodId: Long,
-    @SerializedName("paid_amount") val paidAmount: Double,
+    @SerializedName("paid_amount") val paidAmount: Long,
     @SerializedName("items") val items: List<CreateTransactionItemRequest>,
     @SerializedName("note") val note: String?
 )
@@ -44,9 +44,9 @@ data class CreateTransactionResponse(
 data class CreateTransactionData(
     @SerializedName("transaction_id") val transactionId: Long?,
     @SerializedName("transaction_code") val transactionCode: String?,
-    @SerializedName("total_amount") val totalAmount: Double?,
-    @SerializedName("paid_amount") val paidAmount: Double?,
-    @SerializedName("change_amount") val changeAmount: Double?
+    @SerializedName("total_amount") val totalAmount: Long?,
+    @SerializedName("paid_amount") val paidAmount: Long?,
+    @SerializedName("change_amount") val changeAmount: Long?
 )
 
 interface CheckoutApiService {

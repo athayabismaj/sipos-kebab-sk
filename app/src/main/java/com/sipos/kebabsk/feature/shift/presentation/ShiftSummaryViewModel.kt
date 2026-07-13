@@ -17,11 +17,11 @@ data class ShiftSummaryUiState(
     val errorMessage: String? = null,
     val totalTransactions: Int = 0,
     val totalItemsSold: Int = 0,
-    val totalRevenue: Double = 0.0,
+    val totalRevenue: Long = 0L,
     val transactionGrowthPercentage: Double? = null,
     val dominantItemName: String? = null,
     val revenueTargetPercentage: Double? = null,
-    val dailyTargetRevenue: Double? = null
+    val dailyTargetRevenue: Long? = null
 )
 
 class ShiftSummaryViewModel(
@@ -47,7 +47,7 @@ class ShiftSummaryViewModel(
             val pageOneResult = pageOneDeferred.await()
 
             val summary = summaryResult.getOrNull()
-            val totalRevenue = summary?.totalRevenue ?: 0.0
+            val totalRevenue = summary?.totalRevenue ?: 0L
             val totalTransactions = summary?.totalCount ?: 0
 
             var totalItemsSold = 0

@@ -6,7 +6,7 @@ import com.google.gson.annotations.SerializedName
  * Request body untuk POST sessions/{id}/close.
  */
 data class CloseSessionRequest(
-    @SerializedName("actual_physical_cash") val actualPhysicalCash: Double,
+    @SerializedName("actual_physical_cash") val actualPhysicalCash: Long,
     @SerializedName("closing_notes") val closingNotes: String?
 )
 
@@ -19,7 +19,7 @@ data class CloseSessionResponse(
 )
 
 data class CloseSessionData(
-    @SerializedName("system_cash") val systemCash: Double,
-    @SerializedName("actual_cash") val actualCash: Double,
-    @SerializedName("variance") val variance: Double
+    @SerializedName("system_cash") val systemCash: Long,
+    @SerializedName("actual_cash") val actualCash: Long,
+    @SerializedName("variance") val variance: Long
 )

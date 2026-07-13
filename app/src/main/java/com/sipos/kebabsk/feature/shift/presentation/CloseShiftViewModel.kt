@@ -110,7 +110,7 @@ class CloseShiftViewModel(
      * Eksekusi penutupan shift. Mengirim uang kas fisik ke server.
      * Variance diterima mentah dari API — DILARANG dihitung di client.
      */
-    fun submitCloseShift(actualPhysicalCash: Double, closingNotes: String?) {
+    fun submitCloseShift(actualPhysicalCash: Long, closingNotes: String?) {
         val sessionId = _uiState.value.sessionId ?: return
 
         // Guard: cegah double-submit

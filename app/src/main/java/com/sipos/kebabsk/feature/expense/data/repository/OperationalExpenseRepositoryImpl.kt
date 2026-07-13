@@ -23,7 +23,7 @@ class OperationalExpenseRepositoryImpl(
 
     suspend fun submitExpense(
         token: String,
-        amount: Double,
+        amount: Long,
         source: String,
         note: String?
     ): Result<String> {

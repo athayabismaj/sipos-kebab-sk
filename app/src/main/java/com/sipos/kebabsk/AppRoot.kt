@@ -159,12 +159,12 @@ fun AuthRoot(
     onForgotSubmitResetPassword: () -> Unit,
     onForgotReset: () -> Unit,
     onLoadMenus: (token: String, forceRefresh: Boolean) -> Unit,
-    onAddVariant: (menuName: String, variantId: Long, variantName: String, price: Double) -> Unit,
+    onAddVariant: (menuName: String, variantId: Long, variantName: String, price: Long) -> Unit,
     onRemoveVariant: (variantId: Long) -> Unit,
     onDeleteVariant: (variantId: Long) -> Unit,
     onCategorySelected: (category: String?) -> Unit,
     onPaymentMethodSelected: (paymentMethodId: Long) -> Unit,
-    onQuickAmountSelected: (amount: Int) -> Unit,
+    onQuickAmountSelected: (amount: Long) -> Unit,
     onPaidAmountChanged: (String) -> Unit,
     onNoteChanged: (String) -> Unit,
     onSubmitCheckout: (token: String) -> Unit,
@@ -267,12 +267,12 @@ private fun AppScaffold(
     onUpdateProfile: (name: String, username: String, email: String) -> Unit,
     onChangePassword: (currentPassword: String, newPassword: String, confirmPassword: String) -> Unit,
     onClearProfileMessage: () -> Unit,
-    onAddVariant: (menuName: String, variantId: Long, variantName: String, price: Double) -> Unit,
+    onAddVariant: (menuName: String, variantId: Long, variantName: String, price: Long) -> Unit,
     onRemoveVariant: (variantId: Long) -> Unit,
     onDeleteVariant: (variantId: Long) -> Unit,
     onCategorySelected: (category: String?) -> Unit,
     onPaymentMethodSelected: (paymentMethodId: Long) -> Unit,
-    onQuickAmountSelected: (amount: Int) -> Unit,
+    onQuickAmountSelected: (amount: Long) -> Unit,
     onPaidAmountChanged: (String) -> Unit,
     onNoteChanged: (String) -> Unit,
     onSubmitCheckout: (token: String) -> Unit,
@@ -623,7 +623,7 @@ private fun CashierDashboardScreen(
     cashierRole: String,
     isDailySessionOpen: Boolean,
     dailySessionLabel: String?,
-    dailyTargetRevenue: Double?,
+    dailyTargetRevenue: Long?,
     shiftSummaryUiState: ShiftSummaryUiState,
     onRetryShiftSummary: () -> Unit,
     onForceLogout: () -> Unit,
@@ -1149,7 +1149,7 @@ private fun MainActionButton(
     }
 }
 
-private fun formatRupiah(value: Double): String {
+private fun formatRupiah(value: Long): String {
     return java.text.NumberFormat
         .getCurrencyInstance(Locale.forLanguageTag("id-ID"))
         .format(value)

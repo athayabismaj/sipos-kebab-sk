@@ -65,9 +65,9 @@ class CheckoutRepositoryImpl(
             CheckoutResult(
                 transactionId = data.transactionId ?: 0L,
                 transactionCode = data.transactionCode ?: "-",
-                totalAmount = data.totalAmount ?: 0.0,
-                paidAmount = data.paidAmount ?: 0.0,
-                changeAmount = data.changeAmount ?: 0.0
+                totalAmount = data.totalAmount ?: 0L,
+                paidAmount = data.paidAmount ?: 0L,
+                changeAmount = data.changeAmount ?: 0L
             )
         }.recoverCatching { throwable ->
             throw IllegalStateException(mapNetworkError(throwable))
@@ -83,11 +83,11 @@ class CheckoutRepositoryImpl(
                 message
             } else {
                 val data = json.getAsJsonObject("data")
-                val total = data?.get("total_amount")?.asDouble
-                val paid = data?.get("paid_amount")?.asDouble
-                val deficit = data?.get("deficit_amount")?.asDouble
+                val total = data?.get("total_amount")?.asLong
+                val paid = data?.get("paid_amount")?.asLong
+                val deficit = data?.get("deficit_amount")?.asLong
                 if (deficit != null) {
-                    "Pembayaran kurang. Total ${total ?: 0.0}, dibayar ${paid ?: 0.0}, kurang ${deficit}."
+                    "Pembayaran kurang. Total ${total ?: 0L}, dibayar ${paid ?: 0L}, kurang ${deficit}."
                 } else {
                     null
                 }

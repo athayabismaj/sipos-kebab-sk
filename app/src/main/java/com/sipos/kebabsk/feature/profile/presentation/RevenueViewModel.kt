@@ -15,9 +15,9 @@ import java.time.LocalDate
 data class RevenueUiState(
     val selectedDate: LocalDate = AppTime.todayJakarta(),
     val isLoading: Boolean = false,
-    val revenueAmount: Double = 0.0,
+    val revenueAmount: Long = 0L,
     val transactionCount: Int = 0,
-    val trendData: List<Pair<String, Double>> = emptyList(),
+    val trendData: List<Pair<String, Long>> = emptyList(),
     val errorMessage: String? = null
 )
 
@@ -72,7 +72,7 @@ class RevenueViewModel(
                         it.copy(
                             isLoading = false, 
                             errorMessage = error?.message ?: "Gagal mengambil data omset dan tren",
-                            revenueAmount = 0.0,
+                            revenueAmount = 0L,
                             transactionCount = 0,
                             trendData = emptyList()
                         ) 
@@ -83,7 +83,7 @@ class RevenueViewModel(
                     it.copy(
                         isLoading = false, 
                         errorMessage = e.message ?: "Terjadi kesalahan tak terduga",
-                        revenueAmount = 0.0,
+                        revenueAmount = 0L,
                         transactionCount = 0,
                         trendData = emptyList()
                     ) 

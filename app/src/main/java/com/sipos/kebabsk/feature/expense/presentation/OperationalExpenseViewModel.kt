@@ -58,10 +58,10 @@ class OperationalExpenseViewModel(
 
     fun submit() {
         val state = _uiState.value
-        val amount = state.amountInput.toDoubleOrNull()
+        val amount = com.sipos.kebabsk.common.MoneyUtils.parseMoneyInput(state.amountInput)
         val category = state.categoryInput.trim()
 
-        if (amount == null || amount <= 0.0) {
+        if (amount <= 0L) {
             _uiState.update { it.copy(errorMessage = "Nominal pengeluaran tidak valid.") }
             return
         }
