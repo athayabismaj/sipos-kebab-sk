@@ -55,7 +55,7 @@ class MenuViewModelTest {
 
         viewModel.loadMenus("token", forceRefresh = true)
         advanceUntilIdle()
-        viewModel.addVariantToCart("Burger", 11L, "Single", 12000.0)
+        viewModel.addVariantToCart("Burger", 11L, "Single", 12000L)
         viewModel.onQuickAmountSelected(12000)
 
         viewModel.submitCheckout("token")
@@ -76,7 +76,7 @@ class MenuViewModelTest {
 
         viewModel.loadMenus("token", forceRefresh = true)
         advanceUntilIdle()
-        viewModel.addVariantToCart("Burger", 11L, "Single", 12000.0)
+        viewModel.addVariantToCart("Burger", 11L, "Single", 12000L)
         viewModel.onQuickAmountSelected(12000)
 
         viewModel.submitCheckout("token")
@@ -99,7 +99,7 @@ class MenuViewModelTest {
 
         viewModel.loadMenus("token", forceRefresh = true)
         advanceUntilIdle()
-        viewModel.addVariantToCart("Burger", 11L, "Single", 12000.0)
+        viewModel.addVariantToCart("Burger", 11L, "Single", 12000L)
         viewModel.onQuickAmountSelected(12000)
 
         viewModel.submitCheckout("token")
@@ -122,14 +122,14 @@ class MenuViewModelTest {
 
         viewModel.loadMenus("token", forceRefresh = true)
         advanceUntilIdle()
-        viewModel.addVariantToCart("Burger", 11L, "Single", 12000.0)
+        viewModel.addVariantToCart("Burger", 11L, "Single", 12000L)
         viewModel.onQuickAmountSelected(10000)
 
         viewModel.submitCheckout("token")
         advanceUntilIdle()
 
         assertEquals(
-            "Nominal pembayaran kurang. Silakan periksa kembali.",
+            "Nominal bayar tidak valid",
             viewModel.uiState.value.errorMessage
         )
     }
@@ -173,7 +173,7 @@ private class FakeMenuRepository(
                             MenuVariant(
                                 id = 11L,
                                 name = "Single",
-                                price = 12000.0,
+                                price = 12000L,
                                 isAvailable = true
                             )
                         )
@@ -182,7 +182,7 @@ private class FakeMenuRepository(
                 dailySession = DailySessionStatus(
                     isOpen = isDailyOpen,
                     label = if (isDailyOpen) "Sesi harian aktif" else "Sesi belum dibuka",
-                    targetRevenue = 200000.0
+                    targetRevenue = 200000L
                 ),
                 dailyStockItems = emptyList()
             )
@@ -216,9 +216,9 @@ private class FakeCheckoutRepository(
             CheckoutResult(
                 transactionId = 1001L,
                 transactionCode = "TRX-TEST-1001",
-                totalAmount = 12000.0,
+                totalAmount = 12000L,
                 paidAmount = request.paidAmount,
-                changeAmount = request.paidAmount - 12000.0
+                changeAmount = request.paidAmount - 12000L
             )
         )
     }

@@ -110,7 +110,7 @@ private class FakeTransactionsRepository(
                         code = "TRX-0001",
                         time = "10:00",
                         itemCount = 1,
-                        total = 12000.0,
+                        total = 12000L,
                         status = "Selesai",
                         originalDate = date.toString()
                     )
@@ -123,7 +123,7 @@ private class FakeTransactionsRepository(
     override suspend fun getRevenueSummary(token: String, date: LocalDate): Result<RevenueSummaryResult> {
         return Result.success(
             RevenueSummaryResult(
-                totalRevenue = 0.0,
+                totalRevenue = 0L,
                 totalCount = 0,
                 transactionGrowthPercentage = null,
                 dominantItemName = null,
@@ -141,7 +141,7 @@ private class FakeTransactionsRepository(
         return Result.failure(IllegalStateException("Detail struk belum tersedia"))
     }
 
-    override suspend fun getRevenueTrend(token: String, date: LocalDate): Result<List<Pair<String, Double>>> {
+    override suspend fun getRevenueTrend(token: String, date: LocalDate): Result<List<Pair<String, Long>>> {
         return Result.success(emptyList())
     }
 
