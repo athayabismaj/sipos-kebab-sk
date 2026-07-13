@@ -9,10 +9,9 @@ import retrofit2.http.POST
 import retrofit2.http.Url
 
 interface DailyStockApiService {
-    @GET
+    @GET("daily-stock-items")
     suspend fun getDailyStock(
-        @Header("Authorization") authorization: String,
-        @Url url: String
+        @Header("Authorization") authorization: String
     ): Response<JsonObject>
 
     @POST("daily-stock-sessions/close")

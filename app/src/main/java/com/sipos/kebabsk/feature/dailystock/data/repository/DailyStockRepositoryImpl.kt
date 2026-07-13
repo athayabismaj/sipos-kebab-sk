@@ -3,10 +3,8 @@ package com.sipos.kebabsk.feature.dailystock.data.repository
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
-import com.sipos.kebabsk.BuildConfig
 import com.sipos.kebabsk.common.retryNetworkRequest
 import com.sipos.kebabsk.common.sanitizeUserMessage
-import com.sipos.kebabsk.data.network.ApiPathResolver
 import com.sipos.kebabsk.feature.dailystock.data.remote.DailyStockApiService
 import com.sipos.kebabsk.feature.menu.domain.model.DailyStockItem
 
@@ -18,55 +16,30 @@ data class DailyStockResult(
 class DailyStockRepositoryImpl(
     private val apiService: DailyStockApiService
 ) {
-    private val candidateEndpoints = listOf(
-        "daily-stock-items",
-        "daily-stocks",
-        "stock-daily",
-        "stocks/daily",
-        "daily-session/stocks",
-        "cashier/daily-stock",
-        "cashier/daily-stocks"
-    )
-
     suspend fun getDailyStock(token: String): Result<DailyStockResult> {
-        var successWithEmpty: DailyStockResult? = null
-        var firstFailure: Throwable? = null
-
-        candidateEndpoints.forEach { endpoint ->
-            val resolvedEndpoint = ApiPathResolver.resolve(BuildConfig.API_BASE_URL, endpoint)
-            runCatching {
-                retryNetworkRequest {
-                    apiService.getDailyStock("Bearer $token", resolvedEndpoint)
-                }
-            }.onSuccess { response ->
+        return runCatching {
+            retryNetworkRequest {
+                apiService.getDailyStock("Bearer $token")
+            }
+        }.fold(
+            onSuccess = { response ->
                 if (!response.isSuccessful) {
-                    if (firstFailure == null) {
-                        firstFailure = retrofit2.HttpException(response)
-                    }
-                    return@onSuccess
+                    return Result.failure(retrofit2.HttpException(response))
                 }
 
-                val body = response.body() ?: return@onSuccess
+                val body = response.body() ?: return Result.failure(IllegalStateException("Empty response body"))
                 val sessionId = extractSessionId(body)
                 val extracted = extractItems(body)
 
-                if (extracted.isNotEmpty()) {
-                    return Result.success(DailyStockResult(sessionId, extracted))
+                if (sessionId == null && extracted.isEmpty()) {
+                    return Result.failure(IllegalStateException("Sesi stok harian belum dibuka oleh admin."))
                 }
 
-                if (successWithEmpty == null) {
-                    successWithEmpty = DailyStockResult(sessionId, emptyList())
-                }
-            }.onFailure { error ->
-                if (firstFailure == null) firstFailure = error
+                Result.success(DailyStockResult(sessionId, extracted))
+            },
+            onFailure = { error ->
+                Result.failure(error)
             }
-        }
-
-        successWithEmpty?.let {
-            return Result.success(it)
-        }
-        return Result.failure(
-            firstFailure ?: IllegalStateException("Data stok harian belum tersedia.")
         )
     }
 
