@@ -166,29 +166,7 @@ class AuthRepositoryImpl(
         )
     }
 
-    private suspend fun executeMultiEndpoint(
-        requests: List<suspend () -> Response<JsonObject>>,
-        fallbackError: String
-    ): String {
-        val responses = requests.map { it() }
-        val successful = responses.firstOrNull { it.isSuccessful }
-        if (successful != null) {
-            val successBody = successful.body()
-            return extractMessage(successBody) ?: "Operasi berhasil."
-        }
 
-        val allErrors = responses
-            .asSequence()
-            .map { response -> extractErrorMessage(response.errorBody()?.string(), response.body()) }
-            .filterNotNull()
-            .toList()
-
-        val bestError = allErrors.firstOrNull { !isRouteNotFoundMessage(it) }
-            ?: allErrors.firstOrNull()
-            ?: fallbackError
-
-        throw IllegalStateException(normalizeAuthError(bestError, fallbackError))
-    }
 
     private fun extractToken(body: JsonObject?): String? {
         if (body == null) return null
@@ -267,11 +245,6 @@ class AuthRepositoryImpl(
 
     private fun firstNonBlank(vararg values: String?): String? {
         return values.firstOrNull { !it.isNullOrBlank() }
-    }
-
-    private fun isRouteNotFoundMessage(message: String): Boolean {
-        val normalized = message.lowercase()
-        return normalized.contains("route") && normalized.contains("could not be found")
     }
 
     private fun normalizeAuthError(rawMessage: String?, fallback: String): String {
