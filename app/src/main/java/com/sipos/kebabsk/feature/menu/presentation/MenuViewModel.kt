@@ -25,12 +25,13 @@ import kotlinx.coroutines.sync.withLock
 
 data class MenuUiState(
     val isLoading: Boolean = false,
+    val isSubmitting: Boolean = false,
     val errorMessage: String? = null,
     val cashierName: String = "",
     val cashierRole: String? = null,
     val isDailySessionOpen: Boolean = false,
     val dailySessionStatusLabel: String? = null,
-    val dailyTargetRevenue: Double? = null,
+    val dailyTargetRevenue: Long? = null,
     val dailyStockItems: List<DailyStockItem> = emptyList(),
     val menus: List<MenuItem> = emptyList(),
     val selectedCategory: String? = null,
@@ -41,9 +42,9 @@ data class MenuUiState(
     val cartItems: List<CheckoutCartItem> = emptyList(),
     val checkoutMessage: String? = null,
     val checkoutTransactionCode: String? = null,
-    val checkoutChangeAmount: Double? = null,
-    val checkoutTotalAmount: Double? = null,
-    val checkoutPaidAmount: Double? = null,
+    val checkoutChangeAmount: Long? = null,
+    val checkoutTotalAmount: Long? = null,
+    val checkoutPaidAmount: Long? = null,
     val checkoutReceiptItems: List<CheckoutCartItem> = emptyList()
 )
 
@@ -150,7 +151,7 @@ class MenuViewModel(
         loadMenus(token, forceRefresh = true)
     }
 
-    fun addVariantToCart(menuName: String, variantId: Long, variantName: String, price: Double) {
+    fun addVariantToCart(menuName: String, variantId: Long, variantName: String, price: Long) {
         _uiState.update { state ->
             val existing = state.cartItems.firstOrNull { it.variantId == variantId }
             val updated = if (existing == null) {
@@ -205,7 +206,7 @@ class MenuViewModel(
         _uiState.update { it.copy(selectedPaymentMethodId = paymentMethodId) }
     }
 
-    fun onQuickAmountSelected(amount: Int) {
+    fun onQuickAmountSelected(amount: Long) {
         _uiState.update {
             it.copy(
                 paidAmountInput = amount.toString(),
@@ -240,93 +241,95 @@ class MenuViewModel(
     }
 
     fun submitCheckout(token: String) {
+        if (_uiState.value.isSubmitting) return
         viewModelScope.launch {
-            checkoutMutex.withLock {
-                if (_uiState.value.isLoading) {
-                    // Double guard: avoid duplicate submit while request is in flight.
-                    return@withLock
-                }
+            if (_uiState.value.isSubmitting) return@launch
+            _uiState.update { it.copy(isSubmitting = true) }
+            try {
+                checkoutMutex.withLock {
+                    val state = _uiState.value
+                    if (state.cartItems.isEmpty()) {
+                        _uiState.update { it.copy(errorMessage = "Keranjang masih kosong") }
+                        return@withLock
+                    }
 
-                val state = _uiState.value
-                if (state.cartItems.isEmpty()) {
-                    _uiState.update { it.copy(errorMessage = "Keranjang masih kosong") }
-                    return@withLock
-                }
+                    if (!state.isDailySessionOpen) {
+                        _uiState.update {
+                            it.copy(
+                                errorMessage = "Sesi harian belum dibuka admin. Checkout belum bisa dilakukan."
+                            )
+                        }
+                        return@withLock
+                    }
 
-                if (!state.isDailySessionOpen) {
+                    val paymentMethodId = state.selectedPaymentMethodId
+                    if (paymentMethodId == null) {
+                        _uiState.update { it.copy(errorMessage = "Metode pembayaran tunai belum tersedia") }
+                        return@withLock
+                    }
+
+                    val paidAmount = com.sipos.kebabsk.common.MoneyUtils.parseMoneyInput(state.paidAmountInput)
+                    if (paidAmount < state.cartItems.sumOf { it.price * it.qty }) {
+                        _uiState.update { it.copy(errorMessage = "Nominal bayar tidak valid") }
+                        return@withLock
+                    }
+
                     _uiState.update {
                         it.copy(
-                            errorMessage = "Sesi harian belum dibuka admin. Checkout belum bisa dilakukan."
+                            isLoading = true,
+                            errorMessage = null,
+                            checkoutMessage = null,
+                            checkoutTransactionCode = null,
+                            checkoutChangeAmount = null,
+                            checkoutTotalAmount = null,
+                            checkoutPaidAmount = null,
+                            checkoutReceiptItems = emptyList()
                         )
                     }
-                    return@withLock
-                }
-
-                val paymentMethodId = state.selectedPaymentMethodId
-                if (paymentMethodId == null) {
-                    _uiState.update { it.copy(errorMessage = "Metode pembayaran tunai belum tersedia") }
-                    return@withLock
-                }
-
-                val paidAmount = sanitizeMoneyInput(state.paidAmountInput).toDoubleOrNull()
-                if (paidAmount == null || paidAmount <= 0.0) {
-                    _uiState.update { it.copy(errorMessage = "Nominal bayar tidak valid") }
-                    return@withLock
-                }
-
-                _uiState.update {
-                    it.copy(
-                        isLoading = true,
-                        errorMessage = null,
-                        checkoutMessage = null,
-                        checkoutTransactionCode = null,
-                        checkoutChangeAmount = null,
-                        checkoutTotalAmount = null,
-                        checkoutPaidAmount = null,
-                        checkoutReceiptItems = emptyList()
+                    val request = CheckoutRequestData(
+                        paymentMethodId = paymentMethodId,
+                        paidAmount = paidAmount,
+                        items = state.cartItems.map { CheckoutItemInput(it.variantId, it.qty) },
+                        note = state.noteInput.takeIf { it.isNotBlank() }
                     )
-                }
-                val request = CheckoutRequestData(
-                    paymentMethodId = paymentMethodId,
-                    paidAmount = paidAmount,
-                    items = state.cartItems.map { CheckoutItemInput(it.variantId, it.qty) },
-                    note = state.noteInput.takeIf { it.isNotBlank() }
-                )
 
-                createTransactionUseCase(token, request)
-                    .onSuccess { result ->
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                cartItems = emptyList(),
-                                paidAmountInput = "",
-                                noteInput = "",
-                                checkoutMessage = "Pembayaran berhasil: ${result.transactionCode}",
-                                checkoutTransactionCode = result.transactionCode,
-                                checkoutChangeAmount = result.changeAmount,
-                                checkoutTotalAmount = result.totalAmount,
-                                checkoutPaidAmount = result.paidAmount,
-                                checkoutReceiptItems = state.cartItems,
-                                errorMessage = null
-                            )
+                    createTransactionUseCase(token, request)
+                        .onSuccess { result ->
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    cartItems = emptyList(),
+                                    paidAmountInput = "",
+                                    noteInput = "",
+                                    checkoutMessage = "Pembayaran berhasil: ${result.transactionCode}",
+                                    checkoutTransactionCode = result.transactionCode,
+                                    checkoutChangeAmount = result.changeAmount,
+                                    checkoutTotalAmount = result.totalAmount,
+                                    checkoutPaidAmount = result.paidAmount,
+                                    checkoutReceiptItems = state.cartItems,
+                                    errorMessage = null
+                                )
+                            }
+                            // REFRESH DATA (Tarik stok terbaru setelah checkout berhasil)
+                            loadMenus(token, forceRefresh = true)
                         }
-                        // REFRESH DATA (Tarik stok terbaru setelah checkout berhasil)
-                        loadMenus(token, forceRefresh = true)
-                    }
-                    .onFailure { error ->
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                errorMessage = normalizeCheckoutError(error.message),
-                                checkoutMessage = null,
-                                checkoutTransactionCode = null,
-                                checkoutChangeAmount = null,
-                                checkoutTotalAmount = null,
-                                checkoutPaidAmount = null,
-                                checkoutReceiptItems = emptyList()
-                            )
+                        .onFailure { error ->
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    errorMessage = normalizeCheckoutError(error.message),
+                                    checkoutMessage = null,
+                                    checkoutTransactionCode = null,
+                                    checkoutChangeAmount = null,
+                                    checkoutTotalAmount = null,
+                                    checkoutPaidAmount = null,
+                                    checkoutReceiptItems = emptyList()
+                                )
+                            }
                         }
-                    }
+                }
+            } finally {
+                _uiState.update { it.copy(isSubmitting = false) }
             }
         }
     }

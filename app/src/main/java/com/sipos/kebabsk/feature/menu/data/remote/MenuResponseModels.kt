@@ -30,7 +30,7 @@ data class DailySessionResponse(
     @SerializedName(value = "status_label", alternate = ["label", "status"])
     val statusLabel: String?,
     @SerializedName(value = "target_revenue", alternate = ["targetRevenue"])
-    val targetRevenue: Double?
+    val targetRevenue: Long?
 )
 
 data class UserResponse(
@@ -57,7 +57,7 @@ data class CategoryResponse(
 data class VariantResponse(
     @SerializedName("id") val id: Long?,
     @SerializedName("name") val name: String?,
-    @SerializedName("price") val price: Double?,
+    @SerializedName("price") val price: Long?,
     @SerializedName("is_available") val isAvailable: Boolean?,
     @SerializedName(value = "insufficient_stock", alternate = ["stock_insufficient", "is_stock_insufficient", "out_of_stock"])
     val insufficientStock: Boolean?

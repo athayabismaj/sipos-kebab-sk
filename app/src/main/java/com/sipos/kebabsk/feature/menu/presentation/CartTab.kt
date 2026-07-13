@@ -33,8 +33,8 @@ import com.sipos.kebabsk.feature.menu.presentation.toRupiah
 @Composable
 fun CartTab(
     cartItems: List<CheckoutCartItem>,
-    totalAmount: Double,
-    onAddVariant: (menuName: String, variantId: Long, variantName: String, price: Double) -> Unit,
+    totalAmount: Long,
+    onAddVariant: (menuName: String, variantId: Long, variantName: String, price: Long) -> Unit,
     onRemoveVariant: (Long) -> Unit,
     onDeleteVariant: (Long) -> Unit,
     onNavigateToPayment: () -> Unit,
@@ -104,7 +104,7 @@ fun CartTab(
                 }
             }
         } else {
-            val formatPrice = { amount: Double ->
+            val formatPrice = { amount: Long ->
                 toRupiah(amount).replace("Rp", "Rp ").replace(",00", "")
             }
 

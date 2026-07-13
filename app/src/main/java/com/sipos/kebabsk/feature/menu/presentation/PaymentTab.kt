@@ -143,11 +143,11 @@ private val ZigzagShape = GenericShape { size, _ ->
 @Composable
 fun PaymentTab(
     uiState: MenuUiState,
-    totalAmount: Double,
-    exactAmount: Int,
-    quickAmounts: List<Int>,
+    totalAmount: Long,
+    exactAmount: Long,
+    quickAmounts: List<Long>,
     onPaymentMethodSelected: (Long) -> Unit,
-    onQuickAmountSelected: (Int) -> Unit,
+    onQuickAmountSelected: (Long) -> Unit,
     onPaidAmountChanged: (String) -> Unit,
     onNoteChanged: (String) -> Unit,
     onSubmitCheckout: () -> Unit,
@@ -188,8 +188,8 @@ fun PaymentTab(
 
     val scrollState = rememberScrollState()
 
-    val paidDouble = sanitizeMoneyInput(uiState.paidAmountInput).toDoubleOrNull() ?: 0.0
-    val kembalian = if (paidDouble > totalAmount) paidDouble - totalAmount else 0.0
+    val paidLong = sanitizeMoneyInput(uiState.paidAmountInput).toLongOrNull() ?: 0L
+    val kembalian = if (paidLong > totalAmount) paidLong - totalAmount else 0L
     val cashMethod = uiState.paymentMethods.firstOrNull()
 
     Box(
@@ -235,7 +235,7 @@ fun PaymentTab(
             RingkasanOrderCard(
                 uiState = uiState,
                 totalAmount = totalAmount,
-                paidAmount = paidDouble,
+                paidAmount = paidLong,
                 kembalian = kembalian
             )
             
@@ -313,7 +313,7 @@ fun PaymentTab(
 }
 
 @Composable
-private fun TotalTagihanCard(totalAmount: Double, itemsCount: Int) {
+private fun TotalTagihanCard(totalAmount: Long, itemsCount: Int) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -393,11 +393,11 @@ private fun TotalTagihanCard(totalAmount: Double, itemsCount: Int) {
 private fun CashPaymentCard(
     selected: Boolean,
     value: String,
-    quickAmounts: List<Int>,
-    exactAmount: Int,
+    quickAmounts: List<Long>,
+    exactAmount: Long,
     onSelectCash: () -> Unit,
     onPaidAmountChanged: (String) -> Unit,
-    onQuickAmountSelected: (Int) -> Unit
+    onQuickAmountSelected: (Long) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -527,7 +527,7 @@ private fun QuickChip(label: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun RingkasanOrderCard(uiState: MenuUiState, totalAmount: Double, paidAmount: Double, kembalian: Double) {
+private fun RingkasanOrderCard(uiState: MenuUiState, totalAmount: Long, paidAmount: Long, kembalian: Long) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -692,7 +692,7 @@ private fun ReceiptSuccessDialog(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        val totalAmount = uiState.checkoutTotalAmount ?: 0.0
+                        val totalAmount = uiState.checkoutTotalAmount ?: 0L
                         
                         // Items List
                         Column(
@@ -740,8 +740,8 @@ private fun ReceiptSuccessDialog(
 
                         ReceiptRow(label = "Total Belanja", value = toRupiah(totalAmount), isBold = true)
                         Spacer(modifier = Modifier.height(8.dp))
-                        val paidDouble = uiState.checkoutPaidAmount ?: totalAmount
-                        ReceiptRow(label = "Tunai/Dibayar", value = toRupiah(paidDouble))
+                        val paidLong = uiState.checkoutPaidAmount ?: totalAmount
+                        ReceiptRow(label = "Tunai/Dibayar", value = toRupiah(paidLong))
 
                         Spacer(modifier = Modifier.height(16.dp))
 
@@ -758,7 +758,7 @@ private fun ReceiptSuccessDialog(
 
                         Spacer(modifier = Modifier.height(16.dp))
                         
-                        val change = uiState.checkoutChangeAmount ?: 0.0
+                        val change = uiState.checkoutChangeAmount ?: 0L
                         Text(
                             text = "Kembalian",
                             fontSize = 14.sp,
@@ -847,7 +847,7 @@ private fun buildReceiptText(uiState: MenuUiState): String {
         sb.append("${it.qty}x ${toRupiah(it.price)}\n")
     }
     sb.append("-----------------------------\n")
-    sb.append("Total: ${toRupiah(uiState.checkoutTotalAmount ?: 0.0)}\n")
+    sb.append("Total: ${toRupiah(uiState.checkoutTotalAmount ?: 0L)}\n")
     return sb.toString()
 }
 
@@ -900,9 +900,9 @@ private fun buildReceiptEscPosBytes(uiState: MenuUiState): ByteArray {
     }
 
     line()
-    val totalAmount = uiState.checkoutTotalAmount ?: 0.0
+    val totalAmount = uiState.checkoutTotalAmount ?: 0L
     val paidAmount = uiState.checkoutPaidAmount ?: totalAmount
-    val changeAmount = uiState.checkoutChangeAmount ?: 0.0
+    val changeAmount = uiState.checkoutChangeAmount ?: 0L
     bold(true)
     text(receiptColumns("Total Belanja", toRupiahNoDecimal(totalAmount)))
     bold(false)

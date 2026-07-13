@@ -57,7 +57,7 @@ fun MenuListTab(
     cartItems: List<CheckoutCartItem>,
     emptyStateMessage: String = "Tidak ada menu tersedia",
     onCategorySelected: (String?) -> Unit,
-    onAddVariant: (String, Long, String, Double) -> Unit,
+    onAddVariant: (String, Long, String, Long) -> Unit,
     onRemoveVariant: (Long) -> Unit
 ) {
     val cartQtyMap = remember(cartItems) {

@@ -132,11 +132,11 @@ fun MenuScreen(
     uiState: MenuUiState,
     onRefresh: () -> Unit,
     onCategorySelected: (String?) -> Unit,
-    onAddVariant: (menuName: String, variantId: Long, variantName: String, price: Double) -> Unit,
+    onAddVariant: (menuName: String, variantId: Long, variantName: String, price: Long) -> Unit,
     onRemoveVariant: (variantId: Long) -> Unit,
     onDeleteVariant: (variantId: Long) -> Unit,
     onPaymentMethodSelected: (paymentMethodId: Long) -> Unit,
-    onQuickAmountSelected: (amount: Int) -> Unit,
+    onQuickAmountSelected: (amount: Long) -> Unit,
     onPaidAmountChanged: (String) -> Unit,
     onNoteChanged: (String) -> Unit,
     onSubmitCheckout: () -> Unit,
@@ -146,7 +146,7 @@ fun MenuScreen(
     val totalAmount = remember(uiState.cartItems) {
         uiState.cartItems.sumOf { it.price * it.qty }
     }
-    val exactAmount = totalAmount.toInt()
+    val exactAmount = totalAmount
     val isCashier = remember(session.role) { session.role.equals("kasir", ignoreCase = true) }
 
     val quickAmounts = remember(totalAmount) { buildQuickAmounts(totalAmount) }

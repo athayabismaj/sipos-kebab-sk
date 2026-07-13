@@ -23,7 +23,7 @@ data class MenuUser(
 data class DailySessionStatus(
     val isOpen: Boolean,
     val label: String?,
-    val targetRevenue: Double?
+    val targetRevenue: Long?
 )
 
 @Immutable
@@ -49,7 +49,7 @@ data class MenuItem(
 data class MenuVariant(
     val id: Long,
     val name: String,
-    val price: Double,
+    val price: Long,
     val isAvailable: Boolean,
     val insufficientStock: Boolean = false
 )

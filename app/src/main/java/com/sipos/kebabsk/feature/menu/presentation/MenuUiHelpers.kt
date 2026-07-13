@@ -11,7 +11,7 @@ data class MenuVariantItem(
     val categoryName: String?,
     val variantId: Long,
     val variantName: String,
-    val price: Double,
+    val price: Long,
     val isAvailable: Boolean,
     val insufficientStock: Boolean = false
 )
@@ -41,11 +41,11 @@ fun filterMenuItems(menuItems: List<MenuVariantItem>, selectedCategory: String?)
     return if (selectedCategory == null) menuItems else menuItems.filter { it.categoryName == selectedCategory }
 }
 
-fun buildQuickAmounts(totalAmount: Double): List<Int> {
-    if (totalAmount == 0.0) return emptyList()
+fun buildQuickAmounts(totalAmount: Long): List<Long> {
+    if (totalAmount == 0L) return emptyList()
 
-    val exactAmount = totalAmount.toInt()
-    val list = mutableListOf<Int>()
+    val exactAmount = totalAmount
+    val list = mutableListOf<Long>()
     list.add(exactAmount)
 
     val basicRounding = listOf(
@@ -79,7 +79,7 @@ private val rupiahFormatterNoDecimal: NumberFormat by lazy {
     }
 }
 
-fun toRupiah(amount: Double): String = rupiahFormatter.format(amount)
+fun toRupiah(amount: Long): String = com.sipos.kebabsk.common.MoneyUtils.toRupiah(amount)
 
 /** Rupiah tanpa koma/desimal. Untuk tampilan angka besar seperti Total Tagihan. */
-fun toRupiahNoDecimal(amount: Double): String = rupiahFormatterNoDecimal.format(amount)
+fun toRupiahNoDecimal(amount: Long): String = com.sipos.kebabsk.common.MoneyUtils.toRupiah(amount)
