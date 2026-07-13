@@ -1597,9 +1597,9 @@ private fun receiptColumns(left: String, right: String): String {
     return safeLeft + " ".repeat(spaces) + safeRight
 }
 
-private fun toRupiahNoDecimal(amount: Double): String {
+private fun toRupiahNoDecimal(amount: Long): String {
     val formatter = NumberFormat.getNumberInstance(Locale.forLanguageTag("id-ID"))
-    return "Rp${formatter.format(amount.toLong())}"
+    return "Rp${formatter.format(amount)}"
 }
 
 private fun receiptStatusDisplay(status: String): String {
@@ -1639,11 +1639,11 @@ private fun receiptPrintHelperText(receipt: TransactionReceipt): String {
     }
 }
 
-private fun formatShortRupiah(amount: Double): String {
+private fun formatShortRupiah(amount: Long): String {
     return when {
-        amount >= 1_000_000 -> "Rp ${String.format(Locale.US, "%.1f", amount / 1_000_000)}jt"
-        amount >= 1_000 -> "Rp ${String.format(Locale.US, "%.0f", amount / 1_000)}k"
-        else -> "Rp ${String.format(Locale.US, "%.0f", amount)}"
+        amount >= 1_000_000 -> "Rp ${String.format(Locale.US, "%.1f", amount.toDouble() / 1_000_000)}jt"
+        amount >= 1_000 -> "Rp ${String.format(Locale.US, "%.0f", amount.toDouble() / 1_000)}k"
+        else -> "Rp ${String.format(Locale.US, "%.0f", amount.toDouble())}"
     }
 }
 

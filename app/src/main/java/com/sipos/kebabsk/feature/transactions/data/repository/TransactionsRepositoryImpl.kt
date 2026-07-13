@@ -79,7 +79,7 @@ class TransactionsRepositoryImpl(
                         code = itemResponse.transactionCode ?: "TRX-UNKNOWN",
                         time = timeString,
                         itemCount = itemResponse.itemsCount ?: 0,
-                        total = itemResponse.totalAmount ?: 0.0,
+                        total = itemResponse.totalAmount ?: 0L,
                         status = itemResponse.status ?: "Unknown",
                         originalDate = itemResponse.createdAt ?: ""
                     )
@@ -186,7 +186,7 @@ class TransactionsRepositoryImpl(
             }
 
             RevenueSummaryResult(
-                totalRevenue = body.data.totalRevenue ?: 0.0,
+                totalRevenue = body.data.totalRevenue ?: 0L,
                 totalCount = body.data.totalCount ?: 0,
                 transactionGrowthPercentage = body.data.transactionGrowthPercentage,
                 dominantItemName = body.data.dominantItemName,
@@ -203,7 +203,7 @@ class TransactionsRepositoryImpl(
         }
     }
 
-    override suspend fun getRevenueTrend(token: String, date: LocalDate): Result<List<Pair<String, Double>>> {
+    override suspend fun getRevenueTrend(token: String, date: LocalDate): Result<List<Pair<String, Long>>> {
         return runCatching {
             val formattedQueryDate = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
             val response = retryNetworkRequest {
@@ -221,7 +221,7 @@ class TransactionsRepositoryImpl(
                 )
             }
 
-            body.data.map { Pair(it.date ?: "", it.totalRevenue ?: 0.0) }
+            body.data.map { Pair(it.date ?: "", it.totalRevenue ?: 0L) }
         }.recoverCatching { throwable ->
             throw IllegalStateException(
                 mapThrowable(
@@ -304,20 +304,20 @@ class TransactionsRepositoryImpl(
             val itemsArray = transaction.arrayValue("items", "transaction_items", "details", "transaction_details")
                 ?: root.arrayValue("items", "transaction_items", "details", "transaction_details")
 
-            val totalAmount = transaction.doubleValue(
+            val totalAmount = transaction.longValue(
                 "total_amount",
                 "grand_total",
                 "total",
                 "subtotal"
-            ) ?: root.doubleValue("total_amount", "grand_total", "total", "subtotal") ?: 0.0
+            ) ?: root.longValue("total_amount", "grand_total", "total", "subtotal") ?: 0L
 
-            val paidAmount = transaction.doubleValue(
+            val paidAmount = transaction.longValue(
                 "paid_amount",
                 "amount_paid",
                 "cash_received",
                 "received_amount",
                 "dibayar"
-            ) ?: root.doubleValue(
+            ) ?: root.longValue(
                 "paid_amount",
                 "amount_paid",
                 "cash_received",
@@ -325,27 +325,27 @@ class TransactionsRepositoryImpl(
                 "dibayar"
             ) ?: totalAmount
 
-            val changeAmount = transaction.doubleValue(
+            val changeAmount = transaction.longValue(
                 "change_amount",
                 "change",
                 "cash_change",
                 "kembalian"
-            ) ?: root.doubleValue(
+            ) ?: root.longValue(
                 "change_amount",
                 "change",
                 "cash_change",
                 "kembalian"
-            ) ?: (paidAmount - totalAmount).coerceAtLeast(0.0)
+            ) ?: (paidAmount - totalAmount).coerceAtLeast(0L)
 
             val parsedItems = itemsArray
                 ?.mapNotNull { element ->
                     if (!element.isJsonObject) return@mapNotNull null
                     val item = element.asJsonObject
                     val qty = item.intValue("qty", "quantity", "jumlah") ?: 1
-                    val subtotal = item.doubleValue("subtotal", "subtotal_amount", "total", "total_price")
-                    val price = item.doubleValue("price", "unit_price", "menu_price", "selling_price")
+                    val subtotal = item.longValue("subtotal", "subtotal_amount", "total", "total_price")
+                    val price = item.longValue("price", "unit_price", "menu_price", "selling_price")
                         ?: subtotal?.let { if (qty > 0) it / qty else it }
-                        ?: 0.0
+                        ?: 0L
                     val safeSubtotal = subtotal ?: price * qty
                     val menu = item.objectValue("menu", "product")
                     val variant = item.objectValue("variant", "menu_variant")
@@ -427,14 +427,6 @@ class TransactionsRepositoryImpl(
             val value = get(key) ?: return@firstNotNullOfOrNull null
             if (value.isJsonNull || !value.isJsonPrimitive) return@firstNotNullOfOrNull null
             runCatching { value.asString.trim().takeIf { it.isNotBlank() } }.getOrNull()
-        }
-    }
-
-    private fun JsonObject.doubleValue(vararg keys: String): Double? {
-        return keys.firstNotNullOfOrNull { key ->
-            val value = get(key) ?: return@firstNotNullOfOrNull null
-            if (value.isJsonNull || !value.isJsonPrimitive) return@firstNotNullOfOrNull null
-            runCatching { value.asDouble }.getOrNull()
         }
     }
 

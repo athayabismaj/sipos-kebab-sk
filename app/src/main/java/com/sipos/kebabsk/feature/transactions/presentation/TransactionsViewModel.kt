@@ -26,7 +26,7 @@ data class TransactionsUiState(
     val currentDate: LocalDate = AppTime.todayJakarta(),
     val currentPage: Int = 1,
     val totalPages: Int = 1,
-    val totalRevenue: Double = 0.0,
+    val totalRevenue: Long = 0L,
     val totalTransactionsCount: Int = 0,
     val allTransactions: List<TransactionHistoryItem> = emptyList(),
     val paginatedTransactions: List<TransactionHistoryItem> = emptyList(),
@@ -56,7 +56,6 @@ class TransactionsViewModel(
     }
 
     companion object {
-        const val PAGE_SIZE = 10
     }
 
     fun fetchTransactions() {
@@ -66,22 +65,21 @@ class TransactionsViewModel(
             val summaryResult = repository.getRevenueSummary(token, _uiState.value.currentDate)
             val summary = summaryResult.getOrNull()
 
-            val result = getTransactionsUseCase(token, _uiState.value.currentDate, 1)
+            val currentPage = _uiState.value.currentPage
+            val result = getTransactionsUseCase(token, _uiState.value.currentDate, currentPage)
             result.onSuccess { pageData ->
-                val allItems = pageData.items
-                val page = _uiState.value.currentPage
-                val totalPages = maxOf(1, (allItems.size + PAGE_SIZE - 1) / PAGE_SIZE)
-                val safePage = page.coerceIn(1, totalPages)
-                val paginated = allItems.chunked(PAGE_SIZE).getOrNull(safePage - 1) ?: emptyList()
+                val newItems = pageData.items
+                val totalPages = pageData.totalPages
+                
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        totalRevenue = summary?.totalRevenue ?: 0.0,
-                        totalTransactionsCount = summary?.totalCount ?: allItems.size,
-                        allTransactions = allItems,
+                        totalRevenue = summary?.totalRevenue ?: 0L,
+                        totalTransactionsCount = summary?.totalCount ?: newItems.size,
+                        allTransactions = newItems,
                         totalPages = totalPages,
-                        currentPage = safePage,
-                        paginatedTransactions = paginated
+                        currentPage = currentPage,
+                        paginatedTransactions = newItems
                     )
                 }
             }.onFailure { error ->
@@ -101,17 +99,15 @@ class TransactionsViewModel(
     fun loadNextPage() {
         val state = _uiState.value
         if (state.isLoading || state.currentPage >= state.totalPages) return
-        val newPage = state.currentPage + 1
-        val paginated = state.allTransactions.chunked(PAGE_SIZE).getOrNull(newPage - 1) ?: emptyList()
-        _uiState.update { it.copy(currentPage = newPage, paginatedTransactions = paginated) }
+        _uiState.update { it.copy(currentPage = state.currentPage + 1) }
+        fetchTransactions()
     }
 
     fun loadPreviousPage() {
         val state = _uiState.value
         if (state.isLoading || state.currentPage <= 1) return
-        val newPage = state.currentPage - 1
-        val paginated = state.allTransactions.chunked(PAGE_SIZE).getOrNull(newPage - 1) ?: emptyList()
-        _uiState.update { it.copy(currentPage = newPage, paginatedTransactions = paginated) }
+        _uiState.update { it.copy(currentPage = state.currentPage - 1) }
+        fetchTransactions()
     }
 
     fun setDate(newDate: LocalDate) {
@@ -248,7 +244,7 @@ class TransactionsViewModel(
             paymentMethod = "Tunai",
             totalAmount = total,
             paidAmount = total,
-            changeAmount = 0.0,
+            changeAmount = 0L,
             status = status,
             items = emptyList(),
             cashierName = resolvedCashierName(),

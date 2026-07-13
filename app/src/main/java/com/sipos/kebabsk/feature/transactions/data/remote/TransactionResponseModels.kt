@@ -12,7 +12,7 @@ data class TransactionsResponse(
 data class TransactionItemResponse(
     @SerializedName("id") val id: Long?,
     @SerializedName("transaction_code") val transactionCode: String?,
-    @SerializedName("total_amount") val totalAmount: Double?,
+    @SerializedName("total_amount") val totalAmount: Long?,
     @SerializedName("status") val status: String?,
     @SerializedName("created_at") val createdAt: String?,
     @SerializedName("items_count") val itemsCount: Int?
@@ -25,7 +25,7 @@ data class RevenueSummaryResponse(
 )
 
 data class RevenueSummaryData(
-    @SerializedName("total_revenue") val totalRevenue: Double?,
+    @SerializedName("total_revenue") val totalRevenue: Long?,
     @SerializedName("total_count") val totalCount: Int?,
     @SerializedName("transaction_growth_percentage") val transactionGrowthPercentage: Double?,
     @SerializedName("dominant_item_name") val dominantItemName: String?,
@@ -38,7 +38,7 @@ data class RevenueSummaryData(
         value = "daily_target_revenue",
         alternate = ["target_revenue"]
     )
-    val dailyTargetRevenue: Double?
+    val dailyTargetRevenue: Long?
 )
 
 data class RevenueTrendResponse(
@@ -49,7 +49,7 @@ data class RevenueTrendResponse(
 
 data class RevenueTrendData(
     @SerializedName("date") val date: String?,
-    @SerializedName("total_revenue") val totalRevenue: Double?
+    @SerializedName("total_revenue") val totalRevenue: Long?
 )
 
 data class VoidTransactionRequest(
@@ -65,5 +65,5 @@ data class VoidTransactionResponse(
 )
 
 data class VoidTransactionData(
-    @SerializedName("new_drawer_balance") val newDrawerBalance: Double?
+    @SerializedName("new_drawer_balance") val newDrawerBalance: Long?
 )

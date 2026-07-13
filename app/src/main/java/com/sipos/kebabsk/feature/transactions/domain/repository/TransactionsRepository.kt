@@ -10,6 +10,6 @@ interface TransactionsRepository {
     suspend fun getTransactions(token: String, date: LocalDate, page: Int = 1): Result<TransactionPageData>
     suspend fun getTransactionReceipt(token: String, transactionId: Long, transactionCode: String? = null): Result<TransactionReceipt>
     suspend fun getRevenueSummary(token: String, date: LocalDate): Result<RevenueSummaryResult>
-    suspend fun getRevenueTrend(token: String, date: LocalDate): Result<List<Pair<String, Double>>>
+    suspend fun getRevenueTrend(token: String, date: LocalDate): Result<List<Pair<String, Long>>>
     suspend fun voidTransaction(token: String, transactionId: Long, reason: String, sessionId: Long): Result<String>
 }
