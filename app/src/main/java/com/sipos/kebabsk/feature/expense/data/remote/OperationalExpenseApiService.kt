@@ -19,10 +19,9 @@ data class OperationalExpenseResponse(
 )
 
 interface OperationalExpenseApiService {
-    @POST
+    @POST("cashflow/expenses")
     suspend fun createExpense(
         @Header("Authorization") authorization: String,
-        @Url url: String,
         @Body body: OperationalExpenseRequest
     ): Response<OperationalExpenseResponse>
 }

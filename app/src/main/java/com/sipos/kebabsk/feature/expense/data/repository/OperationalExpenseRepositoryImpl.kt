@@ -1,26 +1,13 @@
 package com.sipos.kebabsk.feature.expense.data.repository
 
 import com.google.gson.JsonParser
-import com.sipos.kebabsk.BuildConfig
 import com.sipos.kebabsk.common.retryNetworkRequest
-import com.sipos.kebabsk.data.network.ApiPathResolver
 import com.sipos.kebabsk.feature.expense.data.remote.OperationalExpenseApiService
 import com.sipos.kebabsk.feature.expense.data.remote.OperationalExpenseRequest
 
 class OperationalExpenseRepositoryImpl(
     private val apiService: OperationalExpenseApiService
 ) {
-    private val candidateEndpoints = listOf(
-        "operational-expenses",
-        "api/operational-expenses",
-        "cashflow/operational-expenses",
-        "api/cashflow/operational-expenses",
-        "cashflow/expenses",
-        "api/cashflow/expenses",
-        "expenses",
-        "api/expenses"
-    )
-
     suspend fun submitExpense(
         token: String,
         amount: Long,
@@ -34,50 +21,22 @@ class OperationalExpenseRepositoryImpl(
                 note = note
             )
 
-            val attempts = mutableListOf<Pair<String, String>>()
-            var mostRelevantFailureMessage: String? = null
-
-            candidateEndpoints.forEach { endpoint ->
-                val resolvedEndpoint = ApiPathResolver.resolve(BuildConfig.API_BASE_URL, endpoint)
-                val response = retryNetworkRequest {
-                    apiService.createExpense(
-                        authorization = "Bearer $token",
-                        url = resolvedEndpoint,
-                        body = requestBody
-                    )
-                }
-
-                val body = response.body()
-                if (response.isSuccessful && body?.success == true) {
-                    return@runCatching body.message ?: "Pengeluaran operasional berhasil disimpan."
-                }
-
-                val rawError = response.errorBody()?.string()
-                val mappedMessage = body?.message ?: mapHttpError(response.code(), rawError)
-                attempts += resolvedEndpoint to mappedMessage
-
-                // Prefer non-404 errors when available because they are more actionable.
-                if (response.code() != 404) {
-                    mostRelevantFailureMessage = mappedMessage
-                } else if (mostRelevantFailureMessage == null) {
-                    mostRelevantFailureMessage = mappedMessage
-                }
-            }
-
-            val allNotFound = attempts.isNotEmpty() && attempts.all { (_, message) ->
-                message.contains("tidak ditemukan", ignoreCase = true) ||
-                    message.contains("belum aktif", ignoreCase = true)
-            }
-
-            if (allNotFound) {
-                throw IllegalStateException(
-                    "Endpoint pengeluaran belum tersedia di server aktif. Hubungi admin untuk deploy update backend."
+            val response = retryNetworkRequest {
+                apiService.createExpense(
+                    authorization = "Bearer $token",
+                    body = requestBody
                 )
             }
 
-            throw IllegalStateException(
-                mostRelevantFailureMessage ?: "Pengeluaran belum berhasil disimpan."
-            )
+            val body = response.body()
+            if (response.isSuccessful && body?.success == true) {
+                return@runCatching body.message ?: "Pengeluaran operasional berhasil disimpan."
+            }
+
+            val rawError = response.errorBody()?.string()
+            val mappedMessage = body?.message ?: mapHttpError(response.code(), rawError)
+            
+            throw IllegalStateException(mappedMessage)
         }
     }
 
