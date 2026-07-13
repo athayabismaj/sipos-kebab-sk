@@ -88,6 +88,7 @@ class LoginViewModel(
                 }
 
                 AppSessionStore.saveSession(freshSession)
+                com.sipos.kebabsk.common.AuthSessionEvents.resetLogoutState()
                 _uiState.update {
                     it.copy(
                         session = freshSession,
@@ -171,6 +172,7 @@ class LoginViewModel(
                         )
                     }
                     AppSessionStore.saveSession(finalSession)
+                    com.sipos.kebabsk.common.AuthSessionEvents.resetLogoutState()
                 }
                 .onFailure { error ->
                     _uiState.update {
