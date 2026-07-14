@@ -65,21 +65,3 @@ fun buildQuickAmounts(totalAmount: Long): List<Long> {
 
     return list.distinct().take(4)
 }
-
-// Formatter dengan desimal — untuk input/ringkasan
-private val rupiahFormatter: NumberFormat by lazy {
-    NumberFormat.getCurrencyInstance(Locale.forLanguageTag("id-ID"))
-}
-
-// Formatter TANPA desimal — untuk tampilan total besar agar tidak berantakan
-private val rupiahFormatterNoDecimal: NumberFormat by lazy {
-    NumberFormat.getCurrencyInstance(Locale.forLanguageTag("id-ID")).apply {
-        maximumFractionDigits = 0
-        minimumFractionDigits = 0
-    }
-}
-
-fun toRupiah(amount: Long): String = com.sipos.kebabsk.common.MoneyUtils.toRupiah(amount)
-
-/** Rupiah tanpa koma/desimal. Untuk tampilan angka besar seperti Total Tagihan. */
-fun toRupiahNoDecimal(amount: Long): String = com.sipos.kebabsk.common.MoneyUtils.toRupiah(amount)

@@ -28,11 +28,7 @@ class TransactionsViewModelTest {
     @Test
     fun setDate_sameDateWhileLoading_doesNotCreateDuplicateRequest() = runTest {
         val fakeRepo = FakeTransactionsRepository(delayMs = 300)
-        val viewModel = TransactionsViewModel(
-            getTransactionsUseCase = GetTransactionsUseCase(fakeRepo),
-            repository = fakeRepo,
-            token = "token"
-        )
+        val viewModel = TransactionsViewModel(fakeRepo)
 
         runCurrent()
         val sameDate = viewModel.uiState.value.currentDate
@@ -46,11 +42,7 @@ class TransactionsViewModelTest {
     @Test
     fun loadNextPage_whileLoading_ignoredByGuard() = runTest {
         val fakeRepo = FakeTransactionsRepository(delayMs = 0)
-        val viewModel = TransactionsViewModel(
-            getTransactionsUseCase = GetTransactionsUseCase(fakeRepo),
-            repository = fakeRepo,
-            token = "token"
-        )
+        val viewModel = TransactionsViewModel(fakeRepo)
 
         advanceUntilIdle() // initial load finished, totalPages becomes 3
         assertEquals(1, viewModel.uiState.value.currentPage)
@@ -67,17 +59,33 @@ class TransactionsViewModelTest {
     }
 
     @Test
+    fun loadNextPage_doubleTapOnlyRequestsNextPageOnce() = runTest {
+        val fakeRepo = FakeTransactionsRepository(delayMs = 0)
+        val viewModel = TransactionsViewModel(fakeRepo)
+
+        advanceUntilIdle()
+        assertEquals(listOf(1), fakeRepo.requestedPages)
+
+        fakeRepo.delayMs = 300
+        viewModel.loadNextPage()
+        viewModel.loadNextPage()
+        runCurrent()
+
+        assertEquals(listOf(1, 2), fakeRepo.requestedPages)
+        assertEquals(2, viewModel.uiState.value.currentPage)
+
+        advanceUntilIdle()
+        assertEquals(2, viewModel.uiState.value.currentPage)
+    }
+
+    @Test
     fun fetchTransactions_whenTechnicalError_usesFriendlyFallbackMessage() = runTest {
         val fakeRepo = FakeTransactionsRepository(
             delayMs = 0,
             shouldFail = true,
             failureMessage = "HTTP Error 500 from /api/transactions"
         )
-        val viewModel = TransactionsViewModel(
-            getTransactionsUseCase = GetTransactionsUseCase(fakeRepo),
-            repository = fakeRepo,
-            token = "token"
-        )
+        val viewModel = TransactionsViewModel(fakeRepo)
 
         advanceUntilIdle()
 
@@ -91,6 +99,7 @@ private class FakeTransactionsRepository(
     private val failureMessage: String = "Riwayat transaksi gagal"
 ) : TransactionsRepository {
     var getTransactionsCalls: Int = 0
+    val requestedPages = mutableListOf<Int>()
 
     override suspend fun getTransactions(
         token: String,
@@ -98,6 +107,7 @@ private class FakeTransactionsRepository(
         page: Int
     ): Result<TransactionPageData> {
         getTransactionsCalls += 1
+        requestedPages += page
         if (delayMs > 0) delay(delayMs)
         if (shouldFail) {
             return Result.failure(IllegalStateException(failureMessage))

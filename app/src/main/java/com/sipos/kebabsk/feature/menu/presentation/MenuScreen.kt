@@ -67,6 +67,8 @@ import androidx.compose.ui.unit.sp
 import com.sipos.kebabsk.R
 import com.sipos.kebabsk.feature.auth.domain.model.AuthSession
 import com.sipos.kebabsk.ui.theme.*
+import com.sipos.kebabsk.feature.cart.presentation.CartUiState
+import com.sipos.kebabsk.feature.checkout.presentation.CheckoutUiState
 
 // Custom crossed fork-and-spoon icon (sendok garpu menyilang)
 private val CrossedUtensils: ImageVector
@@ -129,9 +131,12 @@ enum class CashierPage {
 fun MenuScreen(
     modifier: Modifier = Modifier,
     session: AuthSession,
-    uiState: MenuUiState,
+    menuUiState: MenuUiState,
+    cartUiState: CartUiState,
+    checkoutUiState: CheckoutUiState,
     onRefresh: () -> Unit,
     onCategorySelected: (String?) -> Unit,
+    onLoadPaymentMethods: () -> Unit,
     onAddVariant: (menuName: String, variantId: Long, variantName: String, price: Long) -> Unit,
     onRemoveVariant: (variantId: Long) -> Unit,
     onDeleteVariant: (variantId: Long) -> Unit,
@@ -143,14 +148,12 @@ fun MenuScreen(
     onDismissCheckoutPreview: () -> Unit,
     onClearCheckoutMessage: () -> Unit
 ) {
-    val totalAmount = remember(uiState.cartItems) {
-        uiState.cartItems.sumOf { it.price * it.qty }
-    }
+    val totalAmount = cartUiState.totalAmount
     val exactAmount = totalAmount
     val isCashier = remember(session.role) { session.role.equals("kasir", ignoreCase = true) }
 
     val quickAmounts = remember(totalAmount) { buildQuickAmounts(totalAmount) }
-    val rawMenuItems = remember(uiState.menus) { buildMenuVariantItems(uiState.menus) }
+    val rawMenuItems = remember(menuUiState.menus) { buildMenuVariantItems(menuUiState.menus) }
     val menuItems = remember(rawMenuItems, isCashier) {
         if (isCashier) {
             // Sembunyikan semua variant yang tidak bisa dipesan:
@@ -162,8 +165,8 @@ fun MenuScreen(
         }
     }
     val categories = remember(menuItems) { buildMenuCategories(menuItems) }
-    val filteredMenuItems = remember(menuItems, uiState.selectedCategory) {
-        filterMenuItems(menuItems, uiState.selectedCategory)
+    val filteredMenuItems = remember(menuItems, menuUiState.selectedCategory) {
+        filterMenuItems(menuItems, menuUiState.selectedCategory)
     }
     val emptyStateMessage = "Belum ada menu yang tersedia untuk dijual saat ini."
 
@@ -173,8 +176,8 @@ fun MenuScreen(
         BackHandler { cashierPage = CashierPage.MENU }
     }
 
-    LaunchedEffect(uiState.checkoutMessage) {
-        if (!uiState.checkoutMessage.isNullOrBlank()) {
+    LaunchedEffect(checkoutUiState.checkoutMessage) {
+        if (!checkoutUiState.checkoutMessage.isNullOrBlank()) {
             delay(3000)
             onClearCheckoutMessage()
         }
@@ -192,7 +195,7 @@ fun MenuScreen(
         topBar = {
             MenuTopBar(
                 cashierPage = cashierPage,
-                itemCount = uiState.cartItems.sumOf { it.qty },
+                itemCount = cartUiState.cartItems.sumOf { it.qty },
                 onBack = {
                     cashierPage = if (cashierPage == CashierPage.PAYMENT) {
                         CashierPage.CART
@@ -205,13 +208,15 @@ fun MenuScreen(
         floatingActionButton = {
             if (cashierPage == CashierPage.MENU) {
                 CartFloatingActionButton(
-                    itemCount = uiState.cartItems.sumOf { it.qty },
+                    itemCount = cartUiState.cartItems.sumOf { it.qty },
                     onClick = { cashierPage = CashierPage.CART }
                 )
             }
         },
         floatingActionButtonPosition = FabPosition.End
     ) { paddingValues ->
+        val cartInteractionEnabled = !checkoutUiState.isSubmitting
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -222,14 +227,15 @@ fun MenuScreen(
             Box(modifier = Modifier.weight(1f)) {
                 when (cashierPage) {
                     CashierPage.MENU -> {
-                        if (uiState.isLoading) {
+                        if (menuUiState.isLoading) {
                             MenuListSkeletonTab()
                         } else {
                             MenuListTab(
                                 menuItems = filteredMenuItems,
                                 categories = categories,
-                                selectedCategory = uiState.selectedCategory,
-                                cartItems = uiState.cartItems,
+                                selectedCategory = menuUiState.selectedCategory,
+                                cartItems = cartUiState.cartItems,
+                                cartInteractionEnabled = cartInteractionEnabled,
                                 emptyStateMessage = emptyStateMessage,
                                 onCategorySelected = onCategorySelected,
                                 onAddVariant = onAddVariant,
@@ -248,11 +254,12 @@ fun MenuScreen(
                             )
                         ) {
                             CartTab(
-                                cartItems = uiState.cartItems,
+                                cartItems = cartUiState.cartItems,
                                 totalAmount = totalAmount,
                                 onAddVariant = onAddVariant,
                                 onRemoveVariant = onRemoveVariant,
                                 onDeleteVariant = onDeleteVariant,
+                                cartInteractionEnabled = cartInteractionEnabled,
                                 onNavigateToPayment = { cashierPage = CashierPage.PAYMENT },
                                 onBackToMenu = { cashierPage = CashierPage.MENU }
                             )
@@ -261,10 +268,14 @@ fun MenuScreen(
 
                     CashierPage.PAYMENT -> {
                         PaymentTab(
-                            uiState = uiState,
+                            checkoutUiState = checkoutUiState,
+                            cartItems = cartUiState.cartItems,
+                            isDailySessionOpen = menuUiState.isDailySessionOpen,
+                            isLoading = menuUiState.isLoading,
                             totalAmount = totalAmount,
                             exactAmount = exactAmount,
                             quickAmounts = quickAmounts,
+                            cartInteractionEnabled = cartInteractionEnabled,
                             onPaymentMethodSelected = onPaymentMethodSelected,
                             onQuickAmountSelected = onQuickAmountSelected,
                             onPaidAmountChanged = onPaidAmountChanged,
@@ -288,7 +299,7 @@ fun MenuScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     AnimatedVisibility(
-                        visible = !uiState.errorMessage.isNullOrBlank(),
+                        visible = !menuUiState.errorMessage.isNullOrBlank(),
                         enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
                         exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut()
                     ) {
@@ -299,7 +310,7 @@ fun MenuScreen(
                             shadowElevation = 4.dp
                         ) {
                             Text(
-                                text = uiState.errorMessage ?: "",
+                                text = menuUiState.errorMessage ?: "",
                                 color = MaterialTheme.colorScheme.onErrorContainer,
                                 style = MaterialTheme.typography.bodySmall,
                                 modifier = Modifier.padding(10.dp)
@@ -308,7 +319,7 @@ fun MenuScreen(
                     }
 
                     AnimatedVisibility(
-                        visible = !uiState.checkoutMessage.isNullOrBlank(),
+                        visible = !checkoutUiState.checkoutMessage.isNullOrBlank(),
                         enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
                         exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut()
                     ) {
@@ -319,7 +330,7 @@ fun MenuScreen(
                             shadowElevation = 4.dp
                         ) {
                             Text(
-                                text = uiState.checkoutMessage ?: "",
+                                text = checkoutUiState.checkoutMessage ?: "",
                                 color = KebabSuccess,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,

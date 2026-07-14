@@ -26,17 +26,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sipos.kebabsk.feature.checkout.domain.model.CheckoutCartItem
+import com.sipos.kebabsk.feature.cart.domain.model.CartItem
 import com.sipos.kebabsk.ui.theme.*
-import com.sipos.kebabsk.feature.menu.presentation.toRupiah
 
 @Composable
 fun CartTab(
-    cartItems: List<CheckoutCartItem>,
+    cartItems: List<CartItem>,
     totalAmount: Long,
     onAddVariant: (menuName: String, variantId: Long, variantName: String, price: Long) -> Unit,
     onRemoveVariant: (Long) -> Unit,
     onDeleteVariant: (Long) -> Unit,
+    cartInteractionEnabled: Boolean = true,
     onNavigateToPayment: () -> Unit,
     onBackToMenu: () -> Unit
 ) {
@@ -67,7 +67,7 @@ fun CartTab(
                         color = KebabTextGray
                     )
                 }
-                
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -105,7 +105,7 @@ fun CartTab(
             }
         } else {
             val formatPrice = { amount: Long ->
-                toRupiah(amount).replace("Rp", "Rp ").replace(",00", "")
+                com.sipos.kebabsk.common.MoneyUtils.formatRupiah(amount).replace("Rp", "Rp ").replace(",00", "")
             }
 
             Column(modifier = Modifier.fillMaxSize()) {
@@ -141,11 +141,7 @@ fun CartTab(
 
                     items(count = cartItems.size, key = { cartItems[it].variantId }) { index ->
                         val item = cartItems[index]
-                        val displayVariantName = if (item.variantName.startsWith(item.menuName, ignoreCase = true)) {
-                            item.variantName.substring(item.menuName.length).trim()
-                        } else {
-                            item.variantName
-                        }
+                        val displayVariantName = com.sipos.kebabsk.common.VariantDisplayUtils.formatVariantName(item.menuName, item.variantName)
 
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -197,6 +193,7 @@ fun CartTab(
                                     Spacer(modifier = Modifier.height(8.dp))
                                     IconButton(
                                         onClick = { onDeleteVariant(item.variantId) },
+                                        enabled = cartInteractionEnabled,
                                         modifier = Modifier.size(48.dp)
                                     ) {
                                         Icon(
@@ -209,6 +206,7 @@ fun CartTab(
                                     Spacer(modifier = Modifier.height(8.dp))
                                     CartQuantitySelector(
                                         qty = item.qty,
+                                        enabled = cartInteractionEnabled,
                                         onRemove = { onRemoveVariant(item.variantId) },
                                         onAdd = {
                                             onAddVariant(item.menuName, item.variantId, item.variantName, item.price)
@@ -280,7 +278,7 @@ fun CartTab(
                                     softWrap = false
                                 )
                             }
-                            
+
                             Button(
                                 onClick = onNavigateToPayment,
                                 modifier = Modifier
@@ -310,6 +308,7 @@ fun CartTab(
 @Composable
 private fun CartQuantitySelector(
     qty: Int,
+    enabled: Boolean,
     onRemove: () -> Unit,
     onAdd: () -> Unit
 ) {
@@ -323,6 +322,7 @@ private fun CartQuantitySelector(
     ) {
         CartQuantityButton(
             onClick = onRemove,
+            enabled = enabled,
             containerColor = Color.White,
             contentColor = KebabPrimary,
             icon = Icons.Outlined.Remove,
@@ -340,6 +340,7 @@ private fun CartQuantitySelector(
 
         CartQuantityButton(
             onClick = onAdd,
+            enabled = enabled,
             containerColor = KebabPrimary,
             contentColor = Color.White,
             icon = Icons.Outlined.Add,
@@ -351,6 +352,7 @@ private fun CartQuantitySelector(
 @Composable
 private fun CartQuantityButton(
     onClick: () -> Unit,
+    enabled: Boolean,
     containerColor: Color,
     contentColor: Color,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -358,6 +360,7 @@ private fun CartQuantityButton(
 ) {
     IconButton(
         onClick = onClick,
+        enabled = enabled,
         modifier = Modifier
             .size(48.dp)
             .clip(CircleShape)

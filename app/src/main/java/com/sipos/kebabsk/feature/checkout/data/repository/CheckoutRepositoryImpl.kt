@@ -2,6 +2,7 @@ package com.sipos.kebabsk.feature.checkout.data.repository
 
 import com.google.gson.JsonParser
 import com.sipos.kebabsk.common.retryNetworkRequest
+import com.sipos.kebabsk.common.suspendRunCatching
 import com.sipos.kebabsk.feature.checkout.data.remote.CheckoutApiService
 import com.sipos.kebabsk.feature.checkout.data.remote.CreateTransactionItemRequest
 import com.sipos.kebabsk.feature.checkout.data.remote.CreateTransactionRequest
@@ -17,7 +18,7 @@ class CheckoutRepositoryImpl(
     private val checkoutApiService: CheckoutApiService
 ) : CheckoutRepository {
     override suspend fun getPaymentMethods(token: String): Result<List<PaymentMethod>> {
-        return runCatching {
+        return suspendRunCatching {
             val response = retryNetworkRequest {
                 checkoutApiService.getPaymentMethods("Bearer $token")
             }
@@ -42,7 +43,7 @@ class CheckoutRepositoryImpl(
     }
 
     override suspend fun createTransaction(token: String, request: CheckoutRequestData): Result<CheckoutResult> {
-        return runCatching {
+        return suspendRunCatching {
             val apiRequest = CreateTransactionRequest(
                 paymentMethodId = request.paymentMethodId,
                 paidAmount = request.paidAmount,

@@ -1,26 +1,22 @@
 package com.sipos.kebabsk.feature.menu.presentation
 
-import com.sipos.kebabsk.feature.checkout.domain.model.CheckoutRequestData
-import com.sipos.kebabsk.feature.checkout.domain.model.CheckoutResult
-import com.sipos.kebabsk.feature.checkout.domain.model.PaymentMethod
-import com.sipos.kebabsk.feature.checkout.domain.repository.CheckoutRepository
-import com.sipos.kebabsk.feature.checkout.domain.usecase.CreateTransactionUseCase
-import com.sipos.kebabsk.feature.checkout.domain.usecase.GetPaymentMethodsUseCase
 import com.sipos.kebabsk.feature.menu.domain.model.DailySessionStatus
+import com.sipos.kebabsk.feature.menu.domain.model.DailyStockItem
 import com.sipos.kebabsk.feature.menu.domain.model.MenuItem
 import com.sipos.kebabsk.feature.menu.domain.model.MenuListPayload
 import com.sipos.kebabsk.feature.menu.domain.model.MenuUser
 import com.sipos.kebabsk.feature.menu.domain.model.MenuVariant
 import com.sipos.kebabsk.feature.menu.domain.repository.MenuRepository
-import com.sipos.kebabsk.feature.menu.domain.usecase.GetMenusUseCase
 import com.sipos.kebabsk.testutil.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -32,194 +28,196 @@ class MenuViewModelTest {
     val mainDispatcherRule = MainDispatcherRule(StandardTestDispatcher())
 
     @Test
-    fun submitCheckout_whenCartEmpty_setsErrorAndSkipsCreateRequest() = runTest {
-        val fakeMenuRepo = FakeMenuRepository(isDailyOpen = true)
-        val fakeCheckoutRepo = FakeCheckoutRepository()
-        val viewModel = buildViewModel(fakeMenuRepo, fakeCheckoutRepo)
+    fun loadMenus_whenSuccess_populatesMenuCashierSessionAndStockData() = runTest {
+        val fakeRepository = FakeMenuRepository()
+        val viewModel = MenuViewModel(fakeRepository)
 
-        viewModel.loadMenus("token", forceRefresh = true)
+        viewModel.loadMenus("token")
         advanceUntilIdle()
 
-        viewModel.submitCheckout("token")
-        advanceUntilIdle()
-
-        assertEquals("Keranjang masih kosong", viewModel.uiState.value.errorMessage)
-        assertEquals(0, fakeCheckoutRepo.createCalls)
+        val state = viewModel.uiState.value
+        assertEquals(samplePayload().menus, state.menus)
+        assertEquals("Cahyo", state.cashierName)
+        assertEquals("kasir", state.cashierRole)
+        assertTrue(state.isDailySessionOpen)
+        assertEquals("Sesi Harian Aktif", state.dailySessionStatusLabel)
+        assertEquals(200_000L, state.dailyTargetRevenue)
+        assertEquals(samplePayload().dailyStockItems, state.dailyStockItems)
+        assertNull(state.errorMessage)
+        assertFalse(state.isLoading)
     }
 
     @Test
-    fun submitCheckout_whenDailySessionClosed_showsGateMessage() = runTest {
-        val fakeMenuRepo = FakeMenuRepository(isDailyOpen = false)
-        val fakeCheckoutRepo = FakeCheckoutRepository()
-        val viewModel = buildViewModel(fakeMenuRepo, fakeCheckoutRepo)
-
-        viewModel.loadMenus("token", forceRefresh = true)
-        advanceUntilIdle()
-        viewModel.addVariantToCart("Burger", 11L, "Single", 12000L)
-        viewModel.onQuickAmountSelected(12000)
-
-        viewModel.submitCheckout("token")
-        advanceUntilIdle()
-
-        assertEquals(
-            "Sesi harian belum dibuka admin. Checkout belum bisa dilakukan.",
-            viewModel.uiState.value.errorMessage
+    fun loadMenus_whenFailure_setsErrorAndStopsLoading() = runTest {
+        val fakeRepository = FakeMenuRepository(
+            result = Result.failure(IllegalStateException("menu gagal dimuat"))
         )
-        assertEquals(0, fakeCheckoutRepo.createCalls)
+        val viewModel = MenuViewModel(fakeRepository)
+
+        viewModel.loadMenus("token")
+        advanceUntilIdle()
+
+        assertEquals("menu gagal dimuat", viewModel.uiState.value.errorMessage)
+        assertTrue(viewModel.uiState.value.menus.isEmpty())
+        assertFalse(viewModel.uiState.value.isLoading)
     }
 
     @Test
-    fun submitCheckout_doubleTap_onlyCreatesOneTransaction() = runTest {
-        val fakeMenuRepo = FakeMenuRepository(isDailyOpen = true)
-        val fakeCheckoutRepo = FakeCheckoutRepository(createDelayMs = 200)
-        val viewModel = buildViewModel(fakeMenuRepo, fakeCheckoutRepo)
+    fun loadMenus_sameTokenWhenMenusAlreadyLoaded_doesNotDuplicateRepositoryCall() = runTest {
+        val fakeRepository = FakeMenuRepository()
+        val viewModel = MenuViewModel(fakeRepository)
+        var onLoadedCalls = 0
 
-        viewModel.loadMenus("token", forceRefresh = true)
+        viewModel.loadMenus("token") { onLoadedCalls += 1 }
         advanceUntilIdle()
-        viewModel.addVariantToCart("Burger", 11L, "Single", 12000L)
-        viewModel.onQuickAmountSelected(12000)
-
-        viewModel.submitCheckout("token")
-        viewModel.submitCheckout("token")
+        viewModel.loadMenus("token") { onLoadedCalls += 1 }
         advanceUntilIdle()
 
-        assertEquals(1, fakeCheckoutRepo.createCalls)
-        assertNotNull(viewModel.uiState.value.checkoutTransactionCode)
-        assertTrue(viewModel.uiState.value.cartItems.isEmpty())
+        assertEquals(1, fakeRepository.getMenusCalls)
+        assertEquals(2, onLoadedCalls)
     }
 
     @Test
-    fun submitCheckout_whenBackendSaysSessionClosed_mapsToFriendlyMessage() = runTest {
-        val fakeMenuRepo = FakeMenuRepository(isDailyOpen = true)
-        val fakeCheckoutRepo = FakeCheckoutRepository(
-            shouldFail = true,
-            failureMessage = "sesi harian belum dibuka"
-        )
-        val viewModel = buildViewModel(fakeMenuRepo, fakeCheckoutRepo)
+    fun loadMenus_parallelCallsOnlyCallRepositoryOnce() = runTest {
+        val fakeRepository = FakeMenuRepository(delayMs = 200)
+        val viewModel = MenuViewModel(fakeRepository)
 
-        viewModel.loadMenus("token", forceRefresh = true)
+        viewModel.loadMenus("token")
+        viewModel.loadMenus("token")
+        runCurrent()
+
+        assertEquals(1, fakeRepository.getMenusCalls)
+        assertTrue(viewModel.uiState.value.isLoading)
+
         advanceUntilIdle()
-        viewModel.addVariantToCart("Burger", 11L, "Single", 12000L)
-        viewModel.onQuickAmountSelected(12000)
-
-        viewModel.submitCheckout("token")
-        advanceUntilIdle()
-
-        assertEquals(
-            "Sesi harian belum dibuka admin. Checkout belum bisa dilakukan.",
-            viewModel.uiState.value.errorMessage
-        )
+        assertFalse(viewModel.uiState.value.isLoading)
+        assertEquals(samplePayload().menus, viewModel.uiState.value.menus)
     }
 
     @Test
-    fun submitCheckout_whenBackendSaysPaymentDeficit_mapsToFriendlyMessage() = runTest {
-        val fakeMenuRepo = FakeMenuRepository(isDailyOpen = true)
-        val fakeCheckoutRepo = FakeCheckoutRepository(
-            shouldFail = true,
-            failureMessage = "deficit amount 2000"
-        )
-        val viewModel = buildViewModel(fakeMenuRepo, fakeCheckoutRepo)
+    fun forceRefreshMenus_callsRepositoryAgainForSameToken() = runTest {
+        val fakeRepository = FakeMenuRepository()
+        val viewModel = MenuViewModel(fakeRepository)
 
-        viewModel.loadMenus("token", forceRefresh = true)
+        viewModel.loadMenus("token")
         advanceUntilIdle()
-        viewModel.addVariantToCart("Burger", 11L, "Single", 12000L)
-        viewModel.onQuickAmountSelected(10000)
-
-        viewModel.submitCheckout("token")
+        viewModel.forceRefreshMenus("token")
         advanceUntilIdle()
 
-        assertEquals(
-            "Nominal bayar tidak valid",
-            viewModel.uiState.value.errorMessage
-        )
+        assertEquals(2, fakeRepository.getMenusCalls)
     }
 
-    private fun buildViewModel(
-        fakeMenuRepo: FakeMenuRepository,
-        fakeCheckoutRepo: FakeCheckoutRepository
-    ): MenuViewModel {
-        return MenuViewModel(
-            getMenusUseCase = GetMenusUseCase(fakeMenuRepo),
-            getPaymentMethodsUseCase = GetPaymentMethodsUseCase(fakeCheckoutRepo),
-            createTransactionUseCase = CreateTransactionUseCase(fakeCheckoutRepo)
-        )
+    @Test
+    fun onCategorySelected_updatesSelectedCategory() = runTest {
+        val viewModel = MenuViewModel(FakeMenuRepository())
+
+        viewModel.onCategorySelected("Kebab")
+
+        assertEquals("Kebab", viewModel.uiState.value.selectedCategory)
+    }
+
+    @Test
+    fun clear_resetsStateAndAllowsReloadForSameToken() = runTest {
+        val fakeRepository = FakeMenuRepository()
+        val viewModel = MenuViewModel(fakeRepository)
+
+        viewModel.loadMenus("token")
+        advanceUntilIdle()
+        viewModel.onCategorySelected("Kebab")
+        viewModel.clear()
+
+        assertEquals(MenuUiState(), viewModel.uiState.value)
+
+        viewModel.loadMenus("token")
+        advanceUntilIdle()
+
+        assertEquals(2, fakeRepository.getMenusCalls)
+        assertEquals(samplePayload().menus, viewModel.uiState.value.menus)
+    }
+
+    @Test
+    fun prefetchMenusIfNeeded_whenMenusEmpty_loadsOnce() = runTest {
+        val fakeRepository = FakeMenuRepository()
+        val viewModel = MenuViewModel(fakeRepository)
+
+        viewModel.prefetchMenusIfNeeded("token")
+        advanceUntilIdle()
+        viewModel.prefetchMenusIfNeeded("token")
+        advanceUntilIdle()
+
+        assertEquals(1, fakeRepository.getMenusCalls)
+        assertEquals(samplePayload().menus, viewModel.uiState.value.menus)
+    }
+
+    @Test
+    fun loadMenus_passesTokenToRepository() = runTest {
+        val fakeRepository = FakeMenuRepository()
+        val viewModel = MenuViewModel(fakeRepository)
+
+        viewModel.loadMenus("token-123")
+        advanceUntilIdle()
+
+        assertEquals("token-123", fakeRepository.lastToken)
     }
 }
 
 private class FakeMenuRepository(
-    private val isDailyOpen: Boolean
+    private var result: Result<MenuListPayload> = Result.success(samplePayload()),
+    private val delayMs: Long = 0L
 ) : MenuRepository {
+    var getMenusCalls: Int = 0
+    var lastToken: String? = null
+
     override suspend fun getMenus(
         token: String,
         search: String?,
         categoryId: Long?
     ): Result<MenuListPayload> {
-        return Result.success(
-            MenuListPayload(
-                user = MenuUser(
-                    id = 1L,
-                    name = "Kasir Test",
-                    role = "kasir",
-                    isPrivileged = false
-                ),
-                menus = listOf(
-                    MenuItem(
-                        id = 1L,
-                        name = "Burger",
-                        description = null,
-                        isActive = true,
-                        categoryName = "Makanan",
-                        variants = listOf(
-                            MenuVariant(
-                                id = 11L,
-                                name = "Single",
-                                price = 12000L,
-                                isAvailable = true
-                            )
-                        )
-                    )
-                ),
-                dailySession = DailySessionStatus(
-                    isOpen = isDailyOpen,
-                    label = if (isDailyOpen) "Sesi harian aktif" else "Sesi belum dibuka",
-                    targetRevenue = 200000L
-                ),
-                dailyStockItems = emptyList()
-            )
-        )
+        getMenusCalls += 1
+        lastToken = token
+        if (delayMs > 0) delay(delayMs)
+        return result
     }
 }
 
-private class FakeCheckoutRepository(
-    private val createDelayMs: Long = 0L,
-    private val shouldFail: Boolean = false,
-    private val failureMessage: String = "Pembayaran belum berhasil."
-) : CheckoutRepository {
-    var createCalls: Int = 0
-
-    override suspend fun getPaymentMethods(token: String): Result<List<PaymentMethod>> {
-        return Result.success(listOf(PaymentMethod(id = 1L, name = "Cash")))
-    }
-
-    override suspend fun createTransaction(
-        token: String,
-        request: CheckoutRequestData
-    ): Result<CheckoutResult> {
-        createCalls += 1
-        if (createDelayMs > 0) {
-            delay(createDelayMs)
-        }
-        if (shouldFail) {
-            return Result.failure(IllegalStateException(failureMessage))
-        }
-        return Result.success(
-            CheckoutResult(
-                transactionId = 1001L,
-                transactionCode = "TRX-TEST-1001",
-                totalAmount = 12000L,
-                paidAmount = request.paidAmount,
-                changeAmount = request.paidAmount - 12000L
+private fun samplePayload(): MenuListPayload {
+    return MenuListPayload(
+        user = MenuUser(
+            id = 7L,
+            name = "Cahyo",
+            role = "kasir",
+            isPrivileged = false
+        ),
+        menus = listOf(
+            MenuItem(
+                id = 1L,
+                name = "Kebab",
+                description = "Kebab kecil",
+                isActive = true,
+                categoryName = "Kebab",
+                variants = listOf(
+                    MenuVariant(
+                        id = 11L,
+                        name = "Mini",
+                        price = 10_000L,
+                        isAvailable = true
+                    )
+                )
+            )
+        ),
+        dailySession = DailySessionStatus(
+            isOpen = true,
+            label = "Sesi Harian Aktif",
+            targetRevenue = 200_000L
+        ),
+        dailyStockItems = listOf(
+            DailyStockItem(
+                ingredientId = 3L,
+                name = "Selada",
+                qty = 1.0,
+                remainingQty = 0.8,
+                unit = "kg"
             )
         )
-    }
+    )
 }

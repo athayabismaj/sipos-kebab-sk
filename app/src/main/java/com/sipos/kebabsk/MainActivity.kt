@@ -15,6 +15,8 @@ import com.sipos.kebabsk.common.perf.JankMonitor
 import com.sipos.kebabsk.feature.auth.presentation.forgotpassword.ForgotPasswordViewModel
 import com.sipos.kebabsk.feature.auth.presentation.login.LoginViewModel
 import com.sipos.kebabsk.feature.menu.presentation.MenuViewModel
+import com.sipos.kebabsk.feature.cart.presentation.CartViewModel
+import com.sipos.kebabsk.feature.checkout.presentation.CheckoutViewModel
 import com.sipos.kebabsk.ui.theme.SiposKebabSkTheme
 import kotlinx.coroutines.launch
 
@@ -22,6 +24,8 @@ class MainActivity : ComponentActivity() {
     private val loginViewModel: LoginViewModel by viewModel()
     private val forgotPasswordViewModel: ForgotPasswordViewModel by viewModel()
     private val menuViewModel: MenuViewModel by viewModel()
+    private val cartViewModel: CartViewModel by viewModel()
+    private val checkoutViewModel: CheckoutViewModel by viewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen().setKeepOnScreenCondition { false }
@@ -36,6 +40,8 @@ class MainActivity : ComponentActivity() {
                 AuthSessionEvents.forceLogout.collect {
                     loginViewModel.logout()
                     menuViewModel.clear()
+                    cartViewModel.clearCart()
+                    checkoutViewModel.clear()
                 }
             }
         }
@@ -45,11 +51,15 @@ class MainActivity : ComponentActivity() {
                 val loginUiState = loginViewModel.uiState.collectAsStateWithLifecycle().value
                 val forgotUiState = forgotPasswordViewModel.uiState.collectAsStateWithLifecycle().value
                 val menuUiState = menuViewModel.uiState.collectAsStateWithLifecycle().value
+                val cartUiState = cartViewModel.uiState.collectAsStateWithLifecycle().value
+                val checkoutUiState = checkoutViewModel.uiState.collectAsStateWithLifecycle().value
 
                 AuthRoot(
                     loginUiState = loginUiState,
                     forgotPasswordUiState = forgotUiState,
                     menuUiState = menuUiState,
+                    cartUiState = cartUiState,
+                    checkoutUiState = checkoutUiState,
                     onIdentifierChanged = loginViewModel::onIdentifierChanged,
                     onPasswordChanged = loginViewModel::onPasswordChanged,
                     onLogin = loginViewModel::login,
@@ -60,6 +70,8 @@ class MainActivity : ComponentActivity() {
                     onLogout = {
                         loginViewModel.logout()
                         menuViewModel.clear()
+                        cartViewModel.clearCart()
+                        checkoutViewModel.clear()
                     },
                     onForgotEmailChanged = forgotPasswordViewModel::onEmailChanged,
                     onForgotCodeChanged = forgotPasswordViewModel::onCodeChanged,
@@ -70,17 +82,23 @@ class MainActivity : ComponentActivity() {
                     onForgotSubmitResetPassword = forgotPasswordViewModel::submitResetPassword,
                     onForgotReset = forgotPasswordViewModel::resetState,
                     onLoadMenus = { token, forceRefresh -> menuViewModel.loadMenus(token, forceRefresh) },
-                    onAddVariant = menuViewModel::addVariantToCart,
-                    onRemoveVariant = menuViewModel::removeFromCart,
-                    onDeleteVariant = menuViewModel::deleteFromCart,
+                    onAddVariant = cartViewModel::addVariantToCart,
+                    onRemoveVariant = cartViewModel::removeFromCart,
+                    onDeleteVariant = cartViewModel::deleteFromCart,
                     onCategorySelected = menuViewModel::onCategorySelected,
-                    onPaymentMethodSelected = menuViewModel::onPaymentMethodSelected,
-                    onQuickAmountSelected = menuViewModel::onQuickAmountSelected,
-                    onPaidAmountChanged = menuViewModel::onPaidAmountChanged,
-                    onNoteChanged = menuViewModel::onNoteChanged,
-                    onSubmitCheckout = { token -> menuViewModel.submitCheckout(token) },
-                    onDismissCheckoutPreview = menuViewModel::dismissCheckoutPreview,
-                    onClearCheckoutMessage = menuViewModel::clearCheckoutMessage
+                    onLoadPaymentMethods = checkoutViewModel::loadPaymentMethods,
+                    onPaymentMethodSelected = checkoutViewModel::onPaymentMethodSelected,
+                    onQuickAmountSelected = checkoutViewModel::onQuickAmountSelected,
+                    onPaidAmountChanged = checkoutViewModel::onPaidAmountChanged,
+                    onNoteChanged = checkoutViewModel::onNoteChanged,
+                    onSubmitCheckout = { token, cartItems, isDailySessionOpen ->
+                        checkoutViewModel.submitCheckout(token, cartItems, isDailySessionOpen) {
+                            cartViewModel.clearCart()
+                            menuViewModel.loadMenus(token, forceRefresh = true)
+                        }
+                    },
+                    onDismissCheckoutPreview = checkoutViewModel::dismissCheckoutPreview,
+                    onClearCheckoutMessage = checkoutViewModel::clearCheckoutMessage
                 )
             }
         }

@@ -7,7 +7,6 @@ import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.feature.auth.domain.model.AuthSession
 import com.sipos.kebabsk.feature.auth.domain.repository.AuthRepository
 import com.sipos.kebabsk.feature.auth.domain.usecase.LoginUseCase
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -77,7 +76,7 @@ class LoginViewModel(
      * Kasir boleh tetap masuk dan melihat dashboard "Sesi Harian Ditutup".
      */
     private fun validateLocalSession(session: AuthSession) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             val profileResult = authRepository.me(session.token)
             profileResult.onSuccess { freshSession ->
                 if (!freshSession.hasCashierRole()) {

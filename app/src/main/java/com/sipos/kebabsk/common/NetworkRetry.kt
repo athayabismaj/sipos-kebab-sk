@@ -1,6 +1,7 @@
 package com.sipos.kebabsk.common
 
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.CancellationException
 import java.io.IOException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
@@ -21,6 +22,8 @@ suspend fun <T> retryNetworkRequest(
         try {
             return block()
         } catch (e: Throwable) {
+            if (e is CancellationException) throw e
+
             val retryable = e is IOException ||
                 e is SocketTimeoutException ||
                 e is ConnectException ||

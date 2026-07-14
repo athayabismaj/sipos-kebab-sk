@@ -1,23 +1,24 @@
 package com.sipos.kebabsk.feature.dailystock.data.repository
 
+import com.sipos.kebabsk.feature.dailystock.domain.model.DailyStockResult
+import com.sipos.kebabsk.feature.dailystock.domain.repository.DailyStockRepository
+
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.sipos.kebabsk.common.retryNetworkRequest
 import com.sipos.kebabsk.common.sanitizeUserMessage
+import com.sipos.kebabsk.common.firstString
+import com.sipos.kebabsk.common.firstLong
+import com.sipos.kebabsk.common.suspendRunCatching
 import com.sipos.kebabsk.feature.dailystock.data.remote.DailyStockApiService
 import com.sipos.kebabsk.feature.menu.domain.model.DailyStockItem
 
-data class DailyStockResult(
-    val sessionId: Long?,
-    val items: List<DailyStockItem>
-)
-
 class DailyStockRepositoryImpl(
     private val apiService: DailyStockApiService
-) {
-    suspend fun getDailyStock(token: String): Result<DailyStockResult> {
-        return runCatching {
+) : DailyStockRepository {
+    override suspend fun getDailyStock(token: String): Result<DailyStockResult> {
+        return suspendRunCatching {
             retryNetworkRequest {
                 apiService.getDailyStock("Bearer $token")
             }
@@ -43,12 +44,12 @@ class DailyStockRepositoryImpl(
         )
     }
 
-    suspend fun closeSession(
+    override suspend fun closeSession(
         token: String,
         remaining: Map<Long, Double>,
         notes: String?
     ): Result<String> {
-        return runCatching {
+        return suspendRunCatching {
             val body = JsonObject().apply {
                 val remainingObj = JsonObject()
                 remaining.forEach { (ingredientId, qty) ->
@@ -166,12 +167,12 @@ class DailyStockRepositoryImpl(
             val obj = row.asJsonObject
             val ingredientObj = obj.getAsJsonObject("ingredient")
 
-            val ingredientId = firstLong(obj, "ingredient_id", "id")
-                ?: ingredientObj?.let { firstLong(it, "id", "ingredient_id") }
+            val ingredientId = obj.firstLong("ingredient_id", "id")
+                ?: ingredientObj?.firstLong("id", "ingredient_id")
                 ?: 0L
 
-            val name = firstString(obj, "name", "item_name", "material_name", "bahan_name")
-                ?: ingredientObj?.let { firstString(it, "name", "item_name", "material_name", "bahan_name") }
+            val name = obj.firstString("name", "item_name", "material_name", "bahan_name")
+                ?: ingredientObj?.firstString("name", "item_name", "material_name", "bahan_name")
                 ?: return@mapNotNull null
 
             val qty = firstDouble(
@@ -204,25 +205,21 @@ class DailyStockRepositoryImpl(
                 "sisa"
             )
 
-            val unit = firstString(
-                obj,
+            val unit = obj.firstString(
                 "unit",
                 "uom",
                 "satuan",
                 "display_unit",
                 "base_unit",
                 "display_stock_unit"
-            ) ?: ingredientObj?.let {
-                firstString(
-                    it,
-                    "unit",
-                    "uom",
-                    "satuan",
-                    "display_unit",
-                    "base_unit",
-                    "display_stock_unit"
-                )
-            }
+            ) ?: ingredientObj?.firstString(
+                "unit",
+                "uom",
+                "satuan",
+                "display_unit",
+                "base_unit",
+                "display_stock_unit"
+            )
 
             DailyStockItem(
                 ingredientId = ingredientId,
@@ -232,16 +229,6 @@ class DailyStockRepositoryImpl(
                 unit = unit?.trim()?.takeIf { it.isNotBlank() }
             )
         }
-    }
-
-    private fun firstString(obj: JsonObject, vararg keys: String): String? {
-        keys.forEach { key ->
-            val value = obj.get(key)
-            if (value != null && !value.isJsonNull) {
-                runCatching { value.asString }.getOrNull()?.takeIf { it.isNotBlank() }?.let { return it }
-            }
-        }
-        return null
     }
 
     private fun firstDouble(obj: JsonObject, vararg keys: String): Double? {
@@ -254,24 +241,12 @@ class DailyStockRepositoryImpl(
         return null
     }
 
-    private fun firstLong(obj: JsonObject, vararg keys: String): Long? {
-        keys.forEach { key ->
-            val value = obj.get(key)
-            if (value != null && !value.isJsonNull) {
-                runCatching { value.asLong }.getOrNull()?.let { return it }
-            }
-        }
-        return null
-    }
-
     private fun mapCloseSessionError(code: Int, rawMessage: String?): String {
-        return when (code) {
-            401 -> "Sesi login sudah berakhir. Silakan login ulang."
-            404 -> "Sesi stok harian tidak ditemukan."
-            422 -> "Data sisa bahan belum valid. Silakan periksa kembali."
-            429 -> "Permintaan terlalu sering. Coba lagi beberapa saat."
-            in 500..599 -> "Layanan sedang bermasalah. Silakan coba lagi nanti."
-            else -> sanitizeUserMessage(rawMessage, "Gagal menutup sesi stok harian. Silakan coba lagi.")
-        }
+        return com.sipos.kebabsk.common.NetworkErrorMapper.mapHttpCodeToUserMessage(
+            code,
+            sanitizeUserMessage(rawMessage, "Gagal menutup sesi stok harian. Silakan coba lagi."),
+            "Sesi stok harian tidak ditemukan.",
+            "Data sisa bahan belum valid. Silakan periksa kembali."
+        )
     }
 }

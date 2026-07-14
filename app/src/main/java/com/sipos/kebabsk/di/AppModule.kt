@@ -18,8 +18,12 @@ import com.sipos.kebabsk.feature.expense.presentation.OperationalExpenseViewMode
 import com.sipos.kebabsk.feature.menu.data.remote.MenuApiService
 import com.sipos.kebabsk.feature.menu.data.repository.MenuRepositoryImpl
 import com.sipos.kebabsk.feature.menu.presentation.MenuViewModel
+import com.sipos.kebabsk.feature.cart.presentation.CartViewModel
+import com.sipos.kebabsk.feature.checkout.presentation.CheckoutViewModel
 import com.sipos.kebabsk.feature.profile.presentation.RevenueViewModel
 import com.sipos.kebabsk.feature.shift.data.remote.CloseShiftApiService
+import com.sipos.kebabsk.feature.shift.data.repository.CloseShiftRepositoryImpl
+import com.sipos.kebabsk.feature.shift.domain.repository.CloseShiftRepository
 import com.sipos.kebabsk.feature.shift.presentation.CloseShiftViewModel
 import com.sipos.kebabsk.feature.shift.presentation.ShiftSummaryViewModel
 import com.sipos.kebabsk.feature.transactions.data.remote.TransactionsApiService
@@ -58,9 +62,9 @@ val networkModule = module {
                 val request = chain.request().newBuilder()
                     .header("Accept", "application/json")
                     .build()
-                
+
                 val response = chain.proceed(request)
-                
+
                 val contentType = response.header("Content-Type") ?: ""
                 if (contentType.contains("text/html", ignoreCase = true)) {
                     val code = response.code
@@ -73,20 +77,20 @@ val networkModule = module {
             .addInterceptor { chain ->
                 val request = chain.request()
                 val response = chain.proceed(request)
-                
+
                 val authorizationHeader = request.header("Authorization")
                 val hasBearerToken = authorizationHeader?.startsWith("Bearer ", ignoreCase = true) == true
-                
+
                 val requestPath = request.url.encodedPath.trimEnd('/')
                 val isPublicAuthEndpoint = requestPath in publicAuthPaths
-                
+
                 val shouldForceLogout = response.code == 401 && hasBearerToken && !isPublicAuthEndpoint
-                
+
                 if (shouldForceLogout) {
                     AppSessionStore.clearSession()
                     AuthSessionEvents.notifyForceLogout()
                 }
-                
+
                 response
             }
             .apply {
@@ -129,15 +133,18 @@ val repositoryModule = module {
     single<com.sipos.kebabsk.feature.auth.domain.repository.AuthRepository> { AuthRepositoryImpl(get()) }
     single<com.sipos.kebabsk.feature.menu.domain.repository.MenuRepository> { MenuRepositoryImpl(get()) }
     single<com.sipos.kebabsk.feature.checkout.domain.repository.CheckoutRepository> { CheckoutRepositoryImpl(get()) }
-    single { DailyStockRepositoryImpl(get()) }
-    single { OperationalExpenseRepositoryImpl(get()) }
+    single<com.sipos.kebabsk.feature.dailystock.domain.repository.DailyStockRepository> { DailyStockRepositoryImpl(get()) }
+    single<com.sipos.kebabsk.feature.expense.domain.repository.OperationalExpenseRepository> { OperationalExpenseRepositoryImpl(get()) }
     single<com.sipos.kebabsk.feature.transactions.domain.repository.TransactionsRepository> { TransactionsRepositoryImpl(get()) }
+    single<CloseShiftRepository> { CloseShiftRepositoryImpl(get()) }
 }
 
 val viewModelModule = module {
     viewModel { LoginViewModel(get()) }
     viewModel { ForgotPasswordViewModel(get()) }
-    viewModel { MenuViewModel(get(), get()) }
+    viewModel { MenuViewModel(get()) }
+    viewModel { CartViewModel() }
+    viewModel { CheckoutViewModel(get()) }
     viewModel { DailyStockViewModel(get(), get()) }
     viewModel { OperationalExpenseViewModel(get()) }
     viewModel { TransactionsViewModel(get()) }

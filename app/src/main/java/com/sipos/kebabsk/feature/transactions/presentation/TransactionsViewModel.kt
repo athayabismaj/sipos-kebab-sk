@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -51,6 +52,7 @@ class TransactionsViewModel(
     private val _uiState = MutableStateFlow(TransactionsUiState())
     val uiState: StateFlow<TransactionsUiState> = _uiState.asStateFlow()
     private var fetchJob: Job? = null
+    private var fetchGeneration: Long = 0L
 
     init {
         fetchTransactions()
@@ -61,38 +63,48 @@ class TransactionsViewModel(
 
     fun fetchTransactions() {
         fetchJob?.cancel()
+        val generation = ++fetchGeneration
+        val requestDate = _uiState.value.currentDate
+        val requestPage = _uiState.value.currentPage
+        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
         fetchJob = viewModelScope.launch {
             val token = AppSessionStore.loadSession()?.token ?: ""
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            val summaryResult = repository.getRevenueSummary(token, _uiState.value.currentDate)
-            val summary = summaryResult.getOrNull()
+            try {
+                val summaryResult = repository.getRevenueSummary(token, requestDate)
+                val summary = summaryResult.getOrNull()
 
-            val currentPage = _uiState.value.currentPage
-            val result = getTransactionsUseCase(token, _uiState.value.currentDate, currentPage)
-            result.onSuccess { pageData ->
-                val newItems = pageData.items
-                val totalPages = pageData.totalPages
-                
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        totalRevenue = summary?.totalRevenue ?: 0L,
-                        totalTransactionsCount = summary?.totalCount ?: newItems.size,
-                        allTransactions = newItems,
-                        totalPages = totalPages,
-                        currentPage = currentPage,
-                        paginatedTransactions = newItems
-                    )
+                val result = getTransactionsUseCase(token, requestDate, requestPage)
+                result.onSuccess { pageData ->
+                    if (generation != fetchGeneration) return@onSuccess
+                    val newItems = pageData.items
+                    val totalPages = pageData.totalPages
+
+                    _uiState.update {
+                        it.copy(
+                            totalRevenue = summary?.totalRevenue ?: 0L,
+                            totalTransactionsCount = summary?.totalCount ?: newItems.size,
+                            allTransactions = newItems,
+                            totalPages = totalPages,
+                            currentPage = requestPage,
+                            paginatedTransactions = newItems
+                        )
+                    }
+                }.onFailure { error ->
+                    if (error is CancellationException || error.message?.contains("cancelled", ignoreCase = true) == true) {
+                        throw CancellationException(error.message)
+                    }
+                    if (generation != fetchGeneration) return@onFailure
+                    _uiState.update {
+                        it.copy(
+                            errorMessage = sanitizeUserMessage(error.message, "Riwayat transaksi belum bisa dimuat. Silakan coba lagi.")
+                        )
+                    }
                 }
-            }.onFailure { error ->
-                if (error is kotlinx.coroutines.CancellationException || error.message?.contains("cancelled", ignoreCase = true) == true) {
-                    return@launch
-                }
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = sanitizeUserMessage(error.message, "Riwayat transaksi belum bisa dimuat. Silakan coba lagi.")
-                    )
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } finally {
+                if (generation == fetchGeneration) {
+                    _uiState.update { it.copy(isLoading = false) }
                 }
             }
         }

@@ -3,6 +3,7 @@ package com.sipos.kebabsk.feature.profile.presentation
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException
@@ -41,10 +42,15 @@ object BluetoothPrinterConnection {
      * Mengirim bytes ESC/POS ke printer yang sedang terkoneksi.
      */
     suspend fun print(bytes: ByteArray): Result<Unit> = withContext(Dispatchers.IO) {
-        runCatching {
+        try {
             val stream = outputStream ?: throw IOException("Printer Bluetooth belum tersambung.")
             stream.write(bytes)
             stream.flush()
+            Result.success(Unit)
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (error: Exception) {
+            Result.failure(error)
         }
     }
 
@@ -69,6 +75,11 @@ object BluetoothPrinterConnection {
             activeSocket = socket
             activeOutputStream = socket.outputStream
             Result.success(Unit)
+        } catch (cancellation: CancellationException) {
+            runCatching { activeSocket?.close() }
+            activeSocket = null
+            activeOutputStream = null
+            throw cancellation
         } catch (e: IOException) {
             // Koneksi gagal — perangkat menolak (bukan printer, mati, dll)
             runCatching { activeSocket?.close() }

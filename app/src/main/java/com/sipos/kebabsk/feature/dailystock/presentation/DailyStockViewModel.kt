@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.sipos.kebabsk.common.AppSessionStore
 import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.feature.auth.data.remote.AuthApiService
-import com.sipos.kebabsk.feature.dailystock.data.repository.DailyStockRepositoryImpl
+import com.sipos.kebabsk.feature.dailystock.domain.repository.DailyStockRepository
+import com.sipos.kebabsk.feature.dailystock.domain.model.DailyStockResult
 import com.sipos.kebabsk.feature.menu.domain.model.DailyStockItem
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,7 +32,7 @@ data class DailyStockUiState(
 )
 
 class DailyStockViewModel(
-    private val repository: DailyStockRepositoryImpl,
+    private val repository: DailyStockRepository,
     private val authApiService: AuthApiService
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DailyStockUiState())
@@ -80,75 +82,86 @@ class DailyStockViewModel(
                     isSessionOpen = false
                     sessionStatusLabel = "Sesi Harian Belum Dibuka"
                 }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
             } catch (e: Exception) {
                 // Ignore failure for current-status, continue to daily stock load
             }
 
-            val token = AppSessionStore.loadSession()?.token ?: ""
-            repository.getDailyStock(token)
-                .onSuccess { result ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            items = result.items,
-                            sessionId = result.sessionId,
-                            isSessionOpen = isSessionOpen,
-                            sessionStatusLabel = sessionStatusLabel,
-                            isCashReconciliationPending = isPending,
-                            errorMessage = if (result.items.isEmpty() && result.sessionId == null) {
-                                "Sesi stok harian belum dibuka oleh admin hari ini."
-                            } else null
-                        )
-                    }
-                }
-                .onFailure { error ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            items = emptyList(),
-                            isSessionOpen = isSessionOpen ?: it.isSessionOpen,
-                            sessionStatusLabel = sessionStatusLabel ?: it.sessionStatusLabel,
-                            isCashReconciliationPending = isPending,
-                            errorMessage = sanitizeUserMessage(
-                                error.message,
-                                "Stok bahan harian belum bisa dimuat. Silakan coba lagi."
+            try {
+                val token = AppSessionStore.loadSession()?.token ?: ""
+                repository.getDailyStock(token)
+                    .onSuccess { result ->
+                        _uiState.update {
+                            it.copy(
+                                items = result.items,
+                                sessionId = result.sessionId,
+                                isSessionOpen = isSessionOpen,
+                                sessionStatusLabel = sessionStatusLabel,
+                                isCashReconciliationPending = isPending,
+                                errorMessage = if (result.items.isEmpty() && result.sessionId == null) {
+                                    "Sesi stok harian belum dibuka oleh admin hari ini."
+                                } else null
                             )
-                        )
+                        }
                     }
-                }
+                    .onFailure { error ->
+                        _uiState.update {
+                            it.copy(
+                                items = emptyList(),
+                                isSessionOpen = isSessionOpen ?: it.isSessionOpen,
+                                sessionStatusLabel = sessionStatusLabel ?: it.sessionStatusLabel,
+                                isCashReconciliationPending = isPending,
+                                errorMessage = sanitizeUserMessage(
+                                    error.message,
+                                    "Stok bahan harian belum bisa dimuat. Silakan coba lagi."
+                                )
+                            )
+                        }
+                    }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
+            }
         }
     }
 
     fun closeSession(remaining: Map<Long, Double>, notes: String?) {
+        if (_uiState.value.isClosing) return
         _uiState.update { it.copy(isClosing = true, closeErrorMessage = null, closeSuccess = false) }
         val token = AppSessionStore.loadSession()?.token ?: ""
         viewModelScope.launch {
-            repository.closeSession(token, remaining, notes)
-                .onSuccess { message ->
-                    _uiState.update {
-                        it.copy(
-                            isClosing = false,
-                            closeSuccess = true,
-                            closeSuccessMessage = message,
-                            closeErrorMessage = null,
-                            sessionId = null,
-                            isSessionOpen = false,
-                            sessionStatusLabel = "Sesi Harian Ditutup"
-                        )
-                    }
-                }
-                .onFailure { error ->
-                    _uiState.update {
-                        it.copy(
-                            isClosing = false,
-                            closeSuccess = false,
-                            closeErrorMessage = sanitizeUserMessage(
-                                error.message,
-                                "Gagal menutup sesi stok harian. Silakan coba lagi."
+            try {
+                repository.closeSession(token, remaining, notes)
+                    .onSuccess { message ->
+                        _uiState.update {
+                            it.copy(
+                                closeSuccess = true,
+                                closeSuccessMessage = message,
+                                closeErrorMessage = null,
+                                sessionId = null,
+                                isSessionOpen = false,
+                                sessionStatusLabel = "Sesi Harian Ditutup"
                             )
-                        )
+                        }
                     }
-                }
+                    .onFailure { error ->
+                        _uiState.update {
+                            it.copy(
+                                closeSuccess = false,
+                                closeErrorMessage = sanitizeUserMessage(
+                                    error.message,
+                                    "Gagal menutup sesi stok harian. Silakan coba lagi."
+                                )
+                            )
+                        }
+                    }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } finally {
+                _uiState.update { it.copy(isClosing = false) }
+            }
         }
     }
 

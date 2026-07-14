@@ -20,7 +20,8 @@ private val TECHNICAL_PATTERNS = listOf(
     Regex("""\bnullpointer\b""", RegexOption.IGNORE_CASE),
     Regex("""\binternal error\b""", RegexOption.IGNORE_CASE),
     Regex("""\bhttp error\b""", RegexOption.IGNORE_CASE),
-    Regex("""unable to|failed to connect|connection refused""", RegexOption.IGNORE_CASE)
+    Regex("""unable to|failed to connect|connection refused""", RegexOption.IGNORE_CASE),
+    Regex("""<[^>]+>""") // HTML tags
 )
 
 fun sanitizeUserMessage(rawMessage: String?, fallback: String): String {

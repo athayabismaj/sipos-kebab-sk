@@ -4,11 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sipos.kebabsk.common.AppSessionStore
 import com.sipos.kebabsk.common.sanitizeUserMessage
-import com.sipos.kebabsk.feature.dailystock.data.repository.DailyStockRepositoryImpl
+import com.sipos.kebabsk.feature.dailystock.domain.repository.DailyStockRepository
 import com.sipos.kebabsk.feature.shift.data.remote.CloseSessionData
 import com.sipos.kebabsk.feature.shift.data.remote.CloseSessionRequest
-import com.sipos.kebabsk.feature.shift.data.remote.CloseShiftApiService
-import kotlinx.coroutines.Dispatchers
+import com.sipos.kebabsk.feature.shift.domain.repository.CloseShiftRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,13 +26,13 @@ data class CloseShiftUiState(
     val isSubmitting: Boolean = false,
     val errorMessage: String? = null,
 
-    // Reconciliation result — SSOT dari server, bukan kalkulasi client
+    // Reconciliation result â€” SSOT dari server, bukan kalkulasi client
     val reconciliationResult: CloseSessionData? = null
 )
 
 class CloseShiftViewModel(
-    private val closeShiftApiService: CloseShiftApiService,
-    private val dailyStockRepository: DailyStockRepositoryImpl
+    private val closeShiftRepository: CloseShiftRepository,
+    private val dailyStockRepository: DailyStockRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CloseShiftUiState())
@@ -70,45 +70,49 @@ class CloseShiftViewModel(
         }
 
         val token = AppSessionStore.loadSession()?.token ?: ""
-        viewModelScope.launch(Dispatchers.IO) {
-            dailyStockRepository.getDailyStock(token)
-                .onSuccess { result ->
-                    val resolvedSessionId = result.sessionId
-                    val hasNullRemaining = result.items.any { item -> item.remainingQty == null }
-                    val hasNoItems = result.items.isEmpty()
+        viewModelScope.launch {
+            try {
+                dailyStockRepository.getDailyStock(token)
+                    .onSuccess { result ->
+                        val resolvedSessionId = result.sessionId
+                        val hasNullRemaining = result.items.any { item -> item.remainingQty == null }
+                        val hasNoItems = result.items.isEmpty()
 
-                    _uiState.update { state ->
-                        state.copy(
-                            isCheckingReadiness = false,
-                            sessionId = resolvedSessionId,
-                            isReadyToClose = !hasNullRemaining && !hasNoItems && resolvedSessionId != null,
-                            readinessMessage = when {
-                                resolvedSessionId == null -> "Tidak ada sesi stok harian yang aktif."
-                                hasNoItems -> "Tidak ada data stok harian. Hubungi admin."
-                                hasNullRemaining -> "Harap isi stok sisa bahan baku terlebih dahulu!"
-                                else -> null
-                            }
-                        )
-                    }
-                }
-                .onFailure { error ->
-                    _uiState.update { state ->
-                        state.copy(
-                            isCheckingReadiness = false,
-                            isReadyToClose = false,
-                            readinessMessage = sanitizeUserMessage(
-                                error.message,
-                                "Gagal memeriksa kesiapan stok. Silakan coba lagi."
+                        _uiState.update { state ->
+                            state.copy(
+                                sessionId = resolvedSessionId,
+                                isReadyToClose = !hasNullRemaining && !hasNoItems && resolvedSessionId != null,
+                                readinessMessage = when {
+                                    resolvedSessionId == null -> "Tidak ada sesi stok harian yang aktif."
+                                    hasNoItems -> "Tidak ada data stok harian. Hubungi admin."
+                                    hasNullRemaining -> "Harap isi stok sisa bahan baku terlebih dahulu!"
+                                    else -> null
+                                }
                             )
-                        )
+                        }
                     }
-                }
+                    .onFailure { error ->
+                        _uiState.update { state ->
+                            state.copy(
+                                isReadyToClose = false,
+                                readinessMessage = sanitizeUserMessage(
+                                    error.message,
+                                    "Gagal memeriksa kesiapan stok. Silakan coba lagi."
+                                )
+                            )
+                        }
+                    }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } finally {
+                _uiState.update { it.copy(isCheckingReadiness = false) }
+            }
         }
     }
 
     /**
      * Eksekusi penutupan shift. Mengirim uang kas fisik ke server.
-     * Variance diterima mentah dari API — DILARANG dihitung di client.
+     * Variance diterima mentah dari API â€” DILARANG dihitung di client.
      */
     fun submitCloseShift(actualPhysicalCash: Long, closingNotes: String?) {
         val sessionId = _uiState.value.sessionId ?: return
@@ -119,52 +123,40 @@ class CloseShiftViewModel(
         _uiState.update { state -> state.copy(isSubmitting = true, errorMessage = null) }
 
         val token = AppSessionStore.loadSession()?.token ?: ""
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
                 val request = CloseSessionRequest(
                     actualPhysicalCash = actualPhysicalCash,
                     closingNotes = closingNotes?.trim()?.takeIf { text -> text.isNotBlank() }
                 )
 
-                val response = closeShiftApiService.closeSession(
-                    authorization = "Bearer $token",
+                val result = closeShiftRepository.closeSession(
+                    token = token,
                     sessionId = sessionId,
-                    request = request
+                    actualPhysicalCash = request.actualPhysicalCash,
+                    closingNotes = request.closingNotes
                 )
 
-                if (response.isSuccessful && response.body() != null) {
-                    // SSOT: Terima data rekonsiliasi mentah dari server
-                    val reconciliation = response.body()!!.data
-                    _uiState.update { state ->
-                        state.copy(
-                            isSubmitting = false,
-                            reconciliationResult = reconciliation
-                        )
+                result.fold(
+                    onSuccess = { reconciliation ->
+                        _uiState.update { state ->
+                            state.copy(
+                                reconciliationResult = reconciliation
+                            )
+                        }
+                    },
+                    onFailure = { error ->
+                        _uiState.update { state ->
+                            state.copy(
+                                errorMessage = error.message ?: "Gagal menutup shift. Silakan coba lagi."
+                            )
+                        }
                     }
-                } else {
-                    val errorBody = response.errorBody()?.string()
-                    val serverMessage = runCatching {
-                        com.google.gson.JsonParser.parseString(errorBody)
-                            .asJsonObject.get("message")?.asString
-                    }.getOrNull()
-
-                    _uiState.update { state ->
-                        state.copy(
-                            isSubmitting = false,
-                            errorMessage = mapCloseError(response.code(), serverMessage)
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                _uiState.update { state ->
-                    state.copy(
-                        isSubmitting = false,
-                        errorMessage = sanitizeUserMessage(
-                            e.message,
-                            "Terjadi kesalahan jaringan. Silakan coba lagi."
-                        )
-                    )
-                }
+                )
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } finally {
+                _uiState.update { it.copy(isSubmitting = false) }
             }
         }
     }
@@ -172,18 +164,4 @@ class CloseShiftViewModel(
     fun clearState() {
         _uiState.update { CloseShiftUiState() }
     }
-
-    private fun mapCloseError(code: Int, rawMessage: String?): String {
-        return when (code) {
-            401 -> "Sesi login sudah berakhir. Silakan login ulang."
-            403 -> "Anda tidak memiliki izin untuk menutup sesi ini."
-            404 -> "Sesi stok harian tidak ditemukan."
-            409 -> "Sesi ini sudah ditutup sebelumnya."
-            422 -> rawMessage ?: "Data belum valid. Pastikan semua stok sisa sudah terisi."
-            429 -> "Permintaan terlalu sering. Coba lagi beberapa saat."
-            in 500..599 -> "Layanan sedang bermasalah. Silakan coba lagi nanti."
-            else -> sanitizeUserMessage(rawMessage, "Gagal menutup sesi. Silakan coba lagi.")
-        }
-    }
 }
-

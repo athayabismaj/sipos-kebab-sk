@@ -5,14 +5,6 @@ data class PaymentMethod(
     val name: String
 )
 
-data class CheckoutCartItem(
-    val variantId: Long,
-    val menuName: String,
-    val variantName: String,
-    val qty: Int,
-    val price: Long
-)
-
 data class CheckoutRequestData(
     val paymentMethodId: Long,
     val paidAmount: Long,

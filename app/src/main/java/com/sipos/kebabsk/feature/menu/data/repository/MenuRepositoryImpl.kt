@@ -1,9 +1,8 @@
 package com.sipos.kebabsk.feature.menu.data.repository
 
-import com.sipos.kebabsk.common.mapHttpCodeToUserMessage
-import com.sipos.kebabsk.common.mapThrowableToUserMessage
 import com.sipos.kebabsk.common.retryNetworkRequest
 import com.sipos.kebabsk.common.sanitizeUserMessage
+import com.sipos.kebabsk.common.suspendRunCatching
 import com.sipos.kebabsk.feature.menu.data.remote.MenuApiService
 import com.sipos.kebabsk.feature.menu.domain.model.DailyStockItem
 import com.sipos.kebabsk.feature.menu.domain.model.MenuItem
@@ -19,7 +18,7 @@ class MenuRepositoryImpl(
     private val menuApiService: MenuApiService
 ) : MenuRepository {
     override suspend fun getMenus(token: String, search: String?, categoryId: Long?): Result<MenuListPayload> {
-        return runCatching {
+        return suspendRunCatching {
             val response = retryNetworkRequest {
                 menuApiService.getMenus(
                     authorization = "Bearer $token",
@@ -105,7 +104,7 @@ class MenuRepositoryImpl(
             404 -> "Data menu belum tersedia."
             else -> {
                 val fallback = "Menu belum bisa dimuat. Silakan coba lagi."
-                val httpMapped = mapHttpCodeToUserMessage(code, fallback)
+                val httpMapped = com.sipos.kebabsk.common.NetworkErrorMapper.mapHttpCodeToUserMessage(code, fallback)
                 if (httpMapped == fallback) {
                     sanitizeUserMessage(rawMessage, fallback)
                 } else {
@@ -116,6 +115,6 @@ class MenuRepositoryImpl(
     }
 
     private fun mapThrowableError(throwable: Throwable): String {
-        return mapThrowableToUserMessage(throwable, "Menu belum bisa dimuat. Silakan coba lagi.")
+        return com.sipos.kebabsk.common.NetworkErrorMapper.mapThrowableToUserMessage(throwable, "Menu belum bisa dimuat. Silakan coba lagi.")
     }
 }

@@ -2,8 +2,10 @@ package com.sipos.kebabsk.feature.auth.data.repository
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
+import com.sipos.kebabsk.common.firstString
 import com.google.gson.JsonParser
 import com.sipos.kebabsk.common.sanitizeUserMessage
+import com.sipos.kebabsk.common.suspendRunCatching
 import com.sipos.kebabsk.feature.auth.data.remote.AuthApiService
 import com.sipos.kebabsk.feature.auth.domain.model.AuthSession
 import com.sipos.kebabsk.feature.auth.domain.repository.AuthRepository
@@ -13,7 +15,7 @@ class AuthRepositoryImpl(
     private val authApiService: AuthApiService
 ) : AuthRepository {
     override suspend fun login(identifier: String, password: String): Result<AuthSession> {
-        return runCatching {
+        return suspendRunCatching {
             val request = mapOf(
                 "email" to identifier,
                 "username" to identifier,
@@ -36,7 +38,7 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun me(token: String): Result<AuthSession> {
-        return runCatching {
+        return suspendRunCatching {
             val response = authApiService.me("Bearer $token")
             val body = response.body()
 
@@ -51,7 +53,7 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun updateProfile(token: String, name: String, username: String, email: String): Result<AuthSession> {
-        return runCatching {
+        return suspendRunCatching {
             val request = mapOf(
                 "name" to name,
                 "username" to username,
@@ -71,7 +73,7 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun changePassword(token: String, currentPassword: String, newPassword: String): Result<String> {
-        return runCatching {
+        return suspendRunCatching {
             val request = mapOf(
                 "current_password" to currentPassword,
                 "password" to newPassword,
@@ -91,7 +93,7 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun forgotPassword(email: String): Result<String> {
-        return runCatching {
+        return suspendRunCatching {
             val request = mapOf("email" to email)
             val response = authApiService.forgotPasswordAuth(request)
             val body = response.body()
@@ -107,7 +109,7 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun verifyResetCode(email: String, code: String): Result<String> {
-        return runCatching {
+        return suspendRunCatching {
             val request = mapOf(
                 "email" to email,
                 "otp" to code,
@@ -127,7 +129,7 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun resetPassword(email: String, code: String, newPassword: String): Result<String> {
-        return runCatching {
+        return suspendRunCatching {
             val request = mapOf(
                 "email" to email,
                 "otp" to code,
@@ -152,10 +154,10 @@ class AuthRepositoryImpl(
 
     private fun parseUserSession(body: JsonObject?, token: String, fallbackIdentifier: String): AuthSession {
         val userJson = extractUserJson(body)
-        val displayName = firstString(userJson, "name") ?: firstString(body, "name") ?: fallbackIdentifier
-        val username = firstString(userJson, "username") ?: fallbackIdentifier
-        val email = firstString(userJson, "email") ?: ""
-        val role = firstString(userJson, "role")
+        val displayName = userJson?.firstString("name") ?: body?.firstString("name") ?: fallbackIdentifier
+        val username = userJson?.firstString("username") ?: fallbackIdentifier
+        val email = userJson?.firstString("email") ?: ""
+        val role = userJson?.firstString("role")
 
         return AuthSession(
             token = token,
@@ -166,16 +168,14 @@ class AuthRepositoryImpl(
         )
     }
 
-
-
     private fun extractToken(body: JsonObject?): String? {
         if (body == null) return null
 
-        val topLevel = firstString(body, "token", "access_token", "accessToken")
+        val topLevel = body.firstString("token", "access_token", "accessToken")
         if (!topLevel.isNullOrBlank()) return topLevel
 
         val data = body.getAsJsonObjectOrNull("data")
-        return firstString(data, "token", "access_token", "accessToken")
+        return data?.firstString("token", "access_token", "accessToken")
     }
 
     private fun normalizeAccessToken(raw: String): String {
@@ -198,17 +198,17 @@ class AuthRepositoryImpl(
     }
 
     private fun extractMessage(body: JsonObject?): String? {
-        return firstString(body, "message", "status")
-            ?: firstString(body?.getAsJsonObjectOrNull("data"), "message", "status")
+        return body?.firstString("message", "status")
+            ?: body?.getAsJsonObjectOrNull("data")?.firstString("message", "status")
     }
 
     private fun extractErrorMessage(errorBodyString: String?, body: JsonObject?): String? {
         val parsedError = parseJson(errorBodyString)
 
         return firstNonBlank(
-            firstString(parsedError, "message", "error"),
+            parsedError?.firstString("message", "error"),
             extractValidationErrors(parsedError),
-            firstString(body, "message", "error")
+            body?.firstString("message", "error")
         )
     }
 
@@ -232,15 +232,6 @@ class AuthRepositoryImpl(
             .getOrNull()
             ?.takeIf { it.isJsonObject }
             ?.asJsonObject
-    }
-
-    private fun firstString(json: JsonObject?, vararg keys: String): String? {
-        if (json == null) return null
-        for (key in keys) {
-            val value = json.get(key).asStringOrNull()
-            if (!value.isNullOrBlank()) return value
-        }
-        return null
     }
 
     private fun firstNonBlank(vararg values: String?): String? {
@@ -281,7 +272,7 @@ class AuthRepositoryImpl(
      * Status sesi harian/shift tidak boleh dianggap sebagai status token login.
      */
     override suspend fun validateSessionOnServer(token: String): Result<Boolean> {
-        return runCatching {
+        return suspendRunCatching {
             val response = authApiService.me("Bearer $token")
 
             when {

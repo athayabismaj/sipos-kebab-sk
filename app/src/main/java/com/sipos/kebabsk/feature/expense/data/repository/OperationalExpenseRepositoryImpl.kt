@@ -1,5 +1,9 @@
 package com.sipos.kebabsk.feature.expense.data.repository
 
+import com.sipos.kebabsk.feature.expense.domain.repository.OperationalExpenseRepository
+import com.sipos.kebabsk.common.NetworkErrorMapper
+import com.sipos.kebabsk.common.suspendRunCatching
+
 import com.google.gson.JsonParser
 import com.sipos.kebabsk.common.retryNetworkRequest
 import com.sipos.kebabsk.feature.expense.data.remote.OperationalExpenseApiService
@@ -7,14 +11,14 @@ import com.sipos.kebabsk.feature.expense.data.remote.OperationalExpenseRequest
 
 class OperationalExpenseRepositoryImpl(
     private val apiService: OperationalExpenseApiService
-) {
-    suspend fun submitExpense(
+) : OperationalExpenseRepository {
+    override suspend fun submitExpense(
         token: String,
         amount: Long,
         source: String,
         note: String?
     ): Result<String> {
-        return runCatching {
+        return suspendRunCatching {
             val requestBody = OperationalExpenseRequest(
                 amount = amount,
                 source = source,
@@ -30,7 +34,7 @@ class OperationalExpenseRepositoryImpl(
 
             val body = response.body()
             if (response.isSuccessful && body?.success == true) {
-                return@runCatching body.message ?: "Pengeluaran operasional berhasil disimpan."
+                return@suspendRunCatching body.message ?: "Pengeluaran operasional berhasil disimpan."
             }
 
             val rawError = response.errorBody()?.string()
@@ -44,14 +48,12 @@ class OperationalExpenseRepositoryImpl(
         val parsedMessage = parseErrorMessage(rawError)
         if (!parsedMessage.isNullOrBlank()) return parsedMessage
 
-        return when (code) {
-            401 -> "Sesi login sudah berakhir. Silakan login ulang."
-            404 -> "Fitur pengeluaran belum aktif. Hubungi admin untuk update sistem."
-            422 -> "Data pengeluaran belum valid. Periksa nominal dan kategori."
-            429 -> "Permintaan terlalu sering. Coba lagi beberapa saat."
-            in 500..599 -> "Layanan sedang bermasalah. Silakan coba lagi nanti."
-            else -> "Pengeluaran belum berhasil disimpan."
-        }
+        return NetworkErrorMapper.mapHttpCodeToUserMessage(
+            code,
+            "Pengeluaran belum berhasil disimpan.",
+            "Fitur pengeluaran belum aktif. Hubungi admin untuk update sistem.",
+            "Data pengeluaran belum valid. Periksa nominal dan kategori."
+        )
     }
 
     private fun parseErrorMessage(rawError: String?): String? {

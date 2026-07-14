@@ -58,7 +58,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -86,6 +85,7 @@ import com.sipos.kebabsk.R
 import com.sipos.kebabsk.common.AppTime
 import com.sipos.kebabsk.feature.profile.presentation.BluetoothPrinterConnection
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionHistoryItem
+import com.sipos.kebabsk.common.MoneyUtils
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionReceipt
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionReceiptItem
 import com.sipos.kebabsk.ui.theme.KebabBg
@@ -734,8 +734,7 @@ private fun TransactionItemCard(
     onReceiptClicked: () -> Unit
 ) {
     val context = LocalContext.current
-    val formatRupiah = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("id-ID"))
-    val isSuccess = trx.status.equals("Sukses", ignoreCase = true) ||
+        val isSuccess = trx.status.equals("Sukses", ignoreCase = true) ||
         trx.status.equals("Success", ignoreCase = true) ||
         trx.status.equals("Lunas", ignoreCase = true) ||
         trx.status.equals("Paid", ignoreCase = true)
@@ -856,7 +855,7 @@ private fun TransactionItemCard(
                 )
             }
             Text(
-                text = formatRupiah.format(trx.total),
+                text = MoneyUtils.formatRupiah(trx.total),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = if (isCancelled) KebabTextGray.copy(alpha = opacity) else KebabTextDark,
@@ -1198,12 +1197,12 @@ private fun ReceiptPreviewCard(receipt: TransactionReceipt) {
         DashedReceiptDivider()
 
         Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            ReceiptPreviewRow(label = "Sub Total", value = toRupiahNoDecimal(receipt.totalAmount))
-            ReceiptPreviewRow(label = "Total", value = toRupiahNoDecimal(receipt.totalAmount), isBold = true)
-            ReceiptPreviewRow(label = "Bayar", value = toRupiahNoDecimal(receipt.paidAmount))
+            ReceiptPreviewRow(label = "Sub Total", value = com.sipos.kebabsk.common.MoneyUtils.formatRupiah(receipt.totalAmount))
+            ReceiptPreviewRow(label = "Total", value = com.sipos.kebabsk.common.MoneyUtils.formatRupiah(receipt.totalAmount), isBold = true)
+            ReceiptPreviewRow(label = "Bayar", value = com.sipos.kebabsk.common.MoneyUtils.formatRupiah(receipt.paidAmount))
             ReceiptPreviewRow(
                 label = "Kembalian",
-                value = toRupiahNoDecimal(receipt.changeAmount),
+                value = com.sipos.kebabsk.common.MoneyUtils.formatRupiah(receipt.changeAmount),
                 highlight = true
             )
         }
@@ -1384,7 +1383,7 @@ private fun ReceiptPreviewItem(index: Int, item: TransactionReceiptItem) {
                 }
             }
             Text(
-                text = toRupiahNoDecimal(item.subtotal),
+                text = com.sipos.kebabsk.common.MoneyUtils.formatRupiah(item.subtotal),
                 fontFamily = FontFamily.Monospace,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.ExtraBold,
@@ -1396,7 +1395,7 @@ private fun ReceiptPreviewItem(index: Int, item: TransactionReceiptItem) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "  ${item.qty} x ${toRupiahNoDecimal(item.price)}",
+                text = "  ${item.qty} x ${com.sipos.kebabsk.common.MoneyUtils.formatRupiah(item.price)}",
                 fontFamily = FontFamily.Monospace,
                 fontSize = 11.sp,
                 color = ReceiptDarkMuted
@@ -1565,18 +1564,18 @@ private fun buildReceiptEscPosBytes(receipt: TransactionReceipt): ByteArray {
         text("${index + 1}. ${item.name}".take(PRINTER_RECEIPT_WIDTH))
         bold(false)
         variantName?.let { text("   ${it}".take(PRINTER_RECEIPT_WIDTH)) }
-        text(receiptColumns("   ${item.qty} x ${toRupiahNoDecimal(item.price)}", toRupiahNoDecimal(item.subtotal)))
+        text(receiptColumns("   ${item.qty} x ${com.sipos.kebabsk.common.MoneyUtils.formatRupiah(item.price)}", com.sipos.kebabsk.common.MoneyUtils.formatRupiah(item.subtotal)))
     }
 
     line()
     text(receiptColumns("Total QTY", receipt.items.sumOf { it.qty }.toString()))
     line()
-    text(receiptColumns("Sub Total", toRupiahNoDecimal(receipt.totalAmount)))
+    text(receiptColumns("Sub Total", com.sipos.kebabsk.common.MoneyUtils.formatRupiah(receipt.totalAmount)))
     bold(true)
-    text(receiptColumns("Total", toRupiahNoDecimal(receipt.totalAmount)))
+    text(receiptColumns("Total", com.sipos.kebabsk.common.MoneyUtils.formatRupiah(receipt.totalAmount)))
     bold(false)
-    text(receiptColumns("Bayar", toRupiahNoDecimal(receipt.paidAmount)))
-    text(receiptColumns("Kembali", toRupiahNoDecimal(receipt.changeAmount)))
+    text(receiptColumns("Bayar", com.sipos.kebabsk.common.MoneyUtils.formatRupiah(receipt.paidAmount)))
+    text(receiptColumns("Kembali", com.sipos.kebabsk.common.MoneyUtils.formatRupiah(receipt.changeAmount)))
     align(1)
     line()
     bold(true)
@@ -1597,10 +1596,6 @@ private fun receiptColumns(left: String, right: String): String {
     return safeLeft + " ".repeat(spaces) + safeRight
 }
 
-private fun toRupiahNoDecimal(amount: Long): String {
-    val formatter = NumberFormat.getNumberInstance(Locale.forLanguageTag("id-ID"))
-    return "Rp${formatter.format(amount)}"
-}
 
 private fun receiptStatusDisplay(status: String): String {
     return when (status.lowercase(Locale.US)) {

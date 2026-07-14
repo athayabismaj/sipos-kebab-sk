@@ -5,10 +5,9 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.reflect.TypeToken
-import com.sipos.kebabsk.common.mapHttpCodeToUserMessage
-import com.sipos.kebabsk.common.mapThrowableToUserMessage
 import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.common.retryNetworkRequest
+import com.sipos.kebabsk.common.suspendRunCatching
 import com.sipos.kebabsk.feature.transactions.data.remote.TransactionItemResponse
 import com.sipos.kebabsk.feature.transactions.data.remote.TransactionsApiService
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionHistoryItem
@@ -29,7 +28,7 @@ class TransactionsRepositoryImpl(
 ) : TransactionsRepository {
 
     override suspend fun getTransactions(token: String, date: LocalDate, page: Int): Result<TransactionPageData> {
-        return runCatching {
+        return suspendRunCatching {
             val formattedQueryDate = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
             val response = retryNetworkRequest(maxAttempts = 1) {
                 apiService.getTransactions("Bearer $token", formattedQueryDate, page)
@@ -102,7 +101,7 @@ class TransactionsRepositoryImpl(
         transactionId: Long,
         transactionCode: String?
     ): Result<TransactionReceipt> {
-        return runCatching {
+        return suspendRunCatching {
             val references = listOfNotNull(
                 transactionId.toString(),
                 transactionCode?.trim()?.takeIf { it.isNotBlank() }
@@ -114,12 +113,12 @@ class TransactionsRepositoryImpl(
 
             for (reference in references) {
                 val candidates = listOf(
-                    runCatching {
+                    suspendRunCatching {
                         retryNetworkRequest(maxAttempts = 1) {
                             apiService.getTransactionDetail("Bearer $token", reference)
                         }
                     },
-                    runCatching {
+                    suspendRunCatching {
                         retryNetworkRequest(maxAttempts = 1) {
                             apiService.getTransactionReceiptDetail("Bearer $token", reference)
                         }
@@ -135,11 +134,11 @@ class TransactionsRepositoryImpl(
 
                             if (response.isSuccessful) {
                                 val parsed = runCatching {
-                                    parseTransactionReceiptBody(body, transactionId)
-                                }
-                                if (parsed.isSuccess) {
-                                    return@runCatching parsed.getOrThrow()
-                                }
+                        parseTransactionReceiptBody(body, transactionId)
+                    }
+                    if (parsed.isSuccess) {
+                        return@suspendRunCatching parsed.getOrThrow()
+                    }
                                 lastFailure = parsed.exceptionOrNull()
                             }
                         }
@@ -168,7 +167,7 @@ class TransactionsRepositoryImpl(
     }
 
     override suspend fun getRevenueSummary(token: String, date: LocalDate): Result<RevenueSummaryResult> {
-        return runCatching {
+        return suspendRunCatching {
             val formattedQueryDate = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
             val response = retryNetworkRequest {
                 apiService.getRevenueSummary("Bearer $token", formattedQueryDate)
@@ -204,7 +203,7 @@ class TransactionsRepositoryImpl(
     }
 
     override suspend fun getRevenueTrend(token: String, date: LocalDate): Result<List<Pair<String, Long>>> {
-        return runCatching {
+        return suspendRunCatching {
             val formattedQueryDate = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
             val response = retryNetworkRequest {
                 apiService.getRevenueTrend("Bearer $token", formattedQueryDate)
@@ -233,7 +232,7 @@ class TransactionsRepositoryImpl(
     }
 
     override suspend fun voidTransaction(token: String, transactionId: Long, reason: String, sessionId: Long): Result<String> {
-        return runCatching {
+        return suspendRunCatching {
             val idempotencyKey = java.util.UUID.randomUUID().toString()
             val request = com.sipos.kebabsk.feature.transactions.data.remote.VoidTransactionRequest(
                 reason = reason,
@@ -465,7 +464,7 @@ class TransactionsRepositoryImpl(
         if (!rawMessage.isNullOrBlank() && rawMessage != "The given data was invalid.") {
             return rawMessage
         }
-        val httpMapped = mapHttpCodeToUserMessage(code, fallback)
+        val httpMapped = com.sipos.kebabsk.common.NetworkErrorMapper.mapHttpCodeToUserMessage(code, fallback)
         return if (httpMapped == fallback) {
             sanitizeUserMessage(rawMessage, fallback)
         } else {
@@ -474,6 +473,6 @@ class TransactionsRepositoryImpl(
     }
 
     private fun mapThrowable(throwable: Throwable, fallback: String): String {
-        return mapThrowableToUserMessage(throwable, fallback)
+        return com.sipos.kebabsk.common.NetworkErrorMapper.mapThrowableToUserMessage(throwable, fallback)
     }
 }

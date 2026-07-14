@@ -45,7 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sipos.kebabsk.feature.checkout.domain.model.CheckoutCartItem
+import com.sipos.kebabsk.feature.cart.domain.model.CartItem
 
 import com.sipos.kebabsk.ui.theme.*
 
@@ -54,7 +54,8 @@ fun MenuListTab(
     menuItems: List<MenuVariantItem>,
     categories: List<String?>,
     selectedCategory: String?,
-    cartItems: List<CheckoutCartItem>,
+    cartItems: List<CartItem>,
+    cartInteractionEnabled: Boolean = true,
     emptyStateMessage: String = "Tidak ada menu tersedia",
     onCategorySelected: (String?) -> Unit,
     onAddVariant: (String, Long, String, Long) -> Unit,
@@ -135,6 +136,7 @@ fun MenuListTab(
                 MenuItemCard(
                     item = item,
                     qtyInCart = cartQtyMap[item.variantId] ?: 0,
+                    cartInteractionEnabled = cartInteractionEnabled,
                     onAdd = { onAddVariant(item.menuName, item.variantId, item.variantName, item.price) },
                     onRemove = { onRemoveVariant(item.variantId) }
                 )
@@ -169,6 +171,7 @@ fun CategoryChip(title: String, isSelected: Boolean, onClick: () -> Unit) {
 private fun MenuItemCard(
     item: MenuVariantItem,
     qtyInCart: Int,
+    cartInteractionEnabled: Boolean,
     onAdd: () -> Unit,
     onRemove: () -> Unit
 ) {
@@ -177,11 +180,12 @@ private fun MenuItemCard(
     val isInsufficientStock = item.insufficientStock && !item.isAvailable
     val isAdminDisabled = !item.isAvailable && !item.insufficientStock
     val isOrderable = item.isAvailable && !item.insufficientStock
+    val canInteract = isOrderable && cartInteractionEnabled
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = isOrderable, onClick = onAdd),
+            .clickable(enabled = canInteract, onClick = onAdd),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isInsufficientStock) KebabCardBg else KebabCardBg
@@ -225,11 +229,7 @@ private fun MenuItemCard(
             )
 
             // Variant name
-            val displayVariantName = if (item.variantName.startsWith(item.menuName, ignoreCase = true)) {
-                item.variantName.substring(item.menuName.length).trim().ifBlank { item.variantName }
-            } else {
-                item.variantName
-            }
+            val displayVariantName = com.sipos.kebabsk.common.VariantDisplayUtils.formatVariantName(item.menuName, item.variantName)
 
             if (displayVariantName.isNotBlank() && displayVariantName != item.menuName) {
                 Text(
@@ -251,7 +251,7 @@ private fun MenuItemCard(
                 horizontalAlignment = Alignment.End
             ) {
                 Text(
-                    text = toRupiah(item.price),
+                    text = com.sipos.kebabsk.common.MoneyUtils.formatRupiah(item.price),
                     modifier = Modifier.fillMaxWidth(),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.ExtraBold,
@@ -262,11 +262,12 @@ private fun MenuItemCard(
                 if (qtyInCart > 0 && isOrderable) {
                     QuantitySelector(
                         qty = qtyInCart,
+                        enabled = cartInteractionEnabled,
                         onAdd = onAdd,
                         onRemove = onRemove
                     )
                 } else if (isOrderable) {
-                    QuantityAddButton(onAdd = onAdd)
+                    QuantityAddButton(enabled = cartInteractionEnabled, onAdd = onAdd)
                 }
             }
 
@@ -310,7 +311,7 @@ private fun MenuItemCard(
 }
 
 @Composable
-private fun QuantitySelector(qty: Int, onAdd: () -> Unit, onRemove: () -> Unit) {
+private fun QuantitySelector(qty: Int, enabled: Boolean, onAdd: () -> Unit, onRemove: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -321,7 +322,7 @@ private fun QuantitySelector(qty: Int, onAdd: () -> Unit, onRemove: () -> Unit) 
                 .size(36.dp)
                 .clip(CircleShape)
                 .background(Color(0xFFF3E8DD))
-                .clickable(onClick = onRemove),
+                .clickable(enabled = enabled, onClick = onRemove),
             contentAlignment = Alignment.Center
         ) {
             Icon(Icons.Outlined.Remove, contentDescription = "Kurang", tint = KebabPrimary, modifier = Modifier.size(20.dp))
@@ -341,7 +342,7 @@ private fun QuantitySelector(qty: Int, onAdd: () -> Unit, onRemove: () -> Unit) 
                 .size(36.dp)
                 .clip(CircleShape)
                 .background(KebabPrimaryContainer)
-                .clickable(onClick = onAdd),
+                .clickable(enabled = enabled, onClick = onAdd),
             contentAlignment = Alignment.Center
         ) {
             Icon(Icons.Outlined.Add, contentDescription = "Tambah", tint = Color.White, modifier = Modifier.size(20.dp))
@@ -350,7 +351,7 @@ private fun QuantitySelector(qty: Int, onAdd: () -> Unit, onRemove: () -> Unit) 
 }
 
 @Composable
-private fun QuantityAddButton(onAdd: () -> Unit) {
+private fun QuantityAddButton(enabled: Boolean, onAdd: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         horizontalArrangement = Arrangement.End,
@@ -361,7 +362,7 @@ private fun QuantityAddButton(onAdd: () -> Unit) {
                 .size(36.dp)
                 .clip(CircleShape)
                 .background(KebabPrimaryContainer)
-                .clickable(onClick = onAdd),
+                .clickable(enabled = enabled, onClick = onAdd),
             contentAlignment = Alignment.Center
         ) {
             Icon(Icons.Outlined.Add, contentDescription = "Tambah", tint = Color.White, modifier = Modifier.size(20.dp))

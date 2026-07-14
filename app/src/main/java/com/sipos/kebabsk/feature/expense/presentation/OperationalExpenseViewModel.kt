@@ -4,7 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sipos.kebabsk.common.AppSessionStore
 import com.sipos.kebabsk.common.sanitizeUserMessage
-import com.sipos.kebabsk.feature.expense.data.repository.OperationalExpenseRepositoryImpl
+import com.sipos.kebabsk.feature.expense.domain.repository.OperationalExpenseRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,7 +22,7 @@ data class OperationalExpenseUiState(
 )
 
 class OperationalExpenseViewModel(
-    private val repository: OperationalExpenseRepositoryImpl
+    private val repository: OperationalExpenseRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(OperationalExpenseUiState())
     val uiState: StateFlow<OperationalExpenseUiState> = _uiState.asStateFlow()
@@ -58,7 +59,9 @@ class OperationalExpenseViewModel(
 
     fun submit() {
         val state = _uiState.value
-        val amount = com.sipos.kebabsk.common.MoneyUtils.parseMoneyInput(state.amountInput)
+        if (state.isSaving) return
+
+        val amount = com.sipos.kebabsk.common.MoneyUtils.parseRupiahInput(state.amountInput) ?: 0L
         val category = state.categoryInput.trim()
 
         if (amount <= 0L) {
@@ -73,11 +76,27 @@ class OperationalExpenseViewModel(
         _uiState.update { it.copy(isSaving = true, successMessage = null, errorMessage = null) }
         val token = AppSessionStore.loadSession()?.token ?: ""
         viewModelScope.launch {
+            submitExpense(
+                token = token,
+                amount = amount,
+                category = category,
+                note = state.noteInput.trim().takeIf { it.isNotBlank() }
+            )
+        }
+    }
+
+    private suspend fun submitExpense(
+        token: String,
+        amount: Long,
+        category: String,
+        note: String?
+    ) {
+        try {
             repository.submitExpense(
                 token = token,
                 amount = amount,
                 source = category,
-                note = state.noteInput.trim().takeIf { it.isNotBlank() }
+                note = note
             ).onSuccess { message ->
                 _uiState.update {
                     it.copy(
@@ -101,7 +120,10 @@ class OperationalExpenseViewModel(
                     )
                 }
             }
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } finally {
+            _uiState.update { it.copy(isSaving = false) }
         }
     }
 }
-
