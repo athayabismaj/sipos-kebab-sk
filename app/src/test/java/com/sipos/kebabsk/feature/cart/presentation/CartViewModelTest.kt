@@ -42,6 +42,24 @@ class CartViewModelTest {
     }
 
     @Test
+    fun addVariantToCart_invalidVariantId_isIgnored() {
+        val viewModel = CartViewModel()
+
+        viewModel.addVariantToCart("Kebab", 0L, "Mini", 10_000L)
+
+        assertTrue(viewModel.uiState.value.cartItems.isEmpty())
+    }
+
+    @Test
+    fun addVariantToCart_negativePrice_isIgnored() {
+        val viewModel = CartViewModel()
+
+        viewModel.addVariantToCart("Kebab", 1L, "Mini", -1L)
+
+        assertTrue(viewModel.uiState.value.cartItems.isEmpty())
+    }
+
+    @Test
     fun addVariantToCart_sameNameDifferentVariantId_doesNotMergeItems() {
         val viewModel = CartViewModel()
 

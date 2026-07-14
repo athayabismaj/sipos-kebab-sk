@@ -141,7 +141,7 @@ class CheckoutViewModelTest {
     }
 
     @Test
-    fun submitCheckout_whenPaidAmountEmpty_setsDeficitMessage() = runTest {
+    fun submitCheckout_whenPaidAmountEmpty_setsInvalidAmountMessage() = runTest {
         val fakeCheckoutRepo = FakeCheckoutRepository()
         val viewModel = CheckoutViewModel(fakeCheckoutRepo)
 
@@ -152,12 +152,51 @@ class CheckoutViewModelTest {
         advanceUntilIdle()
 
         assertEquals(
-            "Nominal pembayaran kurang. Silakan periksa kembali.",
+            "Nominal pembayaran tidak valid.",
             viewModel.uiState.value.errorMessage
         )
         assertEquals(0, fakeCheckoutRepo.createCalls)
         assertFalse(viewModel.uiState.value.isSubmitting)
         assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun submitCheckout_whenPaidAmountZero_setsInvalidAmountAndSkipsCreateRequest() = runTest {
+        val fakeCheckoutRepo = FakeCheckoutRepository()
+        val viewModel = CheckoutViewModel(fakeCheckoutRepo)
+
+        viewModel.loadPaymentMethods("token")
+        advanceUntilIdle()
+        viewModel.onPaidAmountChanged("0")
+
+        viewModel.submitCheckout("token", sampleCart(), isDailySessionOpen = true)
+        advanceUntilIdle()
+
+        assertEquals("Nominal pembayaran tidak valid.", viewModel.uiState.value.errorMessage)
+        assertEquals(0, fakeCheckoutRepo.createCalls)
+    }
+
+    @Test
+    fun submitCheckout_whenCartTotalOverflows_skipsCreateRequest() = runTest {
+        val fakeCheckoutRepo = FakeCheckoutRepository()
+        val viewModel = CheckoutViewModel(fakeCheckoutRepo)
+
+        viewModel.loadPaymentMethods("token")
+        advanceUntilIdle()
+        viewModel.onPaidAmountChanged(Long.MAX_VALUE.toString())
+
+        viewModel.submitCheckout(
+            "token",
+            listOf(
+                CartItem(variantId = 11L, menuName = "A", variantName = "A", quantity = 1, unitPrice = Long.MAX_VALUE),
+                CartItem(variantId = 12L, menuName = "B", variantName = "B", quantity = 1, unitPrice = 1L)
+            ),
+            isDailySessionOpen = true
+        )
+        advanceUntilIdle()
+
+        assertEquals("Total keranjang terlalu besar. Silakan periksa kembali.", viewModel.uiState.value.errorMessage)
+        assertEquals(0, fakeCheckoutRepo.createCalls)
     }
 
     @Test

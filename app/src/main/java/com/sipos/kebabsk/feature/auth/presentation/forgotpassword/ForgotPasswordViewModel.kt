@@ -1,13 +1,14 @@
 package com.sipos.kebabsk.feature.auth.presentation.forgotpassword
 
-import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sipos.kebabsk.common.sanitizeUserMessage
+import com.sipos.kebabsk.common.validation.ValidationResult
 import com.sipos.kebabsk.feature.auth.domain.repository.AuthRepository
 import com.sipos.kebabsk.feature.auth.domain.usecase.ForgotPasswordUseCase
 import com.sipos.kebabsk.feature.auth.domain.usecase.ResetPasswordUseCase
 import com.sipos.kebabsk.feature.auth.domain.usecase.VerifyResetCodeUseCase
+import com.sipos.kebabsk.feature.auth.domain.validation.AuthInputValidator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,7 +34,8 @@ data class ForgotPasswordUiState(
 )
 
 class ForgotPasswordViewModel(
-    private val repository: AuthRepository
+    private val repository: AuthRepository,
+    private val inputValidator: AuthInputValidator = AuthInputValidator()
 ) : ViewModel() {
     private val forgotPasswordUseCase = ForgotPasswordUseCase(repository)
     private val verifyResetCodeUseCase = VerifyResetCodeUseCase(repository)
@@ -60,13 +62,9 @@ class ForgotPasswordViewModel(
 
     fun submitForgotPassword() {
         val current = _uiState.value
-        if (current.email.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Email wajib diisi") }
-            return
-        }
-
-        if (!Patterns.EMAIL_ADDRESS.matcher(current.email.trim()).matches()) {
-            _uiState.update { it.copy(errorMessage = "Format email belum valid") }
+        val validation = inputValidator.validateForgotPasswordEmail(current.email)
+        if (validation is ValidationResult.Invalid) {
+            _uiState.update { it.copy(errorMessage = validation.message) }
             return
         }
 
@@ -97,8 +95,9 @@ class ForgotPasswordViewModel(
 
     fun submitCodeVerification() {
         val current = _uiState.value
-        if (current.code.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Kode OTP wajib diisi") }
+        val validation = inputValidator.validateResetCode(current.code)
+        if (validation is ValidationResult.Invalid) {
+            _uiState.update { it.copy(errorMessage = validation.message) }
             return
         }
 
@@ -130,13 +129,9 @@ class ForgotPasswordViewModel(
     fun submitResetPassword() {
         val current = _uiState.value
 
-        if (current.newPassword.isBlank() || current.confirmPassword.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Password baru wajib diisi") }
-            return
-        }
-
-        if (current.newPassword != current.confirmPassword) {
-            _uiState.update { it.copy(errorMessage = "Konfirmasi password tidak sama") }
+        val validation = inputValidator.validateResetPassword(current.newPassword, current.confirmPassword)
+        if (validation is ValidationResult.Invalid) {
+            _uiState.update { it.copy(errorMessage = validation.message) }
             return
         }
 

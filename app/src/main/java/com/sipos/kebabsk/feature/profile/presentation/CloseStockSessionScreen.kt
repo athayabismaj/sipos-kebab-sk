@@ -72,6 +72,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sipos.kebabsk.common.AppTime
+import com.sipos.kebabsk.common.validation.ValidationResult
+import com.sipos.kebabsk.feature.dailystock.domain.validation.DailyStockValidator
 import com.sipos.kebabsk.feature.menu.domain.model.DailyStockItem
 import com.sipos.kebabsk.ui.theme.KebabBg
 import com.sipos.kebabsk.ui.theme.KebabCardBg
@@ -118,10 +120,11 @@ fun CloseStockSessionScreen(
     }
     val notesInput = remember { mutableStateOf("") }
     var step by remember { mutableIntStateOf(1) } // 1: input, 2: review
+    val dailyStockValidator = remember { DailyStockValidator() }
 
     val hasInvalidInput = items.any { item ->
-        val value = remainingInputs[item.ingredientId]?.toDoubleOrNull() ?: 0.0
-        value < 0.0 || value > item.qty
+        val value = remainingInputs[item.ingredientId]?.toDoubleOrNull()
+        dailyStockValidator.validateRemainingQuantity(value) is ValidationResult.Invalid
     }
 
     Box(
@@ -218,7 +221,7 @@ fun CloseStockSessionScreen(
                             title = item.name,
                             stokAwal = "${formatDisplayQty(item.qty)} ${item.unit ?: "unit"}",
                             sisaValue = remainingInputs[item.ingredientId] ?: "",
-                            maxValue = item.qty,
+                            maxValue = Double.MAX_VALUE,
                             onSisaChange = { newValue ->
                                 if (newValue.isEmpty() || newValue.matches(Regex("^\\d*\\.?\\d*$"))) {
                                     remainingInputs[item.ingredientId] = newValue
@@ -401,8 +404,11 @@ fun CloseStockSessionScreen(
                             .clickable(enabled = !isClosing && !hasInvalidInput) {
                                 val remaining = mutableMapOf<Long, Double>()
                                 items.forEach { item ->
-                                    val value = remainingInputs[item.ingredientId]?.toDoubleOrNull() ?: 0.0
-                                    remaining[item.ingredientId] = value
+                                    val value = remainingInputs[item.ingredientId]?.toDoubleOrNull()
+                                    if (dailyStockValidator.validateRemainingQuantity(value) is ValidationResult.Invalid) {
+                                        return@clickable
+                                    }
+                                    remaining[item.ingredientId] = value ?: return@clickable
                                 }
                                 val notes = notesInput.value.trim().takeIf { it.isNotBlank() }
                                 onSubmit(remaining, notes)

@@ -5,6 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.sipos.kebabsk.common.AppSessionStore
 import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.feature.expense.domain.repository.OperationalExpenseRepository
+import com.sipos.kebabsk.feature.expense.domain.validation.OperationalExpenseValidationInput
+import com.sipos.kebabsk.feature.expense.domain.validation.OperationalExpenseValidationResult
+import com.sipos.kebabsk.feature.expense.domain.validation.OperationalExpenseValidator
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +25,8 @@ data class OperationalExpenseUiState(
 )
 
 class OperationalExpenseViewModel(
-    private val repository: OperationalExpenseRepository
+    private val repository: OperationalExpenseRepository,
+    private val validator: OperationalExpenseValidator = OperationalExpenseValidator()
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(OperationalExpenseUiState())
     val uiState: StateFlow<OperationalExpenseUiState> = _uiState.asStateFlow()
@@ -61,26 +65,27 @@ class OperationalExpenseViewModel(
         val state = _uiState.value
         if (state.isSaving) return
 
-        val amount = com.sipos.kebabsk.common.MoneyUtils.parseRupiahInput(state.amountInput) ?: 0L
-        val category = state.categoryInput.trim()
-
-        if (amount <= 0L) {
-            _uiState.update { it.copy(errorMessage = "Nominal pengeluaran tidak valid.") }
+        val validation = validator.validate(
+            OperationalExpenseValidationInput(
+                amountInput = state.amountInput,
+                categoryInput = state.categoryInput,
+                noteInput = state.noteInput
+            )
+        )
+        if (validation is OperationalExpenseValidationResult.Invalid) {
+            _uiState.update { it.copy(errorMessage = validation.message) }
             return
         }
-        if (category.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Kategori pengeluaran wajib diisi.") }
-            return
-        }
+        val validInput = (validation as OperationalExpenseValidationResult.Valid).value
 
         _uiState.update { it.copy(isSaving = true, successMessage = null, errorMessage = null) }
         val token = AppSessionStore.loadSession()?.token ?: ""
         viewModelScope.launch {
             submitExpense(
                 token = token,
-                amount = amount,
-                category = category,
-                note = state.noteInput.trim().takeIf { it.isNotBlank() }
+                amount = validInput.amount,
+                category = validInput.category,
+                note = validInput.note
             )
         }
     }

@@ -7,7 +7,9 @@ import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.feature.auth.data.remote.AuthApiService
 import com.sipos.kebabsk.feature.dailystock.domain.repository.DailyStockRepository
 import com.sipos.kebabsk.feature.dailystock.domain.model.DailyStockResult
+import com.sipos.kebabsk.feature.dailystock.domain.validation.DailyStockValidator
 import com.sipos.kebabsk.feature.menu.domain.model.DailyStockItem
+import com.sipos.kebabsk.common.validation.ValidationResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,7 +35,8 @@ data class DailyStockUiState(
 
 class DailyStockViewModel(
     private val repository: DailyStockRepository,
-    private val authApiService: AuthApiService
+    private val authApiService: AuthApiService,
+    private val validator: DailyStockValidator = DailyStockValidator()
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DailyStockUiState())
     val uiState: StateFlow<DailyStockUiState> = _uiState.asStateFlow()
@@ -129,11 +132,25 @@ class DailyStockViewModel(
 
     fun closeSession(remaining: Map<Long, Double>, notes: String?) {
         if (_uiState.value.isClosing) return
+        val validation = validator.validateCloseSession(
+            sessionId = _uiState.value.sessionId,
+            items = _uiState.value.items,
+            remaining = remaining
+        )
+        if (validation is ValidationResult.Invalid) {
+            _uiState.update {
+                it.copy(
+                    closeSuccess = false,
+                    closeErrorMessage = validation.message
+                )
+            }
+            return
+        }
         _uiState.update { it.copy(isClosing = true, closeErrorMessage = null, closeSuccess = false) }
         val token = AppSessionStore.loadSession()?.token ?: ""
         viewModelScope.launch {
             try {
-                repository.closeSession(token, remaining, notes)
+                repository.closeSession(token, remaining, notes?.trim()?.takeIf { it.isNotBlank() })
                     .onSuccess { message ->
                         _uiState.update {
                             it.copy(

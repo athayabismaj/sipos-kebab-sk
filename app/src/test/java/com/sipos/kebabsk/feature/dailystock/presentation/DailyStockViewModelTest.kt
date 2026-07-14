@@ -89,8 +89,7 @@ class DailyStockViewModelTest {
         val viewModel = DailyStockViewModel(fakeRepository, fakeAuthApiService)
         testScheduler.advanceUntilIdle()
         
-        val emptyRemaining: Map<Long, Double> = emptyMap()
-        viewModel.closeSession(emptyRemaining, "notes")
+        viewModel.closeSession(mapOf(1L to 10.0), "notes")
         testScheduler.advanceUntilIdle()
         
         val state = viewModel.uiState.value
@@ -102,18 +101,48 @@ class DailyStockViewModelTest {
     fun closeSessionFailureSetsErrorMessage() = runTest {
         val items = listOf(DailyStockItem(1L, "Kebab", 10.0, 10.0, "pcs"))
         fakeRepository.getDailyStockResult = Result.success(DailyStockResult(100L, items))
-        fakeRepository.shouldFail = true
         
         val viewModel = DailyStockViewModel(fakeRepository, fakeAuthApiService)
         testScheduler.advanceUntilIdle()
+
+        fakeRepository.shouldFail = true
         
-        val emptyRemaining: Map<Long, Double> = emptyMap()
-        viewModel.closeSession(emptyRemaining, "notes")
+        viewModel.closeSession(mapOf(1L to 10.0), "notes")
         testScheduler.advanceUntilIdle()
         
         val state = viewModel.uiState.value
         assertFalse(state.isClosing)
         assertEquals("Test failure", state.closeErrorMessage)
+    }
+
+    @Test
+    fun closeSessionWithNegativeRemainingSkipsRepository() = runTest {
+        val items = listOf(DailyStockItem(1L, "Kebab", 10.0, 10.0, "pcs"))
+        fakeRepository.getDailyStockResult = Result.success(DailyStockResult(100L, items))
+
+        val viewModel = DailyStockViewModel(fakeRepository, fakeAuthApiService)
+        testScheduler.advanceUntilIdle()
+
+        viewModel.closeSession(mapOf(1L to -0.1), "notes")
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(0, fakeRepository.closeSessionCalls)
+        assertEquals("Sisa bahan tidak boleh negatif.", viewModel.uiState.value.closeErrorMessage)
+    }
+
+    @Test
+    fun closeSessionWithNaNSkipsRepository() = runTest {
+        val items = listOf(DailyStockItem(1L, "Kebab", 10.0, 10.0, "pcs"))
+        fakeRepository.getDailyStockResult = Result.success(DailyStockResult(100L, items))
+
+        val viewModel = DailyStockViewModel(fakeRepository, fakeAuthApiService)
+        testScheduler.advanceUntilIdle()
+
+        viewModel.closeSession(mapOf(1L to Double.NaN), "notes")
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(0, fakeRepository.closeSessionCalls)
+        assertEquals("Sisa bahan tidak valid.", viewModel.uiState.value.closeErrorMessage)
     }
 
     @Test
@@ -125,8 +154,8 @@ class DailyStockViewModelTest {
         val viewModel = DailyStockViewModel(fakeRepository, fakeAuthApiService)
         testScheduler.advanceUntilIdle()
 
-        viewModel.closeSession(emptyMap(), "notes")
-        viewModel.closeSession(emptyMap(), "notes 2")
+        viewModel.closeSession(mapOf(1L to 10.0), "notes")
+        viewModel.closeSession(mapOf(1L to 10.0), "notes 2")
         testScheduler.runCurrent()
 
         assertEquals(1, fakeRepository.closeSessionCalls)
@@ -144,7 +173,7 @@ class DailyStockViewModelTest {
         testScheduler.advanceUntilIdle()
 
         fakeRepository.cancellation = CancellationException("cancelled")
-        viewModel.closeSession(emptyMap(), "notes")
+        viewModel.closeSession(mapOf(1L to 10.0), "notes")
         testScheduler.advanceUntilIdle()
 
         val state = viewModel.uiState.value

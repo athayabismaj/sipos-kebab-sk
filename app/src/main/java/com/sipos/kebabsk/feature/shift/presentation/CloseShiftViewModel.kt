@@ -8,6 +8,8 @@ import com.sipos.kebabsk.feature.dailystock.domain.repository.DailyStockReposito
 import com.sipos.kebabsk.feature.shift.data.remote.CloseSessionData
 import com.sipos.kebabsk.feature.shift.data.remote.CloseSessionRequest
 import com.sipos.kebabsk.feature.shift.domain.repository.CloseShiftRepository
+import com.sipos.kebabsk.feature.shift.domain.validation.CloseShiftValidator
+import com.sipos.kebabsk.common.validation.ValidationResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,7 +34,8 @@ data class CloseShiftUiState(
 
 class CloseShiftViewModel(
     private val closeShiftRepository: CloseShiftRepository,
-    private val dailyStockRepository: DailyStockRepository
+    private val dailyStockRepository: DailyStockRepository,
+    private val validator: CloseShiftValidator = CloseShiftValidator()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CloseShiftUiState())
@@ -115,10 +118,19 @@ class CloseShiftViewModel(
      * Variance diterima mentah dari API â€” DILARANG dihitung di client.
      */
     fun submitCloseShift(actualPhysicalCash: Long, closingNotes: String?) {
-        val sessionId = _uiState.value.sessionId ?: return
-
         // Guard: cegah double-submit
         if (_uiState.value.isSubmitting) return
+
+        val validation = validator.validate(
+            sessionId = _uiState.value.sessionId,
+            isReadyToClose = _uiState.value.isReadyToClose,
+            actualPhysicalCash = actualPhysicalCash
+        )
+        if (validation is ValidationResult.Invalid) {
+            _uiState.update { it.copy(errorMessage = validation.message) }
+            return
+        }
+        val sessionId = _uiState.value.sessionId ?: return
 
         _uiState.update { state -> state.copy(isSubmitting = true, errorMessage = null) }
 

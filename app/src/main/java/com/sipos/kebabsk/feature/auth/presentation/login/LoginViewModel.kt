@@ -7,6 +7,8 @@ import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.feature.auth.domain.model.AuthSession
 import com.sipos.kebabsk.feature.auth.domain.repository.AuthRepository
 import com.sipos.kebabsk.feature.auth.domain.usecase.LoginUseCase
+import com.sipos.kebabsk.feature.auth.domain.validation.AuthInputValidator
+import com.sipos.kebabsk.common.validation.ValidationResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,7 +43,8 @@ enum class SessionSyncState {
 
 class LoginViewModel(
     private val authRepository: AuthRepository,
-    private val loginUseCase: LoginUseCase = LoginUseCase(authRepository)
+    private val loginUseCase: LoginUseCase = LoginUseCase(authRepository),
+    private val inputValidator: AuthInputValidator = AuthInputValidator()
 ) : ViewModel() {
     private companion object {
         const val CASHIER_ROLE = "kasir"
@@ -123,10 +126,9 @@ class LoginViewModel(
 
     fun login() {
         val current = _uiState.value
-        if (current.identifier.isBlank() || current.password.isBlank()) {
-            _uiState.update {
-                it.copy(errorMessage = "Email/username dan password wajib diisi")
-            }
+        val validation = inputValidator.validateLogin(current.identifier, current.password)
+        if (validation is ValidationResult.Invalid) {
+            _uiState.update { it.copy(errorMessage = validation.message) }
             return
         }
 
@@ -207,15 +209,19 @@ class LoginViewModel(
             return
         }
 
-        if (name.isBlank() || username.isBlank() || email.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Nama, username, dan email wajib diisi.") }
+        val validation = inputValidator.validateProfile(name, username, email)
+        if (validation is ValidationResult.Invalid) {
+            _uiState.update { it.copy(errorMessage = validation.message) }
             return
         }
+        val trimmedName = name.trim()
+        val trimmedUsername = username.trim()
+        val trimmedEmail = email.trim()
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, successMessage = null) }
 
-            authRepository.updateProfile(session.token, name, username, email)
+            authRepository.updateProfile(session.token, trimmedName, trimmedUsername, trimmedEmail)
                 .onSuccess { updated ->
                     _uiState.update {
                         it.copy(
@@ -246,18 +252,9 @@ class LoginViewModel(
             return
         }
 
-        if (currentPassword.isBlank() || newPassword.isBlank() || confirmPassword.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Semua field password wajib diisi.") }
-            return
-        }
-
-        if (newPassword.length < 6) {
-            _uiState.update { it.copy(errorMessage = "Password baru minimal 6 karakter.") }
-            return
-        }
-
-        if (newPassword != confirmPassword) {
-            _uiState.update { it.copy(errorMessage = "Konfirmasi password tidak sama.") }
+        val validation = inputValidator.validateChangePassword(currentPassword, newPassword, confirmPassword)
+        if (validation is ValidationResult.Invalid) {
+            _uiState.update { it.copy(errorMessage = validation.message) }
             return
         }
 

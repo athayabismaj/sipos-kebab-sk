@@ -17,7 +17,9 @@ object MoneyUtils {
      * Konversi string input (hanya angka) ke Long.
      */
     fun parseRupiahInput(input: String): Long? {
+        if (input.any { it == '-' }) return null
         val sanitized = sanitizeMoneyInput(input)
+        if (sanitized.isBlank()) return null
         return sanitized.toLongOrNull()
     }
 

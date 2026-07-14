@@ -8,6 +8,8 @@ import com.google.gson.reflect.TypeToken
 import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.common.retryNetworkRequest
 import com.sipos.kebabsk.common.suspendRunCatching
+import com.sipos.kebabsk.common.validation.safeMultiply
+import com.sipos.kebabsk.common.validation.safeSubtract
 import com.sipos.kebabsk.feature.transactions.data.remote.TransactionItemResponse
 import com.sipos.kebabsk.feature.transactions.data.remote.TransactionsApiService
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionHistoryItem
@@ -334,7 +336,7 @@ class TransactionsRepositoryImpl(
                 "change",
                 "cash_change",
                 "kembalian"
-            ) ?: (paidAmount - totalAmount).coerceAtLeast(0L)
+            ) ?: (safeSubtract(paidAmount, totalAmount) ?: 0L).coerceAtLeast(0L)
 
             val parsedItems = itemsArray
                 ?.mapNotNull { element ->
@@ -345,7 +347,7 @@ class TransactionsRepositoryImpl(
                     val price = item.longValue("price", "unit_price", "menu_price", "selling_price")
                         ?: subtotal?.let { if (qty > 0) it / qty else it }
                         ?: 0L
-                    val safeSubtotal = subtotal ?: price * qty
+                    val safeSubtotal = subtotal ?: safeMultiply(price, qty) ?: 0L
                     val menu = item.objectValue("menu", "product")
                     val variant = item.objectValue("variant", "menu_variant")
                     val name = item.stringValue("menu_name", "item_name", "product_name", "name")

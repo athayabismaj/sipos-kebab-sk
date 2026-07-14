@@ -11,6 +11,9 @@ import com.sipos.kebabsk.feature.checkout.domain.model.PaymentMethod
 import com.sipos.kebabsk.feature.checkout.domain.repository.CheckoutRepository
 import com.sipos.kebabsk.feature.checkout.domain.usecase.CreateTransactionUseCase
 import com.sipos.kebabsk.feature.checkout.domain.usecase.GetPaymentMethodsUseCase
+import com.sipos.kebabsk.feature.checkout.domain.validation.CheckoutValidationInput
+import com.sipos.kebabsk.feature.checkout.domain.validation.CheckoutValidationResult
+import com.sipos.kebabsk.feature.checkout.domain.validation.CheckoutValidator
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,7 +40,8 @@ data class CheckoutUiState(
 )
 
 class CheckoutViewModel(
-    private val checkoutRepository: CheckoutRepository
+    private val checkoutRepository: CheckoutRepository,
+    private val checkoutValidator: CheckoutValidator = CheckoutValidator()
 ) : ViewModel() {
 
     private val getPaymentMethodsUseCase = GetPaymentMethodsUseCase(checkoutRepository)
@@ -135,47 +139,24 @@ class CheckoutViewModel(
             try {
                 checkoutMutex.withLock {
                     val state = _uiState.value
-                    if (cartSnapshot.isEmpty()) {
+                    val validation = checkoutValidator.validate(
+                        CheckoutValidationInput(
+                            cartItems = cartSnapshot,
+                            isDailySessionOpen = isDailySessionOpen,
+                            paymentMethodId = state.selectedPaymentMethodId,
+                            paidAmountInput = state.paidAmountInput
+                        )
+                    )
+                    if (validation is CheckoutValidationResult.Invalid) {
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
-                                errorMessage = "Keranjang masih kosong"
+                                errorMessage = validation.message
                             )
                         }
                         return@withLock
                     }
-
-                    if (!isDailySessionOpen) {
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                errorMessage = "Sesi harian belum dibuka admin. Checkout belum bisa dilakukan."
-                            )
-                        }
-                        return@withLock
-                    }
-
-                    val paymentMethodId = state.selectedPaymentMethodId
-                    if (paymentMethodId == null) {
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                errorMessage = "Metode pembayaran tunai belum tersedia"
-                            )
-                        }
-                        return@withLock
-                    }
-
-                    val paidAmount = MoneyUtils.parseRupiahInput(state.paidAmountInput) ?: 0L
-                    if (paidAmount < cartSnapshot.sumOf { it.subtotal }) {
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                errorMessage = "Nominal pembayaran kurang. Silakan periksa kembali."
-                            )
-                        }
-                        return@withLock
-                    }
+                    val validInput = (validation as CheckoutValidationResult.Valid).value
 
                     _uiState.update {
                         it.copy(
@@ -190,10 +171,10 @@ class CheckoutViewModel(
                         )
                     }
                     val request = CheckoutRequestData(
-                        paymentMethodId = paymentMethodId,
-                        paidAmount = paidAmount,
+                        paymentMethodId = validInput.paymentMethodId,
+                        paidAmount = validInput.paidAmount,
                         items = cartSnapshot.map { CheckoutItemInput(it.variantId, it.quantity) },
-                        note = state.noteInput.takeIf { it.isNotBlank() }
+                        note = state.noteInput.trim().takeIf { it.isNotBlank() }
                     )
 
                     createTransactionUseCase(token, request)

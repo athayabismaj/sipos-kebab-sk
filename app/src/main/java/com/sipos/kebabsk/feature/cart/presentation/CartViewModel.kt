@@ -2,6 +2,7 @@ package com.sipos.kebabsk.feature.cart.presentation
 
 import androidx.lifecycle.ViewModel
 import com.sipos.kebabsk.feature.cart.domain.model.CartItem
+import com.sipos.kebabsk.feature.cart.domain.validation.CartValidator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -11,7 +12,7 @@ data class CartUiState(
     val cartItems: List<CartItem> = emptyList()
 ) {
     val totalAmount: Long
-        get() = cartItems.sumOf { it.subtotal }
+        get() = CartValidator().calculateTotal(cartItems) ?: Long.MAX_VALUE
 }
 
 class CartViewModel : ViewModel() {
@@ -19,6 +20,7 @@ class CartViewModel : ViewModel() {
     val uiState: StateFlow<CartUiState> = _uiState.asStateFlow()
 
     fun addVariantToCart(menuName: String, variantId: Long, variantName: String, price: Long) {
+        if (variantId <= 0L || price < 0L) return
         _uiState.update { state ->
             val existing = state.cartItems.firstOrNull { it.variantId == variantId }
             val updated = if (existing == null) {
@@ -31,7 +33,11 @@ class CartViewModel : ViewModel() {
                 )
             } else {
                 state.cartItems.map {
-                    if (it.variantId == variantId) it.copy(quantity = it.quantity + 1) else it
+                    if (it.variantId == variantId && it.quantity < Int.MAX_VALUE) {
+                        it.copy(quantity = it.quantity + 1)
+                    } else {
+                        it
+                    }
                 }
             }
             state.copy(cartItems = updated)

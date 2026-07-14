@@ -23,8 +23,8 @@ class OperationalExpenseViewModelTest {
     @Test
     fun submitExpenseWithValidNominalCallsRepository() = runTest {
         viewModel.onAmountChanged("150000")
-        viewModel.onCategoryChanged("Kas Besar")
-        viewModel.onNoteChanged("Test note")
+        viewModel.onCategoryChanged("  Kas Besar  ")
+        viewModel.onNoteChanged("  Test note  ")
         
         viewModel.submit()
         testScheduler.advanceUntilIdle()
@@ -33,6 +33,10 @@ class OperationalExpenseViewModelTest {
         assertFalse(state.isSaving)
         assertEquals("Sukses", state.successMessage)
         assertNull(state.errorMessage)
+        assertEquals(1, fakeRepository.submitCalls)
+        assertEquals(150000L, fakeRepository.lastAmount)
+        assertEquals("Kas Besar", fakeRepository.lastSource)
+        assertEquals("Test note", fakeRepository.lastNote)
     }
 
     @Test
@@ -46,6 +50,7 @@ class OperationalExpenseViewModelTest {
         assertFalse(state.isSaving)
         assertNull(state.successMessage)
         assertEquals("Nominal pengeluaran tidak valid.", state.errorMessage)
+        assertEquals(0, fakeRepository.submitCalls)
     }
 
     @Test
@@ -59,6 +64,56 @@ class OperationalExpenseViewModelTest {
         assertFalse(state.isSaving)
         assertNull(state.successMessage)
         assertEquals("Nominal pengeluaran tidak valid.", state.errorMessage)
+        assertEquals(0, fakeRepository.submitCalls)
+    }
+
+    @Test
+    fun submitExpenseWithLettersNominalIsRejected() = runTest {
+        viewModel.onAmountChanged("abc")
+        viewModel.onCategoryChanged("Kas Besar")
+
+        viewModel.submit()
+        testScheduler.advanceUntilIdle()
+
+        assertEquals("Nominal pengeluaran tidak valid.", viewModel.uiState.value.errorMessage)
+        assertEquals(0, fakeRepository.submitCalls)
+    }
+
+    @Test
+    fun submitExpenseWithOverflowNominalIsRejected() = runTest {
+        viewModel.onAmountChanged("999999999999999999999")
+        viewModel.onCategoryChanged("Kas Besar")
+
+        viewModel.submit()
+        testScheduler.advanceUntilIdle()
+
+        assertEquals("Nominal pengeluaran tidak valid.", viewModel.uiState.value.errorMessage)
+        assertEquals(0, fakeRepository.submitCalls)
+    }
+
+    @Test
+    fun submitExpenseWithBlankCategoryIsRejected() = runTest {
+        viewModel.onAmountChanged("150000")
+        viewModel.onCategoryChanged("   ")
+
+        viewModel.submit()
+        testScheduler.advanceUntilIdle()
+
+        assertEquals("Kategori pengeluaran wajib diisi.", viewModel.uiState.value.errorMessage)
+        assertEquals(0, fakeRepository.submitCalls)
+    }
+
+    @Test
+    fun submitExpenseBlankNoteBecomesNull() = runTest {
+        viewModel.onAmountChanged("150000")
+        viewModel.onCategoryChanged("Kas Besar")
+        viewModel.onNoteChanged("   ")
+
+        viewModel.submit()
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(1, fakeRepository.submitCalls)
+        assertNull(fakeRepository.lastNote)
     }
 
     @Test

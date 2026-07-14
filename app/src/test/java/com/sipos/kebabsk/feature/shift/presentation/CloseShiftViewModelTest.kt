@@ -94,6 +94,37 @@ class CloseShiftViewModelTest {
         assertFalse(state.isSubmitting)
         assertNotNull(state.reconciliationResult)
         assertNull(state.errorMessage)
+        assertEquals(1, fakeCloseShiftRepository.closeSessionCalls)
+    }
+
+    @Test
+    fun submitCloseShiftZeroCashIsValid() = runTest {
+        val items = listOf(DailyStockItem(1L, "Kebab", 10.0, 10.0, "pcs"))
+        fakeDailyStockRepository.getDailyStockResult = Result.success(DailyStockResult(100L, items))
+
+        val viewModel = CloseShiftViewModel(fakeCloseShiftRepository, fakeDailyStockRepository)
+        testScheduler.advanceUntilIdle()
+
+        viewModel.submitCloseShift(0L, "Notes")
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(1, fakeCloseShiftRepository.closeSessionCalls)
+        assertNotNull(viewModel.uiState.value.reconciliationResult)
+    }
+
+    @Test
+    fun submitCloseShiftNegativeCashSkipsRepository() = runTest {
+        val items = listOf(DailyStockItem(1L, "Kebab", 10.0, 10.0, "pcs"))
+        fakeDailyStockRepository.getDailyStockResult = Result.success(DailyStockResult(100L, items))
+
+        val viewModel = CloseShiftViewModel(fakeCloseShiftRepository, fakeDailyStockRepository)
+        testScheduler.advanceUntilIdle()
+
+        viewModel.submitCloseShift(-1L, "Notes")
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(0, fakeCloseShiftRepository.closeSessionCalls)
+        assertEquals("Nominal kas fisik tidak valid.", viewModel.uiState.value.errorMessage)
     }
 
     @Test

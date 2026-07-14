@@ -55,6 +55,12 @@ class MoneyUtilsTest {
     }
 
     @Test
+    fun `parseRupiahInput rejects negative text`() {
+        assertNull(MoneyUtils.parseRupiahInput("-10000"))
+        assertNull(MoneyUtils.parseRupiahInput("Rp -10.000"))
+    }
+
+    @Test
     fun `formatRupiahInputForDisplay formats correctly`() {
         assertEquals("100.000", MoneyUtils.formatRupiahInputForDisplay("100000"))
         assertEquals("100.000", MoneyUtils.formatRupiahInputForDisplay("00100000"))
