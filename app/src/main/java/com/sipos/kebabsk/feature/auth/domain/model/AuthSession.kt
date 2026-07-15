@@ -5,5 +5,12 @@ data class AuthSession(
     val displayName: String,
     val username: String,
     val email: String,
-    val role: String?
+    val role: String?,
+    val branch: AuthBranch? = null
+)
+
+data class AuthBranch(
+    val id: Long,
+    val name: String,
+    val code: String
 )

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sipos.kebabsk.common.AppSessionStore
 import com.sipos.kebabsk.common.AuthSessionEvents
+import com.sipos.kebabsk.common.SessionStore
 import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.feature.auth.domain.model.AuthSession
 import com.sipos.kebabsk.feature.auth.domain.repository.AuthRepository
@@ -20,6 +21,7 @@ data class LoginUiState(
     val identifier: String = "",
     val password: String = "",
     val isLoading: Boolean = false,
+    val isLoggingOut: Boolean = false,
     val errorMessage: String? = null,
     val successMessage: String? = null,
     val session: AuthSession? = null,
@@ -45,7 +47,8 @@ enum class SessionSyncState {
 class LoginViewModel(
     private val authRepository: AuthRepository,
     private val loginUseCase: LoginUseCase = LoginUseCase(authRepository),
-    private val inputValidator: AuthInputValidator = AuthInputValidator()
+    private val inputValidator: AuthInputValidator = AuthInputValidator(),
+    private val sessionStore: SessionStore = AppSessionStore
 ) : ViewModel() {
     private companion object {
         const val CASHIER_ROLE = "kasir"
@@ -57,7 +60,7 @@ class LoginViewModel(
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
     init {
-        val saved = AppSessionStore.loadSession()
+        val saved = sessionStore.loadSession()
         if (saved != null) {
             if (saved.hasCashierRole()) {
                 // Muat sesi kasir lokal, lalu validasi kembali terhadap server.
@@ -88,7 +91,7 @@ class LoginViewModel(
                     return@launch
                 }
 
-                AppSessionStore.saveSession(freshSession)
+                sessionStore.saveSession(freshSession)
                 AuthSessionEvents.resetLogoutState()
                 _uiState.update {
                     it.copy(
@@ -97,7 +100,7 @@ class LoginViewModel(
                     )
                 }
             }.onFailure {
-                if (AppSessionStore.loadSession() == null) {
+                if (sessionStore.loadSession() == null) {
                     _uiState.update {
                         it.copy(
                             session = null,
@@ -171,7 +174,7 @@ class LoginViewModel(
                             password = ""
                         )
                     }
-                    AppSessionStore.saveSession(finalSession)
+                    sessionStore.saveSession(finalSession)
                     AuthSessionEvents.resetLogoutState()
                 }
                 .onFailure { error ->
@@ -198,7 +201,7 @@ class LoginViewModel(
                     _uiState.update {
                         it.copy(session = fresh, errorMessage = null)
                     }
-                    AppSessionStore.saveSession(fresh)
+                    sessionStore.saveSession(fresh)
                 }
         }
     }
@@ -232,7 +235,7 @@ class LoginViewModel(
                             errorMessage = null
                         )
                     }
-                    AppSessionStore.saveSession(updated)
+                    sessionStore.saveSession(updated)
                 }
                 .onFailure { error ->
                     _uiState.update {
@@ -289,15 +292,21 @@ class LoginViewModel(
     }
 
     fun logout() {
-        AppSessionStore.clearSession()
-        _uiState.update {
-            it.copy(
-                session = null,
-                sessionSyncState = SessionSyncState.IDLE,
-                password = "",
-                errorMessage = null,
-                successMessage = null
-            )
+        if (_uiState.value.isLoggingOut) return
+
+        val activeSession = _uiState.value.session ?: sessionStore.loadSession()
+        if (activeSession == null) {
+            clearLocalSessionAfterLogout()
+            return
+        }
+
+        _uiState.update { it.copy(isLoggingOut = true, errorMessage = null, successMessage = null) }
+        viewModelScope.launch {
+            try {
+                authRepository.logout(activeSession.token)
+            } finally {
+                clearLocalSessionAfterLogout()
+            }
         }
     }
 
@@ -306,7 +315,7 @@ class LoginViewModel(
     }
 
     private fun rejectNonCashierSession() {
-        AppSessionStore.clearSession()
+        sessionStore.clearSession()
         _uiState.update {
             it.copy(
                 isLoading = false,
@@ -315,6 +324,21 @@ class LoginViewModel(
                 password = "",
                 successMessage = null,
                 errorMessage = CASHIER_ONLY_MESSAGE
+            )
+        }
+    }
+
+    private fun clearLocalSessionAfterLogout() {
+        sessionStore.clearSession()
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                isLoggingOut = false,
+                session = null,
+                sessionSyncState = SessionSyncState.IDLE,
+                password = "",
+                errorMessage = null,
+                successMessage = null
             )
         }
     }

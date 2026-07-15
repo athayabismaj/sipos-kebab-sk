@@ -13,19 +13,19 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-object AppSessionStore {
+interface SessionStore {
+    fun saveSession(session: AuthSession)
+    fun loadSession(): AuthSession?
+    fun clearSession()
+}
+
+object AppSessionStore : SessionStore {
     private const val PREF_NAME = "sipos_session"
     private const val KEY_ALIAS = "sipos_session_key"
     private const val ANDROID_KEY_STORE = "AndroidKeyStore"
     private const val TRANSFORMATION = "AES/GCM/NoPadding"
     private const val GCM_TAG_LENGTH = 128
     private const val ENCRYPTED_PREFIX = "enc_"
-    private const val KEY_TOKEN = "token"
-    private const val KEY_DISPLAY_NAME = "display_name"
-    private const val KEY_USERNAME = "username"
-    private const val KEY_EMAIL = "email"
-    private const val KEY_ROLE = "role"
-
     @Volatile
     private var prefs: SharedPreferences? = null
 
@@ -39,50 +39,35 @@ object AppSessionStore {
         }
     }
 
-    fun saveSession(session: AuthSession) {
+    override fun saveSession(session: AuthSession) {
         val current = loadSession()
         if (current == session) return
 
         val editor = prefs?.edit() ?: return
-        editor.remove(KEY_TOKEN)
-            .remove(KEY_DISPLAY_NAME)
-            .remove(KEY_USERNAME)
-            .remove(KEY_EMAIL)
-            .remove(KEY_ROLE)
-            .putEncryptedString(KEY_TOKEN, session.token)
-            .putEncryptedString(KEY_DISPLAY_NAME, session.displayName)
-            .putEncryptedString(KEY_USERNAME, session.username)
-            .putEncryptedString(KEY_EMAIL, session.email)
-            .putEncryptedString(KEY_ROLE, session.role)
-            .apply()
+        AuthSessionPersistence.keys.forEach { key ->
+            editor.remove(key).remove(encryptedKey(key))
+        }
+        AuthSessionPersistence.toValues(session).forEach { (key, value) ->
+            editor.putEncryptedString(key, value)
+        }
+        editor.apply()
     }
 
-    fun loadSession(): AuthSession? {
-        val token = getEncryptedString(KEY_TOKEN) ?: return null
-        return AuthSession(
-            token = token,
-            displayName = getEncryptedString(KEY_DISPLAY_NAME).orEmpty(),
-            username = getEncryptedString(KEY_USERNAME).orEmpty(),
-            email = getEncryptedString(KEY_EMAIL).orEmpty(),
-            role = getEncryptedString(KEY_ROLE)
-        )
+    override fun loadSession(): AuthSession? {
+        val values = AuthSessionPersistence.keys.associateWith(::getEncryptedString)
+        return AuthSessionPersistence.fromValues(values)
     }
 
-    fun clearSession() {
+    override fun clearSession() {
         prefs?.edit()?.clear()?.apply()
     }
 
     private fun migrateLegacyPlaintextSession() {
         val store = prefs ?: return
-        if (!store.contains(KEY_TOKEN)) return
-        val legacy = AuthSession(
-            token = store.getString(KEY_TOKEN, null).orEmpty(),
-            displayName = store.getString(KEY_DISPLAY_NAME, "").orEmpty(),
-            username = store.getString(KEY_USERNAME, "").orEmpty(),
-            email = store.getString(KEY_EMAIL, "").orEmpty(),
-            role = store.getString(KEY_ROLE, null)
-        )
-        if (legacy.token.isBlank()) {
+        if (!store.contains(AuthSessionPersistence.TOKEN)) return
+        val legacyValues = AuthSessionPersistence.keys.associateWith { key -> store.getString(key, null) }
+        val legacy = AuthSessionPersistence.fromValues(legacyValues)
+        if (legacy == null) {
             clearSession()
             return
         }

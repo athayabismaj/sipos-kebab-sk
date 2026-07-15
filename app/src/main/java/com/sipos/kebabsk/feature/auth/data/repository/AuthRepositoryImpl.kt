@@ -7,6 +7,7 @@ import com.google.gson.JsonParser
 import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.common.suspendRunCatching
 import com.sipos.kebabsk.feature.auth.data.remote.AuthApiService
+import com.sipos.kebabsk.feature.auth.data.mapper.AuthSessionMapper
 import com.sipos.kebabsk.feature.auth.domain.model.AuthSession
 import com.sipos.kebabsk.feature.auth.domain.repository.AuthRepository
 import retrofit2.Response
@@ -28,11 +29,22 @@ class AuthRepositoryImpl(
             val token = extractToken(body)
 
             if (response.isSuccessful && !token.isNullOrBlank()) {
-                parseUserSession(body, normalizeAccessToken(token), identifier)
+                AuthSessionMapper.fromResponse(body, normalizeAccessToken(token), identifier)
             } else {
                 val msg = extractErrorMessage(response.errorBody()?.string(), body)
                     ?: "Login belum berhasil. Periksa kembali email/username dan password Anda."
                 throw IllegalStateException(normalizeAuthError(msg, "Login belum berhasil. Silakan coba lagi."))
+            }
+        }
+    }
+
+    override suspend fun logout(token: String): Result<Unit> {
+        return suspendRunCatching {
+            val response = authApiService.logout("Bearer $token")
+            if (!response.isSuccessful) {
+                val msg = extractErrorMessage(response.errorBody()?.string(), response.body())
+                    ?: "Logout server belum berhasil."
+                throw IllegalStateException(normalizeAuthError(msg, "Logout server belum berhasil."))
             }
         }
     }
@@ -43,7 +55,7 @@ class AuthRepositoryImpl(
             val body = response.body()
 
             if (response.isSuccessful && body != null) {
-                parseUserSession(body, token, "")
+                AuthSessionMapper.fromResponse(body, token, "")
             } else {
                 val msg = extractErrorMessage(response.errorBody()?.string(), body)
                     ?: "Gagal memuat profil user."
@@ -63,7 +75,7 @@ class AuthRepositoryImpl(
             val body = response.body()
 
             if (response.isSuccessful && body != null) {
-                parseUserSession(body, token, username)
+                AuthSessionMapper.fromResponse(body, token, username)
             } else {
                 val msg = extractErrorMessage(response.errorBody()?.string(), body)
                     ?: "Update profile gagal."
@@ -152,22 +164,6 @@ class AuthRepositoryImpl(
         }
     }
 
-    private fun parseUserSession(body: JsonObject?, token: String, fallbackIdentifier: String): AuthSession {
-        val userJson = extractUserJson(body)
-        val displayName = userJson?.firstString("name") ?: body?.firstString("name") ?: fallbackIdentifier
-        val username = userJson?.firstString("username") ?: fallbackIdentifier
-        val email = userJson?.firstString("email") ?: ""
-        val role = userJson?.firstString("role")
-
-        return AuthSession(
-            token = token,
-            displayName = displayName,
-            username = username,
-            email = email,
-            role = role
-        )
-    }
-
     private fun extractToken(body: JsonObject?): String? {
         if (body == null) return null
 
@@ -185,16 +181,6 @@ class AuthRepositoryImpl(
         } else {
             token
         }
-    }
-
-    private fun extractUserJson(body: JsonObject?): JsonObject? {
-        if (body == null) return null
-        val direct = body.getAsJsonObjectOrNull("user")
-        if (direct != null) return direct
-
-        val data = body.getAsJsonObjectOrNull("data") ?: return null
-        val nested = data.getAsJsonObjectOrNull("user")
-        return nested ?: data
     }
 
     private fun extractMessage(body: JsonObject?): String? {

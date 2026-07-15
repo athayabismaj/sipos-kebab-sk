@@ -37,6 +37,10 @@ interface AuthApiService {
     suspend fun me(@Header("Authorization") authorization: String): Response<JsonObject>
 
     @Headers("Accept: application/json")
+    @POST("auth/logout")
+    suspend fun logout(@Header("Authorization") authorization: String): Response<JsonObject>
+
+    @Headers("Accept: application/json")
     @PUT("auth/profile")
     suspend fun updateProfile(
         @Header("Authorization") authorization: String,
