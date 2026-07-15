@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -49,7 +50,7 @@ fun KebabSkSplashScreen() {
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.kebab_sk_logo),
-                    contentDescription = "Logo Kebab SK",
+                    contentDescription = stringResource(R.string.cd_app_logo),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
@@ -58,7 +59,7 @@ fun KebabSkSplashScreen() {
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Kebab SK",
+                text = stringResource(R.string.app_name),
                 fontSize = 48.sp,
                 fontWeight = FontWeight.Black,
                 fontStyle = FontStyle.Italic,

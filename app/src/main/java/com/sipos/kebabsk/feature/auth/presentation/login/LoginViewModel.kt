@@ -3,6 +3,7 @@ package com.sipos.kebabsk.feature.auth.presentation.login
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sipos.kebabsk.common.AppSessionStore
+import com.sipos.kebabsk.common.AuthSessionEvents
 import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.feature.auth.domain.model.AuthSession
 import com.sipos.kebabsk.feature.auth.domain.repository.AuthRepository
@@ -88,7 +89,7 @@ class LoginViewModel(
                 }
 
                 AppSessionStore.saveSession(freshSession)
-                com.sipos.kebabsk.common.AuthSessionEvents.resetLogoutState()
+                AuthSessionEvents.resetLogoutState()
                 _uiState.update {
                     it.copy(
                         session = freshSession,
@@ -171,7 +172,7 @@ class LoginViewModel(
                         )
                     }
                     AppSessionStore.saveSession(finalSession)
-                    com.sipos.kebabsk.common.AuthSessionEvents.resetLogoutState()
+                    AuthSessionEvents.resetLogoutState()
                 }
                 .onFailure { error ->
                     _uiState.update {

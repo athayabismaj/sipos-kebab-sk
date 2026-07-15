@@ -20,7 +20,6 @@
         android:supportsRtl="true"
         android:usesCleartextTraffic="${usesCleartextTraffic}"
         android:hardwareAccelerated="true"
-        android:extractNativeLibs="false"
         android:theme="@style/Theme.SiposKebabSk">
         <activity
             android:name=".MainActivity"

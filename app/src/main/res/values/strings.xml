@@ -1,3 +1,171 @@
 <resources>
     <string name="app_name">Kebab SK</string>
+
+    <!-- Common actions -->
+    <string name="action_back">Kembali</string>
+    <string name="action_cancel">Batal</string>
+    <string name="action_retry">Coba Lagi</string>
+    <string name="action_login_again">Login Ulang</string>
+    <string name="action_close">Tutup</string>
+    <string name="action_select">Pilih</string>
+    <string name="action_save_changes">Simpan Perubahan</string>
+
+    <!-- Navigation -->
+    <string name="nav_cashier">Kasir</string>
+    <string name="nav_transactions">Transaksi</string>
+    <string name="nav_profile">Profil</string>
+    <string name="nav_state_selected">Dipilih</string>
+    <string name="nav_state_not_selected">Tidak dipilih</string>
+
+    <!-- Authentication -->
+    <string name="cd_app_logo">Logo Kebab SK</string>
+    <string name="login_store_name">Kebab SK</string>
+    <string name="login_pos_label">Point of Sale</string>
+    <string name="login_role_cashier">KASIR</string>
+    <string name="login_title">Selamat datang</string>
+    <string name="login_subtitle">Masuk untuk memulai shift dan melayani pelanggan.</string>
+    <string name="login_identifier_label">Username</string>
+    <string name="login_identifier_placeholder">Masukkan username</string>
+    <string name="login_password_label">Password</string>
+    <string name="login_password_placeholder">Masukkan password</string>
+    <string name="login_forgot_password">Lupa kata sandi?</string>
+    <string name="action_login">Masuk</string>
+    <string name="login_staff_only_note">Akses khusus staf Kebab SK</string>
+    <string name="cd_show_password">Tampilkan password</string>
+    <string name="cd_hide_password">Sembunyikan password</string>
+    <string name="forgot_title">Pemulihan Akun</string>
+    <string name="forgot_subtitle">Verifikasi keamanan</string>
+    <string name="forgot_find_account_title">Temukan akun</string>
+    <string name="forgot_find_account_description">Masukkan alamat email yang terdaftar untuk menerima kode OTP.</string>
+    <string name="forgot_email_label">Alamat email</string>
+    <string name="forgot_email_placeholder">contoh: kasir@skkebab.my.id</string>
+    <string name="forgot_otp_title">Masukkan kode OTP</string>
+    <string name="forgot_otp_description">Kode 6 digit telah dikirim untuk akun %1$s.</string>
+    <string name="forgot_account_fallback">Anda</string>
+    <string name="forgot_otp_label">Kode verifikasi</string>
+    <string name="forgot_otp_one_time_notice">Kode hanya dapat digunakan satu kali.</string>
+    <string name="forgot_reset_title">Buat kata sandi baru</string>
+    <string name="forgot_reset_description">Gunakan kata sandi yang mudah Anda ingat dan sulit ditebak.</string>
+    <string name="forgot_new_password_label">Kata sandi baru</string>
+    <string name="forgot_new_password_placeholder">Minimal 6 karakter</string>
+    <string name="forgot_confirm_password_label">Konfirmasi kata sandi</string>
+    <string name="forgot_confirm_password_placeholder">Ketik ulang kata sandi</string>
+    <string name="forgot_password_rule_notice">Gunakan minimal 6 karakter dan hindari kata sandi yang mudah ditebak.</string>
+    <string name="forgot_done_title">Kata sandi diperbarui</string>
+    <string name="forgot_done_description">Silakan masuk kembali menggunakan kata sandi baru Anda.</string>
+    <string name="forgot_sending_otp">Mengirim OTP...</string>
+    <string name="forgot_action_send_otp">Kirim Kode OTP</string>
+    <string name="forgot_verifying">Memverifikasi...</string>
+    <string name="forgot_action_verify">Verifikasi Kode</string>
+    <string name="forgot_saving">Menyimpan...</string>
+    <string name="forgot_action_update_password">Perbarui Kata Sandi</string>
+    <string name="forgot_action_back_to_login">Kembali ke login</string>
+    <string name="forgot_step_email">EMAIL</string>
+    <string name="forgot_step_otp">OTP</string>
+    <string name="forgot_step_reset">RESET</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">Kebab SK</string>
+    <string name="dashboard_subtitle">Dashboard kasir</string>
+    <string name="dashboard_today_chip">Hari ini</string>
+    <string name="dashboard_cashier_greeting">Halo, %1$s</string>
+    <string name="dashboard_time_wib">%1$s WIB</string>
+    <string name="dashboard_sync_pending">Menunggu Sinkronisasi - verifikasi sesi tertunda (offline)</string>
+    <string name="dashboard_loading">Memuat</string>
+    <string name="dashboard_loading_shift_data">Memuat data shift</string>
+    <string name="dashboard_session_open_state">Sesi harian terbuka</string>
+    <string name="dashboard_session_closed_state">Sesi harian belum dibuka</string>
+    <string name="dashboard_session_active_label">Sesi Harian Aktif</string>
+    <string name="dashboard_session_closed_label">Sesi Harian Belum Dibuka</string>
+    <string name="dashboard_total_transactions">Total Transaksi</string>
+    <string name="dashboard_items_sold">Item Terjual</string>
+    <string name="dashboard_today_revenue">Pendapatan Hari Ini</string>
+    <string name="dashboard_transactions_today">Transaksi hari ini</string>
+    <string name="dashboard_items_sold_subtitle">Item terjual</string>
+    <string name="dashboard_empty_value">Belum ada</string>
+    <string name="dashboard_dominant_item">Top: %1$s</string>
+    <string name="dashboard_target_progress">Target harian: %1$.1f%% tercapai</string>
+    <string name="dashboard_session_closed_notice">Transaksi akan aktif setelah admin membuka sesi harian.</string>
+    <string name="dashboard_start_transaction">Mulai Transaksi Baru</string>
+    <string name="dashboard_start_transaction_subtitle">Buka kasir dan pilih menu</string>
+
+    <!-- Menu and cart -->
+    <string name="menu_select_title">Pilih Menu</string>
+    <string name="menu_empty_message">Tidak ada menu tersedia</string>
+    <string name="menu_stock_low">Stok Bahan Kurang</string>
+    <string name="menu_inactive">Nonaktif</string>
+    <string name="menu_top_cart_title">Keranjang</string>
+    <string name="menu_top_payment_title">Pembayaran Tunai</string>
+    <string name="menu_top_menu_subtitle">Pilih menu untuk pelanggan</string>
+    <string name="menu_top_cart_subtitle">Cek pesanan sebelum bayar</string>
+    <string name="menu_top_payment_subtitle">Masukkan uang diterima</string>
+    <string name="menu_badge_cashier">Kasir</string>
+    <string name="menu_category_selected">Kategori dipilih</string>
+    <string name="menu_category_not_selected">Kategori tidak dipilih</string>
+    <string name="cart_title">Keranjang Belanja</string>
+    <string name="cart_subtitle">Daftar pesanan Anda saat ini</string>
+    <string name="cart_empty_title">Keranjang masih kosong</string>
+    <string name="cart_empty_message">Silakan pilih menu terlebih dahulu\nuntuk mulai memesan</string>
+    <string name="cart_total_payment">Total Pembayaran</string>
+    <string name="action_add_more">+ Tambah</string>
+    <string name="action_payment">Pembayaran</string>
+    <string name="cd_delete_cart_item">Hapus</string>
+    <string name="cd_cart">Keranjang</string>
+    <string name="cd_reduce_quantity">Kurangi jumlah</string>
+    <string name="cd_add_quantity">Tambah jumlah</string>
+    <string name="cd_add_to_cart">Tambah ke keranjang</string>
+    <string name="quantity_state">Jumlah %1$d</string>
+
+    <!-- Checkout -->
+    <string name="checkout_cash_unavailable">Metode pembayaran tunai belum tersedia.</string>
+    <string name="checkout_total_paid">Total dibayar</string>
+    <string name="checkout_change">Kembalian</string>
+    <string name="checkout_pay_cash">Bayar Tunai</string>
+    <string name="checkout_total_bill">Total Tagihan</string>
+    <string name="checkout_cash_direct">Pembayaran langsung tunai</string>
+    <string name="checkout_cash_method">Tunai</string>
+    <string name="checkout_cash_input_help">Input uang diterima dari pelanggan</string>
+    <string name="checkout_received_amount">Uang Diterima</string>
+    <string name="checkout_order_summary">Ringkasan Order</string>
+    <string name="checkout_cash_label">Tunai</string>
+    <string name="cd_received_amount">Uang diterima</string>
+    <string name="checkout_cash_active_state">Metode tunai aktif</string>
+    <string name="checkout_cash_inactive_state">Metode tunai belum dipilih</string>
+    <string name="checkout_active_badge">Aktif</string>
+
+    <!-- Transactions -->
+    <string name="transactions_title">Riwayat Transaksi</string>
+    <string name="transactions_subtitle">Pantau penjualan dan pembatalan</string>
+    <string name="transactions_empty_title">Belum ada transaksi</string>
+    <string name="transactions_empty_subtitle">pada tanggal ini</string>
+    <string name="transactions_today">Hari ini</string>
+    <string name="transactions_yesterday">Kemarin</string>
+    <string name="transactions_select_date">Pilih tanggal</string>
+    <string name="transactions_time">Pukul %1$s</string>
+    <string name="transactions_previous_session_not_voidable">Transaksi sesi sebelumnya tidak bisa dibatalkan.</string>
+    <string name="transactions_cancelled_receipt_available">Transaksi sudah dibatalkan, struk tetap bisa dilihat</string>
+    <string name="transactions_today_void_hint">Ketuk kartu untuk membatalkan transaksi hari ini</string>
+    <string name="transactions_today_only_void_hint">Hanya transaksi hari ini yang bisa dibatalkan</string>
+    <string name="transactions_print_short">Cetak</string>
+    <string name="transactions_reprint">Cetak ulang</string>
+    <string name="transactions_receipt_detail">Detail Struk</string>
+    <string name="transactions_receipt_detail_help">Periksa detail sebelum mencetak kembali.</string>
+    <string name="transactions_loading_receipt">Memuat detail struk...</string>
+    <string name="transactions_loading_wait">Mohon tunggu sebentar.</string>
+    <string name="transactions_receipt_unavailable">Detail struk belum tersedia</string>
+    <string name="transactions_receipt_loading_state">Memuat detail struk</string>
+    <string name="action_print_receipt">Cetak Struk</string>
+    <string name="action_printing">Mencetak...</string>
+    <string name="cd_print_receipt">Cetak ulang struk</string>
+    <string name="cd_previous_page">Halaman sebelumnya</string>
+    <string name="cd_next_page">Halaman selanjutnya</string>
+
+    <plurals name="item_count">
+        <item quantity="one">%1$d item</item>
+        <item quantity="other">%1$d item</item>
+    </plurals>
+    <plurals name="cart_order_count">
+        <item quantity="one">%1$d item pesanan</item>
+        <item quantity="other">%1$d item pesanan</item>
+    </plurals>
 </resources>

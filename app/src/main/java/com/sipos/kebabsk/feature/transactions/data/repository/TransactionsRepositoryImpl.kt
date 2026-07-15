@@ -5,6 +5,7 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.reflect.TypeToken
+import com.sipos.kebabsk.common.NetworkErrorMapper
 import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.common.retryNetworkRequest
 import com.sipos.kebabsk.common.suspendRunCatching
@@ -12,6 +13,7 @@ import com.sipos.kebabsk.common.validation.safeMultiply
 import com.sipos.kebabsk.common.validation.safeSubtract
 import com.sipos.kebabsk.feature.transactions.data.remote.TransactionItemResponse
 import com.sipos.kebabsk.feature.transactions.data.remote.TransactionsApiService
+import com.sipos.kebabsk.feature.transactions.data.remote.VoidTransactionRequest
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionHistoryItem
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionPageData
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionReceipt
@@ -236,7 +238,7 @@ class TransactionsRepositoryImpl(
     override suspend fun voidTransaction(token: String, transactionId: Long, reason: String, sessionId: Long): Result<String> {
         return suspendRunCatching {
             val idempotencyKey = java.util.UUID.randomUUID().toString()
-            val request = com.sipos.kebabsk.feature.transactions.data.remote.VoidTransactionRequest(
+            val request = VoidTransactionRequest(
                 reason = reason,
                 currentSessionId = sessionId,
                 idempotencyKey = idempotencyKey
@@ -466,7 +468,7 @@ class TransactionsRepositoryImpl(
         if (!rawMessage.isNullOrBlank() && rawMessage != "The given data was invalid.") {
             return rawMessage
         }
-        val httpMapped = com.sipos.kebabsk.common.NetworkErrorMapper.mapHttpCodeToUserMessage(code, fallback)
+        val httpMapped = NetworkErrorMapper.mapHttpCodeToUserMessage(code, fallback)
         return if (httpMapped == fallback) {
             sanitizeUserMessage(rawMessage, fallback)
         } else {
@@ -475,6 +477,6 @@ class TransactionsRepositoryImpl(
     }
 
     private fun mapThrowable(throwable: Throwable, fallback: String): String {
-        return com.sipos.kebabsk.common.NetworkErrorMapper.mapThrowableToUserMessage(throwable, fallback)
+        return NetworkErrorMapper.mapThrowableToUserMessage(throwable, fallback)
     }
 }

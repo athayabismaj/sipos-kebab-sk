@@ -48,6 +48,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
@@ -75,12 +76,19 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import com.sipos.kebabsk.R
 import com.sipos.kebabsk.common.AppTime
 import com.sipos.kebabsk.feature.profile.presentation.BluetoothPrinterConnection
@@ -578,13 +586,13 @@ private fun TransactionTopAppBar(onCalendarClick: () -> Unit) {
     ) {
         Column {
             Text(
-                text = "Riwayat Transaksi",
+                text = stringResource(R.string.transactions_title),
                 fontSize = 24.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = KebabTextDark
             )
             Text(
-                text = "Pantau penjualan dan pembatalan",
+                text = stringResource(R.string.transactions_subtitle),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 color = KebabTextGray
@@ -598,7 +606,7 @@ private fun TransactionTopAppBar(onCalendarClick: () -> Unit) {
                 .background(Color.White)
                 .border(1.dp, KebabPrimary.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
         ) {
-            Icon(Icons.Default.CalendarToday, contentDescription = "Pilih tanggal", tint = KebabPrimary)
+            Icon(Icons.Default.CalendarToday, contentDescription = stringResource(R.string.transactions_select_date), tint = KebabPrimary)
         }
     }
 }
@@ -619,8 +627,8 @@ private fun DateScroller(currentDate: LocalDate, onDateSelected: (LocalDate) -> 
         dates.forEach { date ->
             val isActive = date == currentDate
             val dayLabel = when (date) {
-                today -> "Hari ini"
-                today.minusDays(1) -> "Kemarin"
+                today -> stringResource(R.string.transactions_today)
+                today.minusDays(1) -> stringResource(R.string.transactions_yesterday)
                 else -> date.format(DateTimeFormatter.ofPattern("EEE", Locale.forLanguageTag("id-ID")))
             }
             val dateNum = date.dayOfMonth.toString()
@@ -731,9 +739,11 @@ private fun TransactionItemCard(
     trx: TransactionHistoryItem,
     isVoidable: Boolean,
     onVoidClicked: () -> Unit,
-    onReceiptClicked: () -> Unit
+        onReceiptClicked: () -> Unit
 ) {
     val context = LocalContext.current
+    val previousSessionMessage = stringResource(R.string.transactions_previous_session_not_voidable)
+    val printReceiptDescription = stringResource(R.string.cd_print_receipt)
         val isSuccess = trx.status.equals("Sukses", ignoreCase = true) ||
         trx.status.equals("Success", ignoreCase = true) ||
         trx.status.equals("Lunas", ignoreCase = true) ||
@@ -760,7 +770,7 @@ private fun TransactionItemCard(
                     } else {
                         Toast.makeText(
                             context,
-                            "Transaksi sesi sebelumnya tidak bisa dibatalkan.",
+                            previousSessionMessage,
                             Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -795,7 +805,7 @@ private fun TransactionItemCard(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = "Pukul ${trx.time}",
+                        text = stringResource(R.string.transactions_time, trx.time),
                         fontSize = 12.sp,
                         color = KebabTextGray.copy(alpha = opacity)
                     )
@@ -848,7 +858,7 @@ private fun TransactionItemCard(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "${trx.itemCount} Item",
+                    text = pluralStringResource(R.plurals.item_count, trx.itemCount, trx.itemCount),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     color = KebabTextGray.copy(alpha = opacity)
@@ -871,9 +881,9 @@ private fun TransactionItemCard(
         ) {
             Text(
                 text = when {
-                    !isSuccess -> "Transaksi sudah dibatalkan, struk tetap bisa dilihat"
-                    isVoidable -> "Ketuk kartu untuk membatalkan transaksi hari ini"
-                    else -> "Hanya transaksi hari ini yang bisa dibatalkan"
+                    !isSuccess -> stringResource(R.string.transactions_cancelled_receipt_available)
+                    isVoidable -> stringResource(R.string.transactions_today_void_hint)
+                    else -> stringResource(R.string.transactions_today_only_void_hint)
                 },
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
@@ -883,8 +893,10 @@ private fun TransactionItemCard(
 
             Row(
                 modifier = Modifier
+                    .minimumInteractiveComponentSize()
                     .clip(RoundedCornerShape(12.dp))
                     .background(KebabPrimary.copy(alpha = 0.1f))
+                    .semantics { contentDescription = printReceiptDescription }
                     .clickable { onReceiptClicked() }
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -897,7 +909,7 @@ private fun TransactionItemCard(
                     modifier = Modifier.size(15.dp)
                 )
                 Text(
-                    text = "Cetak",
+                    text = stringResource(R.string.transactions_print_short),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = KebabPrimary
@@ -917,6 +929,8 @@ private fun ReceiptReprintDialog(
     onRetry: () -> Unit,
     onPrint: (TransactionReceipt) -> Unit
 ) {
+    val receiptLoadingState = stringResource(R.string.transactions_receipt_loading_state)
+
     Dialog(
         onDismissRequest = { if (!isPrinting) onDismiss() },
         properties = DialogProperties(dismissOnBackPress = !isPrinting, dismissOnClickOutside = !isPrinting)
@@ -962,7 +976,7 @@ private fun ReceiptReprintDialog(
                                 color = KebabPrimary.copy(alpha = 0.10f)
                             ) {
                                 Text(
-                                    text = "Cetak ulang",
+                                    text = stringResource(R.string.transactions_reprint),
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                     color = KebabPrimary,
                                     fontSize = 11.sp,
@@ -970,13 +984,13 @@ private fun ReceiptReprintDialog(
                                 )
                             }
                             Text(
-                                text = "Detail Struk",
+                                text = stringResource(R.string.transactions_receipt_detail),
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = KebabTextDark
                             )
                             Text(
-                                text = "Periksa detail sebelum mencetak kembali.",
+                                text = stringResource(R.string.transactions_receipt_detail_help),
                                 fontSize = 12.sp,
                                 color = KebabTextGray,
                                 fontWeight = FontWeight.Medium,
@@ -1010,7 +1024,12 @@ private fun ReceiptReprintDialog(
                             Surface(
                                 shape = RoundedCornerShape(24.dp),
                                 color = Color(0xFFFFF7F1),
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .semantics {
+                                        stateDescription = receiptLoadingState
+                                        liveRegion = LiveRegionMode.Polite
+                                    }
                             ) {
                                 Column(
                                     modifier = Modifier.padding(vertical = 30.dp),
@@ -1019,13 +1038,13 @@ private fun ReceiptReprintDialog(
                                     CircularProgressIndicator(color = KebabPrimary, strokeWidth = 3.dp)
                                     Spacer(modifier = Modifier.height(14.dp))
                                     Text(
-                                        text = "Memuat detail struk...",
+                                        text = stringResource(R.string.transactions_loading_receipt),
                                         color = KebabTextDark,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.ExtraBold
                                     )
                                     Text(
-                                        text = "Mohon tunggu sebentar.",
+                                        text = stringResource(R.string.transactions_loading_wait),
                                         color = KebabTextGray,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Medium
@@ -1039,14 +1058,16 @@ private fun ReceiptReprintDialog(
                                 shape = RoundedCornerShape(22.dp),
                                 color = KebabErrorBg,
                                 border = androidx.compose.foundation.BorderStroke(1.dp, KebabErrorText.copy(alpha = 0.16f)),
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .semantics { liveRegion = LiveRegionMode.Assertive }
                             ) {
                                 Column(
                                     modifier = Modifier.padding(18.dp),
                                     verticalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     Text(
-                                        text = "Detail struk belum tersedia",
+                                        text = stringResource(R.string.transactions_receipt_unavailable),
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = KebabErrorText
@@ -1065,7 +1086,7 @@ private fun ReceiptReprintDialog(
                                     modifier = Modifier.weight(1f).height(52.dp),
                                     shape = RoundedCornerShape(18.dp)
                                 ) {
-                                    Text("Tutup", fontWeight = FontWeight.Bold)
+                                    Text(stringResource(R.string.action_close), fontWeight = FontWeight.Bold)
                                 }
                                 Button(
                                     onClick = onRetry,
@@ -1073,7 +1094,7 @@ private fun ReceiptReprintDialog(
                                     shape = RoundedCornerShape(18.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = KebabPrimary)
                                 ) {
-                                    Text("Coba Lagi", color = Color.White, fontWeight = FontWeight.Bold)
+                                    Text(stringResource(R.string.action_retry), color = Color.White, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -1095,7 +1116,7 @@ private fun ReceiptReprintDialog(
                                     modifier = Modifier.weight(1f).height(54.dp),
                                     shape = RoundedCornerShape(18.dp)
                                 ) {
-                                    Text("Tutup", fontWeight = FontWeight.Bold)
+                                    Text(stringResource(R.string.action_close), fontWeight = FontWeight.Bold)
                                 }
                                 Button(
                                     onClick = { onPrint(receipt) },
@@ -1120,7 +1141,11 @@ private fun ReceiptReprintDialog(
                                     }
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = if (isPrinting) "Mencetak..." else "Cetak Struk",
+                                        text = if (isPrinting) {
+                                            stringResource(R.string.action_printing)
+                                        } else {
+                                            stringResource(R.string.action_print_receipt)
+                                        },
                                         color = Color.White,
                                         fontWeight = FontWeight.ExtraBold
                                     )
@@ -1197,12 +1222,12 @@ private fun ReceiptPreviewCard(receipt: TransactionReceipt) {
         DashedReceiptDivider()
 
         Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            ReceiptPreviewRow(label = "Sub Total", value = com.sipos.kebabsk.common.MoneyUtils.formatRupiah(receipt.totalAmount))
-            ReceiptPreviewRow(label = "Total", value = com.sipos.kebabsk.common.MoneyUtils.formatRupiah(receipt.totalAmount), isBold = true)
-            ReceiptPreviewRow(label = "Bayar", value = com.sipos.kebabsk.common.MoneyUtils.formatRupiah(receipt.paidAmount))
+            ReceiptPreviewRow(label = "Sub Total", value = MoneyUtils.formatRupiah(receipt.totalAmount))
+            ReceiptPreviewRow(label = "Total", value = MoneyUtils.formatRupiah(receipt.totalAmount), isBold = true)
+            ReceiptPreviewRow(label = "Bayar", value = MoneyUtils.formatRupiah(receipt.paidAmount))
             ReceiptPreviewRow(
                 label = "Kembalian",
-                value = com.sipos.kebabsk.common.MoneyUtils.formatRupiah(receipt.changeAmount),
+                value = MoneyUtils.formatRupiah(receipt.changeAmount),
                 highlight = true
             )
         }
@@ -1383,7 +1408,7 @@ private fun ReceiptPreviewItem(index: Int, item: TransactionReceiptItem) {
                 }
             }
             Text(
-                text = com.sipos.kebabsk.common.MoneyUtils.formatRupiah(item.subtotal),
+                text = MoneyUtils.formatRupiah(item.subtotal),
                 fontFamily = FontFamily.Monospace,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.ExtraBold,
@@ -1395,7 +1420,7 @@ private fun ReceiptPreviewItem(index: Int, item: TransactionReceiptItem) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "  ${item.qty} x ${com.sipos.kebabsk.common.MoneyUtils.formatRupiah(item.price)}",
+                text = "  ${item.qty} x ${MoneyUtils.formatRupiah(item.price)}",
                 fontFamily = FontFamily.Monospace,
                 fontSize = 11.sp,
                 color = ReceiptDarkMuted
@@ -1450,6 +1475,9 @@ private fun PaginationControls(
     onPrevious: () -> Unit,
     onNext: () -> Unit
 ) {
+    val previousPageDescription = stringResource(R.string.cd_previous_page)
+    val nextPageDescription = stringResource(R.string.cd_next_page)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1460,18 +1488,20 @@ private fun PaginationControls(
         // Prev button
         Box(
             modifier = Modifier
+                .minimumInteractiveComponentSize()
                 .size(36.dp)
                 .clip(RoundedCornerShape(10.dp))
                 .background(
                     if (currentPage > 1) MaterialTheme.colorScheme.surfaceVariant
                     else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
                 )
+                .semantics { contentDescription = previousPageDescription }
                 .clickable(enabled = currentPage > 1) { onPrevious() },
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Sebelumnya",
+                contentDescription = null,
                 tint = if (currentPage > 1) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
                 modifier = Modifier.size(16.dp)
             )
@@ -1502,18 +1532,20 @@ private fun PaginationControls(
         // Next button
         Box(
             modifier = Modifier
+                .minimumInteractiveComponentSize()
                 .size(36.dp)
                 .clip(RoundedCornerShape(10.dp))
                 .background(
                     if (currentPage < totalPages) MaterialTheme.colorScheme.surfaceVariant
                     else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
                 )
+                .semantics { contentDescription = nextPageDescription }
                 .clickable(enabled = currentPage < totalPages) { onNext() },
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = "Selanjutnya",
+                contentDescription = null,
                 tint = if (currentPage < totalPages) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
                 modifier = Modifier.size(16.dp)
             )
@@ -1564,18 +1596,18 @@ private fun buildReceiptEscPosBytes(receipt: TransactionReceipt): ByteArray {
         text("${index + 1}. ${item.name}".take(PRINTER_RECEIPT_WIDTH))
         bold(false)
         variantName?.let { text("   ${it}".take(PRINTER_RECEIPT_WIDTH)) }
-        text(receiptColumns("   ${item.qty} x ${com.sipos.kebabsk.common.MoneyUtils.formatRupiah(item.price)}", com.sipos.kebabsk.common.MoneyUtils.formatRupiah(item.subtotal)))
+        text(receiptColumns("   ${item.qty} x ${MoneyUtils.formatRupiah(item.price)}", MoneyUtils.formatRupiah(item.subtotal)))
     }
 
     line()
     text(receiptColumns("Total QTY", receipt.items.sumOf { it.qty }.toString()))
     line()
-    text(receiptColumns("Sub Total", com.sipos.kebabsk.common.MoneyUtils.formatRupiah(receipt.totalAmount)))
+    text(receiptColumns("Sub Total", MoneyUtils.formatRupiah(receipt.totalAmount)))
     bold(true)
-    text(receiptColumns("Total", com.sipos.kebabsk.common.MoneyUtils.formatRupiah(receipt.totalAmount)))
+    text(receiptColumns("Total", MoneyUtils.formatRupiah(receipt.totalAmount)))
     bold(false)
-    text(receiptColumns("Bayar", com.sipos.kebabsk.common.MoneyUtils.formatRupiah(receipt.paidAmount)))
-    text(receiptColumns("Kembali", com.sipos.kebabsk.common.MoneyUtils.formatRupiah(receipt.changeAmount)))
+    text(receiptColumns("Bayar", MoneyUtils.formatRupiah(receipt.paidAmount)))
+    text(receiptColumns("Kembali", MoneyUtils.formatRupiah(receipt.changeAmount)))
     align(1)
     line()
     bold(true)

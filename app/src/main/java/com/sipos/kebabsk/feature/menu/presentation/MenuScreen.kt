@@ -60,6 +60,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -351,14 +353,14 @@ private fun MenuTopBar(
     onBack: () -> Unit
 ) {
     val title = when (cashierPage) {
-        CashierPage.MENU -> "Kebab SK"
-        CashierPage.CART -> "Keranjang"
-        CashierPage.PAYMENT -> "Pembayaran Tunai"
+        CashierPage.MENU -> stringResource(R.string.app_name)
+        CashierPage.CART -> stringResource(R.string.menu_top_cart_title)
+        CashierPage.PAYMENT -> stringResource(R.string.menu_top_payment_title)
     }
     val subtitle = when (cashierPage) {
-        CashierPage.MENU -> "Pilih menu untuk pelanggan"
-        CashierPage.CART -> "Cek pesanan sebelum bayar"
-        CashierPage.PAYMENT -> "Masukkan uang diterima"
+        CashierPage.MENU -> stringResource(R.string.menu_top_menu_subtitle)
+        CashierPage.CART -> stringResource(R.string.menu_top_cart_subtitle)
+        CashierPage.PAYMENT -> stringResource(R.string.menu_top_payment_subtitle)
     }
 
     Column(
@@ -393,7 +395,7 @@ private fun MenuTopBar(
                         ) {
                             Image(
                                 painter = painterResource(id = R.drawable.kebab_sk_logo),
-                                contentDescription = "Logo Kebab SK",
+                                contentDescription = stringResource(R.string.cd_app_logo),
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()
                             )
@@ -406,7 +408,12 @@ private fun MenuTopBar(
                                 .clip(CircleShape)
                                 .background(KebabPrimary.copy(alpha = 0.10f))
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali", tint = KebabPrimary, modifier = Modifier.size(22.dp))
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.action_back),
+                                tint = KebabPrimary,
+                                modifier = Modifier.size(22.dp)
+                            )
                         }
                     }
                     Spacer(modifier = Modifier.width(12.dp))
@@ -427,9 +434,13 @@ private fun MenuTopBar(
                 }
 
                 val badgeText = when (cashierPage) {
-                    CashierPage.MENU -> if (itemCount > 0) "$itemCount item" else "Kasir"
-                    CashierPage.CART -> "$itemCount item"
-                    CashierPage.PAYMENT -> "Tunai"
+                    CashierPage.MENU -> if (itemCount > 0) {
+                        pluralStringResource(R.plurals.item_count, itemCount, itemCount)
+                    } else {
+                        stringResource(R.string.menu_badge_cashier)
+                    }
+                    CashierPage.CART -> pluralStringResource(R.plurals.item_count, itemCount, itemCount)
+                    CashierPage.PAYMENT -> stringResource(R.string.checkout_cash_label)
                 }
                 Text(
                     text = badgeText,
@@ -475,7 +486,7 @@ private fun CartFloatingActionButton(itemCount: Int, onClick: () -> Unit) {
             ) {
                 Icon(
                     imageVector = Icons.Default.ShoppingCart,
-                    contentDescription = "Keranjang",
+                    contentDescription = stringResource(R.string.cd_cart),
                     modifier = Modifier.size(28.dp)
                 )
             }

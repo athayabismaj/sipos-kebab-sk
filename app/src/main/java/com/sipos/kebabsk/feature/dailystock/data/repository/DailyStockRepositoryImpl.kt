@@ -6,6 +6,7 @@ import com.sipos.kebabsk.feature.dailystock.domain.repository.DailyStockReposito
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
+import com.sipos.kebabsk.common.NetworkErrorMapper
 import com.sipos.kebabsk.common.retryNetworkRequest
 import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.common.firstString
@@ -242,7 +243,7 @@ class DailyStockRepositoryImpl(
     }
 
     private fun mapCloseSessionError(code: Int, rawMessage: String?): String {
-        return com.sipos.kebabsk.common.NetworkErrorMapper.mapHttpCodeToUserMessage(
+        return NetworkErrorMapper.mapHttpCodeToUserMessage(
             code,
             sanitizeUserMessage(rawMessage, "Gagal menutup sesi stok harian. Silakan coba lagi."),
             "Sesi stok harian tidak ditemukan.",

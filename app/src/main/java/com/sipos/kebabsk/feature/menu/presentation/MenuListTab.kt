@@ -34,17 +34,25 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sipos.kebabsk.R
+import com.sipos.kebabsk.common.MoneyUtils
+import com.sipos.kebabsk.common.VariantDisplayUtils
 import com.sipos.kebabsk.feature.cart.domain.model.CartItem
 
 import com.sipos.kebabsk.ui.theme.*
@@ -56,11 +64,13 @@ fun MenuListTab(
     selectedCategory: String?,
     cartItems: List<CartItem>,
     cartInteractionEnabled: Boolean = true,
-    emptyStateMessage: String = "Tidak ada menu tersedia",
+    emptyStateMessage: String? = null,
     onCategorySelected: (String?) -> Unit,
     onAddVariant: (String, Long, String, Long) -> Unit,
     onRemoveVariant: (Long) -> Unit
 ) {
+    val resolvedEmptyStateMessage = emptyStateMessage ?: stringResource(R.string.menu_empty_message)
+
     val cartQtyMap = remember(cartItems) {
         cartItems.associate { it.variantId to it.qty }
     }
@@ -80,7 +90,7 @@ fun MenuListTab(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Pilih Menu",
+                    text = stringResource(R.string.menu_select_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.ExtraBold,
                     color = KebabTextDark
@@ -121,7 +131,7 @@ fun MenuListTab(
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            text = emptyStateMessage,
+                            text = resolvedEmptyStateMessage,
                             style = MaterialTheme.typography.bodyLarge,
                             color = KebabTextGray,
                             fontWeight = FontWeight.SemiBold,
@@ -149,11 +159,15 @@ fun MenuListTab(
 fun CategoryChip(title: String, isSelected: Boolean, onClick: () -> Unit) {
     val bgColor = if (isSelected) KebabPrimaryContainer else KebabChipInactiveBg
     val textColor = if (isSelected) Color.White else KebabTextGray
+    val selectedState = stringResource(R.string.menu_category_selected)
+    val notSelectedState = stringResource(R.string.menu_category_not_selected)
 
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(50))
             .background(bgColor)
+            .minimumInteractiveComponentSize()
+            .semantics { stateDescription = if (isSelected) selectedState else notSelectedState }
             .clickable { onClick() }
             .padding(horizontal = 20.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center
@@ -229,7 +243,7 @@ private fun MenuItemCard(
             )
 
             // Variant name
-            val displayVariantName = com.sipos.kebabsk.common.VariantDisplayUtils.formatVariantName(item.menuName, item.variantName)
+            val displayVariantName = VariantDisplayUtils.formatVariantName(item.menuName, item.variantName)
 
             if (displayVariantName.isNotBlank() && displayVariantName != item.menuName) {
                 Text(
@@ -251,7 +265,7 @@ private fun MenuItemCard(
                 horizontalAlignment = Alignment.End
             ) {
                 Text(
-                    text = com.sipos.kebabsk.common.MoneyUtils.formatRupiah(item.price),
+                    text = MoneyUtils.formatRupiah(item.price),
                     modifier = Modifier.fillMaxWidth(),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.ExtraBold,
@@ -281,7 +295,7 @@ private fun MenuItemCard(
                         color = Color(0xFFFFF3CD)
                     ) {
                         Text(
-                            text = "⚠ Stok Bahan Kurang",
+                            text = stringResource(R.string.menu_stock_low),
                             color = Color(0xFF92400E),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
@@ -297,7 +311,7 @@ private fun MenuItemCard(
                         color = MaterialTheme.colorScheme.errorContainer
                     ) {
                         Text(
-                            text = "Nonaktif",
+                            text = stringResource(R.string.menu_inactive),
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
@@ -312,20 +326,29 @@ private fun MenuItemCard(
 
 @Composable
 private fun QuantitySelector(qty: Int, enabled: Boolean, onAdd: () -> Unit, onRemove: () -> Unit) {
+    val quantityState = stringResource(R.string.quantity_state, qty)
+    val reduceDescription = stringResource(R.string.cd_reduce_quantity)
+    val addDescription = stringResource(R.string.cd_add_quantity)
+
     Row(
-        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+            .semantics { stateDescription = quantityState },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(36.dp)
+                .minimumInteractiveComponentSize()
+                .size(40.dp)
                 .clip(CircleShape)
                 .background(Color(0xFFF3E8DD))
+                .semantics { contentDescription = reduceDescription }
                 .clickable(enabled = enabled, onClick = onRemove),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Outlined.Remove, contentDescription = "Kurang", tint = KebabPrimary, modifier = Modifier.size(20.dp))
+            Icon(Icons.Outlined.Remove, contentDescription = null, tint = KebabPrimary, modifier = Modifier.size(20.dp))
         }
 
         Text(
@@ -339,19 +362,23 @@ private fun QuantitySelector(qty: Int, enabled: Boolean, onAdd: () -> Unit, onRe
 
         Box(
             modifier = Modifier
-                .size(36.dp)
+                .minimumInteractiveComponentSize()
+                .size(40.dp)
                 .clip(CircleShape)
                 .background(KebabPrimaryContainer)
+                .semantics { contentDescription = addDescription }
                 .clickable(enabled = enabled, onClick = onAdd),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Outlined.Add, contentDescription = "Tambah", tint = Color.White, modifier = Modifier.size(20.dp))
+            Icon(Icons.Outlined.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
         }
     }
 }
 
 @Composable
 private fun QuantityAddButton(enabled: Boolean, onAdd: () -> Unit) {
+    val addToCartDescription = stringResource(R.string.cd_add_to_cart)
+
     Row(
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         horizontalArrangement = Arrangement.End,
@@ -359,13 +386,15 @@ private fun QuantityAddButton(enabled: Boolean, onAdd: () -> Unit) {
     ) {
         Box(
             modifier = Modifier
-                .size(36.dp)
+                .minimumInteractiveComponentSize()
+                .size(40.dp)
                 .clip(CircleShape)
                 .background(KebabPrimaryContainer)
+                .semantics { contentDescription = addToCartDescription }
                 .clickable(enabled = enabled, onClick = onAdd),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Outlined.Add, contentDescription = "Tambah", tint = Color.White, modifier = Modifier.size(20.dp))
+            Icon(Icons.Outlined.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
         }
     }
 }

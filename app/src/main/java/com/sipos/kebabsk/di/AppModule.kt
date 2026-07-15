@@ -5,18 +5,23 @@ import com.sipos.kebabsk.common.AppSessionStore
 import com.sipos.kebabsk.common.AuthSessionEvents
 import com.sipos.kebabsk.feature.auth.data.remote.AuthApiService
 import com.sipos.kebabsk.feature.auth.data.repository.AuthRepositoryImpl
+import com.sipos.kebabsk.feature.auth.domain.repository.AuthRepository
 import com.sipos.kebabsk.feature.auth.presentation.forgotpassword.ForgotPasswordViewModel
 import com.sipos.kebabsk.feature.auth.presentation.login.LoginViewModel
 import com.sipos.kebabsk.feature.checkout.data.remote.CheckoutApiService
 import com.sipos.kebabsk.feature.checkout.data.repository.CheckoutRepositoryImpl
+import com.sipos.kebabsk.feature.checkout.domain.repository.CheckoutRepository
 import com.sipos.kebabsk.feature.dailystock.data.remote.DailyStockApiService
 import com.sipos.kebabsk.feature.dailystock.data.repository.DailyStockRepositoryImpl
+import com.sipos.kebabsk.feature.dailystock.domain.repository.DailyStockRepository
 import com.sipos.kebabsk.feature.dailystock.presentation.DailyStockViewModel
 import com.sipos.kebabsk.feature.expense.data.remote.OperationalExpenseApiService
 import com.sipos.kebabsk.feature.expense.data.repository.OperationalExpenseRepositoryImpl
+import com.sipos.kebabsk.feature.expense.domain.repository.OperationalExpenseRepository
 import com.sipos.kebabsk.feature.expense.presentation.OperationalExpenseViewModel
 import com.sipos.kebabsk.feature.menu.data.remote.MenuApiService
 import com.sipos.kebabsk.feature.menu.data.repository.MenuRepositoryImpl
+import com.sipos.kebabsk.feature.menu.domain.repository.MenuRepository
 import com.sipos.kebabsk.feature.menu.presentation.MenuViewModel
 import com.sipos.kebabsk.feature.cart.presentation.CartViewModel
 import com.sipos.kebabsk.feature.checkout.presentation.CheckoutViewModel
@@ -28,6 +33,7 @@ import com.sipos.kebabsk.feature.shift.presentation.CloseShiftViewModel
 import com.sipos.kebabsk.feature.shift.presentation.ShiftSummaryViewModel
 import com.sipos.kebabsk.feature.transactions.data.remote.TransactionsApiService
 import com.sipos.kebabsk.feature.transactions.data.repository.TransactionsRepositoryImpl
+import com.sipos.kebabsk.feature.transactions.domain.repository.TransactionsRepository
 import com.sipos.kebabsk.feature.transactions.presentation.TransactionsViewModel
 import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
@@ -130,12 +136,12 @@ val networkModule = module {
 }
 
 val repositoryModule = module {
-    single<com.sipos.kebabsk.feature.auth.domain.repository.AuthRepository> { AuthRepositoryImpl(get()) }
-    single<com.sipos.kebabsk.feature.menu.domain.repository.MenuRepository> { MenuRepositoryImpl(get()) }
-    single<com.sipos.kebabsk.feature.checkout.domain.repository.CheckoutRepository> { CheckoutRepositoryImpl(get()) }
-    single<com.sipos.kebabsk.feature.dailystock.domain.repository.DailyStockRepository> { DailyStockRepositoryImpl(get()) }
-    single<com.sipos.kebabsk.feature.expense.domain.repository.OperationalExpenseRepository> { OperationalExpenseRepositoryImpl(get()) }
-    single<com.sipos.kebabsk.feature.transactions.domain.repository.TransactionsRepository> { TransactionsRepositoryImpl(get()) }
+    single<AuthRepository> { AuthRepositoryImpl(get()) }
+    single<MenuRepository> { MenuRepositoryImpl(get()) }
+    single<CheckoutRepository> { CheckoutRepositoryImpl(get()) }
+    single<DailyStockRepository> { DailyStockRepositoryImpl(get()) }
+    single<OperationalExpenseRepository> { OperationalExpenseRepositoryImpl(get()) }
+    single<TransactionsRepository> { TransactionsRepositoryImpl(get()) }
     single<CloseShiftRepository> { CloseShiftRepositoryImpl(get()) }
 }
 

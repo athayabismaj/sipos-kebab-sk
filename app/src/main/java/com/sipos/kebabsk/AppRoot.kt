@@ -1,5 +1,6 @@
 package com.sipos.kebabsk
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -62,10 +63,10 @@ private enum class AuthRoute {
     APP
 }
 
-enum class AppTab(val label: String, val selectedIcon: ImageVector, val unselectedIcon: ImageVector) {
-    CASHIER("Kasir", Icons.Filled.ShoppingCart, Icons.Outlined.ShoppingCart),
-    TRANSACTIONS("Transaksi", Icons.AutoMirrored.Filled.List, Icons.AutoMirrored.Outlined.List),
-    PROFILE("Profil", Icons.Filled.Person, Icons.Outlined.Person)
+enum class AppTab(@param:StringRes val labelRes: Int, val selectedIcon: ImageVector, val unselectedIcon: ImageVector) {
+    CASHIER(R.string.nav_cashier, Icons.Filled.ShoppingCart, Icons.Outlined.ShoppingCart),
+    TRANSACTIONS(R.string.nav_transactions, Icons.AutoMirrored.Filled.List, Icons.AutoMirrored.Outlined.List),
+    PROFILE(R.string.nav_profile, Icons.Filled.Person, Icons.Outlined.Person)
 }
 
 

@@ -47,7 +47,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sipos.kebabsk.R
@@ -119,7 +125,7 @@ fun DashboardScreen(
                     ) {
                         Image(
                             painter = painterResource(id = R.drawable.kebab_sk_logo),
-                            contentDescription = "Logo Kebab SK",
+                            contentDescription = stringResource(R.string.cd_app_logo),
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize()
                         )
@@ -127,13 +133,13 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = "Kebab SK",
+                            text = stringResource(R.string.dashboard_title),
                             color = KebabPrimary,
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 20.sp
                         )
                         Text(
-                            text = "Dashboard kasir",
+                            text = stringResource(R.string.dashboard_subtitle),
                             color = KebabTextGray,
                             fontWeight = FontWeight.Medium,
                             fontSize = 12.sp
@@ -149,7 +155,7 @@ fun DashboardScreen(
                         .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
                     Text(
-                        text = "Hari ini",
+                        text = stringResource(R.string.dashboard_today_chip),
                         color = KebabPrimary,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -181,7 +187,7 @@ fun DashboardScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Menunggu Sinkronisasi â€” verifikasi sesi tertunda (offline)",
+                        text = stringResource(R.string.dashboard_sync_pending),
                         fontSize = 12.sp,
                         color = KebabPrimary,
                         fontWeight = FontWeight.Medium
@@ -206,25 +212,25 @@ fun DashboardScreen(
                     ) {
                         DashboardMetricCard(
                             modifier = Modifier.weight(1f),
-                            title = "Total Transaksi",
+                            title = stringResource(R.string.dashboard_total_transactions),
                             value = "...",
-                            subValue = "Memuat",
+                            subValue = stringResource(R.string.dashboard_loading),
                             icon = Icons.AutoMirrored.Outlined.List,
                             compact = true
                         )
                         DashboardMetricCard(
                             modifier = Modifier.weight(1f),
-                            title = "Item Terjual",
+                            title = stringResource(R.string.dashboard_items_sold),
                             value = "...",
-                            subValue = "Memuat",
+                            subValue = stringResource(R.string.dashboard_loading),
                             icon = Icons.Outlined.ShoppingCart,
                             compact = true
                         )
                     }
                     DashboardMetricCard(
-                        title = "Pendapatan Hari Ini",
+                        title = stringResource(R.string.dashboard_today_revenue),
                         value = "...",
-                        subValue = "Memuat data shift",
+                        subValue = stringResource(R.string.dashboard_loading_shift_data),
                         icon = Icons.AutoMirrored.Outlined.List,
                         isPrimary = true
                     )
@@ -249,7 +255,14 @@ fun DashboardScreen(
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = KebabPrimary)
                             ) {
-                                Text(if (isSessionExpired) "Login Ulang" else "Coba Lagi", color = Color.White)
+                                Text(
+                                    if (isSessionExpired) {
+                                        stringResource(R.string.action_login_again)
+                                    } else {
+                                        stringResource(R.string.action_retry)
+                                    },
+                                    color = Color.White
+                                )
                             }
                         }
                     }
@@ -262,27 +275,36 @@ fun DashboardScreen(
                     ) {
                         DashboardMetricCard(
                             modifier = Modifier.weight(1f),
-                            title = "Total Transaksi",
+                            title = stringResource(R.string.dashboard_total_transactions),
                             value = shiftSummaryUiState.totalTransactions.toString(),
                             subValue = shiftSummaryUiState.transactionGrowthPercentage?.let { pct ->
                                 val sign = if (pct >= 0) "+" else ""
                                 "${sign}${pct}%"
-                            } ?: if (shiftSummaryUiState.totalTransactions > 0) "Transaksi hari ini" else "Belum ada",
+                            } ?: if (shiftSummaryUiState.totalTransactions > 0) {
+                                stringResource(R.string.dashboard_transactions_today)
+                            } else {
+                                stringResource(R.string.dashboard_empty_value)
+                            },
                             icon = Icons.AutoMirrored.Outlined.List,
                             compact = true
                         )
                         DashboardMetricCard(
                             modifier = Modifier.weight(1f),
-                            title = "Item Terjual",
+                            title = stringResource(R.string.dashboard_items_sold),
                             value = shiftSummaryUiState.totalItemsSold.toString(),
-                            subValue = shiftSummaryUiState.dominantItemName?.let { "Top: $it" }
-                                ?: if (shiftSummaryUiState.totalItemsSold > 0) "Item terjual" else "Belum ada",
+                            subValue = shiftSummaryUiState.dominantItemName?.let {
+                                stringResource(R.string.dashboard_dominant_item, it)
+                            } ?: if (shiftSummaryUiState.totalItemsSold > 0) {
+                                stringResource(R.string.dashboard_items_sold_subtitle)
+                            } else {
+                                stringResource(R.string.dashboard_empty_value)
+                            },
                             icon = Icons.Outlined.ShoppingCart,
                             compact = true
                         )
                     }
                     DashboardMetricCard(
-                        title = "Pendapatan Hari Ini",
+                        title = stringResource(R.string.dashboard_today_revenue),
                         value = MoneyUtils.formatRupiah(shiftSummaryUiState.totalRevenue),
                         subValue = run {
                             val target = shiftSummaryUiState.dailyTargetRevenue
@@ -293,7 +315,7 @@ fun DashboardScreen(
                                 shiftSummaryUiState.revenueTargetPercentage != null -> shiftSummaryUiState.revenueTargetPercentage
                                 else -> 0.0
                             }
-                            "Target harian: ${String.format("%.1f", percentage)}% tercapai"
+                            stringResource(R.string.dashboard_target_progress, percentage)
                         },
                         icon = Icons.AutoMirrored.Outlined.List,
                         isPrimary = true
@@ -353,13 +375,14 @@ private fun ClosedSessionNotice(
                 verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
                 Text(
-                    text = dailySessionLabel?.takeIf { it.isNotBlank() } ?: "Sesi Harian Belum Dibuka",
+                    text = dailySessionLabel?.takeIf { it.isNotBlank() }
+                        ?: stringResource(R.string.dashboard_session_closed_label),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.ExtraBold,
                     color = KebabTextDark
                 )
                 Text(
-                    text = "Transaksi akan aktif setelah admin membuka sesi harian.",
+                    text = stringResource(R.string.dashboard_session_closed_notice),
                     style = MaterialTheme.typography.bodySmall,
                     color = KebabTextGray,
                     lineHeight = 18.sp
@@ -377,10 +400,12 @@ private fun UserInfoSection(
     isDailySessionOpen: Boolean,
     dailySessionLabel: String?
 ) {
+    val sessionOpenState = stringResource(R.string.dashboard_session_open_state)
+    val sessionClosedState = stringResource(R.string.dashboard_session_closed_state)
     val statusLabel = when {
-        isDailySessionOpen -> dailySessionLabel ?: "Sesi Harian Aktif"
+        isDailySessionOpen -> dailySessionLabel ?: stringResource(R.string.dashboard_session_active_label)
         !dailySessionLabel.isNullOrBlank() -> dailySessionLabel
-        else -> "Sesi Harian Belum Dibuka"
+        else -> stringResource(R.string.dashboard_session_closed_label)
     }
 
     Card(
@@ -413,7 +438,14 @@ private fun UserInfoSection(
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Halo, $cashierName", fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = Color(0xFF1E1E1E))
+                    Text(
+                        text = stringResource(R.string.dashboard_cashier_greeting, cashierName),
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 17.sp,
+                        color = Color(0xFF1E1E1E),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                     Spacer(modifier = Modifier.height(6.dp))
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -432,7 +464,13 @@ private fun UserInfoSection(
                                 color = KebabPrimary
                             )
                         }
-                        Text("$currentTime WIB", color = KebabTextGray, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                        Text(
+                            text = stringResource(R.string.dashboard_time_wib, currentTime),
+                            color = KebabTextGray,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1
+                        )
                     }
                 }
             }
@@ -442,13 +480,22 @@ private fun UserInfoSection(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
                     .background(if (isDailySessionOpen) KebabSuccessBg else Color(0xFFF9E8E8))
+                    .semantics {
+                        stateDescription = if (isDailySessionOpen) {
+                            sessionOpenState
+                        } else {
+                            sessionClosedState
+                        }
+                        liveRegion = LiveRegionMode.Polite
+                    }
                     .padding(horizontal = 14.dp, vertical = 12.dp)
             ) {
                 Text(
                     text = statusLabel,
                     color = if (isDailySessionOpen) KebabSuccess else MaterialTheme.colorScheme.error,
                     fontWeight = FontWeight.ExtraBold,
-                    fontSize = 15.sp
+                    fontSize = 15.sp,
+                    lineHeight = 20.sp
                 )
             }
         }
@@ -575,8 +622,8 @@ private fun MainActionButton(
 
                     Spacer(Modifier.width(14.dp))
                     Column {
-                        Text("Mulai Transaksi Baru", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color.White)
-                        Text("Buka kasir dan pilih menu", fontSize = 14.sp, color = Color.White.copy(alpha = 0.85f))
+                        Text(stringResource(R.string.dashboard_start_transaction), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color.White)
+                        Text(stringResource(R.string.dashboard_start_transaction_subtitle), fontSize = 14.sp, color = Color.White.copy(alpha = 0.85f))
                     }
                 }
 

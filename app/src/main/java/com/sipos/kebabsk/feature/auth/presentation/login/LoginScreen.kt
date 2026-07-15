@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -156,7 +157,7 @@ fun LoginScreen(
                         ) {
                             Image(
                                 painter = painterResource(id = R.drawable.kebab_sk_logo),
-                                contentDescription = "Logo Kebab SK",
+                                contentDescription = stringResource(R.string.cd_app_logo),
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()
                             )
@@ -164,13 +165,13 @@ fun LoginScreen(
                         Spacer(modifier = Modifier.width(14.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Kebab SK",
+                                text = stringResource(R.string.login_store_name),
                                 color = KebabTextDark,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.ExtraBold
                             )
                             Text(
-                                text = "Point of Sale",
+                                text = stringResource(R.string.login_pos_label),
                                 color = KebabTextGray,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
@@ -184,7 +185,7 @@ fun LoginScreen(
                                 .padding(horizontal = 12.dp, vertical = 7.dp)
                         ) {
                             Text(
-                                text = "KASIR",
+                                text = stringResource(R.string.login_role_cashier),
                                 color = KebabPrimary,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.ExtraBold,
@@ -196,7 +197,7 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(30.dp))
 
                     Text(
-                        text = "Selamat datang",
+                        text = stringResource(R.string.login_title),
                         fontSize = 28.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = KebabTextDark,
@@ -204,7 +205,7 @@ fun LoginScreen(
                         lineHeight = 32.sp
                     )
                     Text(
-                        text = "Masuk untuk memulai shift dan melayani pelanggan.",
+                        text = stringResource(R.string.login_subtitle),
                         fontSize = 14.sp,
                         color = KebabTextGray,
                         textAlign = TextAlign.Start,
@@ -217,8 +218,8 @@ fun LoginScreen(
                     LoginInputField(
                         value = uiState.identifier,
                         onValueChange = onIdentifierChanged,
-                        label = "Username",
-                        placeholder = "Masukkan username",
+                        label = stringResource(R.string.login_identifier_label),
+                        placeholder = stringResource(R.string.login_identifier_placeholder),
                         leadingIcon = Icons.Default.Person,
                         enabled = !uiState.isLoading
                     )
@@ -228,8 +229,8 @@ fun LoginScreen(
                     LoginInputField(
                         value = uiState.password,
                         onValueChange = onPasswordChanged,
-                        label = "Password",
-                        placeholder = "Masukkan password",
+                        label = stringResource(R.string.login_password_label),
+                        placeholder = stringResource(R.string.login_password_placeholder),
                         leadingIcon = Icons.Default.Lock,
                         isPassword = true,
                         passwordVisible = passwordVisible,
@@ -244,7 +245,7 @@ fun LoginScreen(
                         contentAlignment = Alignment.CenterEnd
                     ) {
                         Text(
-                            text = "Lupa kata sandi?",
+                            text = stringResource(R.string.login_forgot_password),
                             color = KebabPrimary,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
@@ -302,7 +303,7 @@ fun LoginScreen(
                         } else {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = "Masuk",
+                                    text = stringResource(R.string.action_login),
                                     color = Color.White,
                                     fontWeight = FontWeight.ExtraBold,
                                     fontSize = 16.sp,
@@ -320,7 +321,7 @@ fun LoginScreen(
                     }
 
                     Text(
-                        text = "Akses khusus staf Kebab SK",
+                        text = stringResource(R.string.login_staff_only_note),
                         color = KebabTextGray.copy(alpha = 0.70f),
                         fontSize = 12.sp,
                         textAlign = TextAlign.Center,
@@ -387,7 +388,11 @@ private fun LoginInputField(
                     ) {
                         androidx.compose.material3.Icon(
                             imageVector = if (passwordVisible) VisibilityOffIcon else VisibilityIcon,
-                            contentDescription = if (passwordVisible) "Sembunyikan password" else "Tampilkan password",
+                            contentDescription = if (passwordVisible) {
+                                stringResource(R.string.cd_hide_password)
+                            } else {
+                                stringResource(R.string.cd_show_password)
+                            },
                             tint = KebabTextGray
                         )
                     }

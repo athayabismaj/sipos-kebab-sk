@@ -34,6 +34,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.sipos.kebabsk.R
 import com.sipos.kebabsk.ui.theme.*
 
 // Tambahan warna lokal yang dibutuhkan desain baru
@@ -87,15 +89,15 @@ fun ForgotPasswordScreen(
                         RecoveryContentCard {
                             ForgotStepHeader(
                                 icon = Icons.Default.Email,
-                                title = "Temukan akun",
-                                description = "Masukkan alamat email yang terdaftar untuk menerima kode OTP."
+                                title = stringResource(R.string.forgot_find_account_title),
+                                description = stringResource(R.string.forgot_find_account_description)
                             )
 
                             Spacer(modifier = Modifier.height(24.dp))
 
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 Text(
-                                    "Alamat email",
+                                    stringResource(R.string.forgot_email_label),
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = KebabTextDark,
@@ -110,7 +112,7 @@ fun ForgotPasswordScreen(
                                         .height(58.dp),
                                     placeholder = {
                                         Text(
-                                            "contoh: kasir@skkebab.my.id",
+                                            stringResource(R.string.forgot_email_placeholder),
                                             color = KebabTextGray.copy(alpha = 0.58f)
                                         )
                                     },
@@ -140,14 +142,17 @@ fun ForgotPasswordScreen(
                         RecoveryContentCard {
                             ForgotStepHeader(
                                 icon = Icons.Default.Email,
-                                title = "Masukkan kode OTP",
-                                description = "Kode 6 digit telah dikirim untuk akun ${uiState.email.ifBlank { "Anda" }}."
+                                title = stringResource(R.string.forgot_otp_title),
+                                description = stringResource(
+                                    R.string.forgot_otp_description,
+                                    uiState.email.ifBlank { stringResource(R.string.forgot_account_fallback) }
+                                )
                             )
 
                             Spacer(modifier = Modifier.height(26.dp))
 
                             Text(
-                                text = "Kode verifikasi",
+                                text = stringResource(R.string.forgot_otp_label),
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = KebabTextDark,
@@ -175,7 +180,7 @@ fun ForgotPasswordScreen(
                                 )
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Text(
-                                    text = "Kode hanya dapat digunakan satu kali.",
+                                    text = stringResource(R.string.forgot_otp_one_time_notice),
                                     color = KebabTextGray,
                                     fontSize = 12.sp,
                                     lineHeight = 17.sp
@@ -188,24 +193,24 @@ fun ForgotPasswordScreen(
                         RecoveryContentCard {
                             ForgotStepHeader(
                                 icon = Icons.Default.Lock,
-                                title = "Buat kata sandi baru",
-                                description = "Gunakan kata sandi yang mudah Anda ingat dan sulit ditebak."
+                                title = stringResource(R.string.forgot_reset_title),
+                                description = stringResource(R.string.forgot_reset_description)
                             )
                             Spacer(modifier = Modifier.height(24.dp))
 
                             ForgotPasswordInput(
                                 value = uiState.newPassword,
                                 onValueChange = onNewPasswordChanged,
-                                label = "Kata sandi baru",
-                                placeholder = "Minimal 6 karakter",
+                                label = stringResource(R.string.forgot_new_password_label),
+                                placeholder = stringResource(R.string.forgot_new_password_placeholder),
                                 enabled = !uiState.isLoading
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             ForgotPasswordInput(
                                 value = uiState.confirmPassword,
                                 onValueChange = onConfirmPasswordChanged,
-                                label = "Konfirmasi kata sandi",
-                                placeholder = "Ketik ulang kata sandi",
+                                label = stringResource(R.string.forgot_confirm_password_label),
+                                placeholder = stringResource(R.string.forgot_confirm_password_placeholder),
                                 enabled = !uiState.isLoading
                             )
 
@@ -228,7 +233,7 @@ fun ForgotPasswordScreen(
                                 )
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Text(
-                                    text = "Gunakan minimal 6 karakter dan hindari kata sandi yang mudah ditebak.",
+                                    text = stringResource(R.string.forgot_password_rule_notice),
                                     color = KebabTextGray,
                                     fontSize = 12.sp,
                                     lineHeight = 17.sp
@@ -241,8 +246,8 @@ fun ForgotPasswordScreen(
                         RecoveryContentCard {
                             ForgotStepHeader(
                                 icon = Icons.Default.Check,
-                                title = "Kata sandi diperbarui",
-                                description = "Silakan masuk kembali menggunakan kata sandi baru Anda.",
+                                title = stringResource(R.string.forgot_done_title),
+                                description = stringResource(R.string.forgot_done_description),
                                 success = true
                             )
                         }
@@ -309,10 +314,22 @@ fun ForgotPasswordScreen(
                         }
                         Text(
                             text = when (uiState.step) {
-                                ForgotPasswordStep.REQUEST -> if (uiState.isLoading) "Mengirim OTP..." else "Kirim Kode OTP"
-                                ForgotPasswordStep.VERIFY -> if (uiState.isLoading) "Memverifikasi..." else "Verifikasi Kode"
-                                ForgotPasswordStep.RESET -> if (uiState.isLoading) "Menyimpan..." else "Perbarui Kata Sandi"
-                                ForgotPasswordStep.DONE -> "Kembali ke Login"
+                                ForgotPasswordStep.REQUEST -> if (uiState.isLoading) {
+                                    stringResource(R.string.forgot_sending_otp)
+                                } else {
+                                    stringResource(R.string.forgot_action_send_otp)
+                                }
+                                ForgotPasswordStep.VERIFY -> if (uiState.isLoading) {
+                                    stringResource(R.string.forgot_verifying)
+                                } else {
+                                    stringResource(R.string.forgot_action_verify)
+                                }
+                                ForgotPasswordStep.RESET -> if (uiState.isLoading) {
+                                    stringResource(R.string.forgot_saving)
+                                } else {
+                                    stringResource(R.string.forgot_action_update_password)
+                                }
+                                ForgotPasswordStep.DONE -> stringResource(R.string.action_login_again)
                             },
                             color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp
                         )
@@ -334,7 +351,7 @@ fun ForgotPasswordScreen(
                             .height(48.dp)
                     ) {
                         Text(
-                            text = "Kembali ke login",
+                            text = stringResource(R.string.forgot_action_back_to_login),
                             color = KebabTextGray,
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp
@@ -363,17 +380,21 @@ fun TopBarSecurityCheck(onBack: () -> Unit) {
                 .background(Color.White)
                 .border(1.dp, KebabPrimary.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
         ) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali", tint = KebabPrimary)
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.action_back),
+                tint = KebabPrimary
+            )
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "Pemulihan Akun",
+                text = stringResource(R.string.forgot_title),
                 fontSize = 19.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = KebabTextDark
             )
             Text(
-                text = "Verifikasi keamanan",
+                text = stringResource(R.string.forgot_subtitle),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
                 color = KebabTextGray
@@ -490,9 +511,9 @@ private fun ForgotPasswordInput(
                             Icons.Default.Visibility
                         },
                         contentDescription = if (passwordVisible) {
-                            "Sembunyikan kata sandi"
+                            stringResource(R.string.cd_hide_password)
                         } else {
-                            "Tampilkan kata sandi"
+                            stringResource(R.string.cd_show_password)
                         },
                         tint = KebabTextGray,
                         modifier = Modifier.size(22.dp)
@@ -581,19 +602,19 @@ fun StepperSecurityCheck(currentStep: ForgotPasswordStep) {
         ) {
             // Step 1: Email
             StepIconIndicator(
-                number = "1", label = "EMAIL",
+                number = "1", label = stringResource(R.string.forgot_step_email),
                 status = if (stepIndex > 1) StepStatus.COMPLETED else StepStatus.ACTIVE
             )
             
             // Step 2: OTP
             StepIconIndicator(
-                number = "2", label = "OTP",
+                number = "2", label = stringResource(R.string.forgot_step_otp),
                 status = if (stepIndex > 2) StepStatus.COMPLETED else if (stepIndex == 2) StepStatus.ACTIVE else StepStatus.INACTIVE
             )
             
             // Step 3: Reset
             StepIconIndicator(
-                number = "3", label = "RESET",
+                number = "3", label = stringResource(R.string.forgot_step_reset),
                 status = if (stepIndex > 3) StepStatus.COMPLETED else if (stepIndex == 3) StepStatus.ACTIVE else StepStatus.INACTIVE
             )
         }
