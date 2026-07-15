@@ -1,0 +1,31 @@
+{
+  "success": true,
+  "message": "Daftar menu berhasil diambil.",
+  "data": {
+    "user": {"id": 101, "name": "Kasir Fixture", "role": "kasir", "is_privileged": false},
+    "filters": {"search": null, "category_id": null},
+    "menus": [
+      {
+        "id": 201,
+        "name": "Kebab Fixture",
+        "description": null,
+        "is_active": true,
+        "sort_order": 1,
+        "category": {"id": 301, "name": "Kebab"},
+        "variants": [
+          {
+            "id": 401,
+            "name": "Mini",
+            "price": 10000,
+            "is_available": true,
+            "unavailable_reason": null,
+            "required_ingredients": [],
+            "sort_order": 1
+          }
+        ],
+        "can_edit": false,
+        "can_sell": true
+      }
+    ]
+  }
+}

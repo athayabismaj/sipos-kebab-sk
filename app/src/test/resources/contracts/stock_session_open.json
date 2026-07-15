@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "message": "Berhasil mengambil stok bahan harian",
+  "data": {
+    "session_id": 801,
+    "items": [
+      {
+        "ingredient_id": 901,
+        "name": "Tortila Fixture",
+        "qty": 20,
+        "remaining_qty": 18,
+        "unit": "pcs",
+        "display_qty": "20"
+      }
+    ]
+  }
+}

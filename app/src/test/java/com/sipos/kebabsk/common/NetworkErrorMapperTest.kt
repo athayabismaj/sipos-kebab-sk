@@ -36,8 +36,14 @@ class NetworkErrorMapperTest {
     }
 
     @Test
+    fun mapHttpCodeToUserMessage_keepsBusinessFallbackFor409() {
+        assertEquals("Konflik stok harian", NetworkErrorMapper.mapHttpCodeToUserMessage(409, "Konflik stok harian"))
+    }
+
+    @Test
     fun mapHttpCodeToUserMessage_maps500() {
         assertEquals("Layanan sedang bermasalah. Silakan coba lagi nanti.", NetworkErrorMapper.mapHttpCodeToUserMessage(500, "Fallback"))
+        assertEquals("Layanan sedang bermasalah. Silakan coba lagi nanti.", NetworkErrorMapper.mapHttpCodeToUserMessage(503, "Fallback"))
         assertEquals("Layanan sedang bermasalah. Silakan coba lagi nanti.", NetworkErrorMapper.mapHttpCodeToUserMessage(599, "Fallback"))
     }
 

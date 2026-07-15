@@ -1,0 +1,26 @@
+{
+  "success": true,
+  "message": "Berhasil mengambil riwayat transaksi",
+  "data": {
+    "current_page": 1,
+    "last_page": 2,
+    "data": [
+      {
+        "id": 1002,
+        "transaction_code": "TRX-FIX-20260715-002",
+        "total_amount": 20000,
+        "status": "Sukses",
+        "created_at": "15 Juli 2026 11:00",
+        "items_count": 2
+      },
+      {
+        "id": 1001,
+        "transaction_code": "TRX-FIX-20260715-001",
+        "total_amount": 10000,
+        "status": "Void",
+        "created_at": "15 Juli 2026 10:00",
+        "items_count": 1
+      }
+    ]
+  }
+}

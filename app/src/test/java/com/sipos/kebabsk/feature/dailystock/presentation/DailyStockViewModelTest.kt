@@ -28,6 +28,7 @@ class DailyStockViewModelTest {
         override suspend fun verifyResetCodeAuth(request: Map<String, String>): Response<com.google.gson.JsonObject> = Response.success(com.google.gson.JsonObject())
         override suspend fun resetPasswordAuth(request: Map<String, String>): Response<com.google.gson.JsonObject> = Response.success(com.google.gson.JsonObject())
         override suspend fun me(authorization: String): Response<com.google.gson.JsonObject> = Response.success(com.google.gson.JsonObject())
+        override suspend fun logout(authorization: String): Response<com.google.gson.JsonObject> = Response.success(com.google.gson.JsonObject())
         override suspend fun updateProfile(authorization: String, request: Map<String, String>): Response<com.google.gson.JsonObject> = Response.success(com.google.gson.JsonObject())
         override suspend fun changePassword(authorization: String, request: Map<String, String>): Response<com.google.gson.JsonObject> = Response.success(com.google.gson.JsonObject())
         override suspend fun sessionCurrentStatus(authorization: String): Response<com.google.gson.JsonObject> {

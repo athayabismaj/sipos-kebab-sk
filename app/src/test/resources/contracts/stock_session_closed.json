@@ -1,0 +1,5 @@
+{
+  "success": true,
+  "message": "Sesi stok harian belum dibuka oleh admin hari ini.",
+  "data": {"session_id": null, "items": []}
+}

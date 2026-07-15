@@ -1,0 +1,5 @@
+{
+  "success": true,
+  "message": "Berhasil mengambil riwayat transaksi",
+  "data": {"current_page": 1, "last_page": 1, "data": []}
+}

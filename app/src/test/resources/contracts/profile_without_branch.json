@@ -1,0 +1,11 @@
+{
+  "success": true,
+  "data": {
+    "id": 501,
+    "name": "Developer Fixture",
+    "username": "developer_fixture",
+    "email": "developer.fixture@example.test",
+    "role": "developer",
+    "branch": null
+  }
+}

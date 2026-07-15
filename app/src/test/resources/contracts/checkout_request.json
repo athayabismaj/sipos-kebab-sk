@@ -1,0 +1,5 @@
+{
+  "payment_method_id": 1,
+  "paid_amount": 15000,
+  "items": [{"variant_id": 401, "qty": 1}]
+}

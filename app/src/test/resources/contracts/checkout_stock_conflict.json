@@ -1,0 +1,10 @@
+{
+  "success": false,
+  "message": "Variant 'Mini' tidak tersedia untuk dijual.",
+  "data": {
+    "variant_id": 401,
+    "variant_name": "Mini",
+    "unavailable_reason": "INSUFFICIENT_DAILY_STOCK",
+    "required_ingredients": []
+  }
+}

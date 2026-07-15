@@ -1,0 +1,11 @@
+{
+  "success": true,
+  "data": {
+    "id": 101,
+    "name": "Kasir Fixture",
+    "username": "kasir_fixture",
+    "email": "kasir.fixture@example.test",
+    "role": "kasir",
+    "branch": {"id": 7, "name": "Cabang Fixture", "code": "FIX"}
+  }
+}

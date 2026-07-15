@@ -1,0 +1,10 @@
+{
+  "success": false,
+  "message": "Data yang dikirim tidak valid.",
+  "data": {
+    "errors": {
+      "username": ["validation.required"],
+      "password": ["validation.required"]
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "success": false,
+  "message": "Validasi transaksi tidak valid.",
+  "data": {"errors": {"items": ["validation.required"]}}
+}

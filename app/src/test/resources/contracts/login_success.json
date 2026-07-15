@@ -1,0 +1,22 @@
+{
+  "success": true,
+  "message": "Login berhasil.",
+  "data": {
+    "token": "fixture_token_not_real",
+    "token_type": "Bearer",
+    "expires_at": "2026-07-22T10:00:00+07:00",
+    "user": {
+      "id": 101,
+      "name": "Kasir Fixture",
+      "username": "kasir_fixture",
+      "email": "kasir.fixture@example.test",
+      "role": "kasir",
+      "branch": {
+        "id": 7,
+        "name": "Cabang Fixture",
+        "code": "FIX"
+      },
+      "future_field": "ignored"
+    }
+  }
+}
