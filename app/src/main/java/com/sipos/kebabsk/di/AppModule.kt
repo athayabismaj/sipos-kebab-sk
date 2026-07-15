@@ -26,10 +26,6 @@ import com.sipos.kebabsk.feature.menu.presentation.MenuViewModel
 import com.sipos.kebabsk.feature.cart.presentation.CartViewModel
 import com.sipos.kebabsk.feature.checkout.presentation.CheckoutViewModel
 import com.sipos.kebabsk.feature.profile.presentation.RevenueViewModel
-import com.sipos.kebabsk.feature.shift.data.remote.CloseShiftApiService
-import com.sipos.kebabsk.feature.shift.data.repository.CloseShiftRepositoryImpl
-import com.sipos.kebabsk.feature.shift.domain.repository.CloseShiftRepository
-import com.sipos.kebabsk.feature.shift.presentation.CloseShiftViewModel
 import com.sipos.kebabsk.feature.shift.presentation.ShiftSummaryViewModel
 import com.sipos.kebabsk.feature.transactions.data.remote.TransactionsApiService
 import com.sipos.kebabsk.feature.transactions.data.repository.TransactionsRepositoryImpl
@@ -132,7 +128,6 @@ val networkModule = module {
     single { get<Retrofit>().create(DailyStockApiService::class.java) }
     single { get<Retrofit>().create(OperationalExpenseApiService::class.java) }
     single { get<Retrofit>().create(TransactionsApiService::class.java) }
-    single { get<Retrofit>().create(CloseShiftApiService::class.java) }
 }
 
 val repositoryModule = module {
@@ -142,7 +137,6 @@ val repositoryModule = module {
     single<DailyStockRepository> { DailyStockRepositoryImpl(get()) }
     single<OperationalExpenseRepository> { OperationalExpenseRepositoryImpl(get()) }
     single<TransactionsRepository> { TransactionsRepositoryImpl(get()) }
-    single<CloseShiftRepository> { CloseShiftRepositoryImpl(get()) }
 }
 
 val viewModelModule = module {
@@ -154,7 +148,6 @@ val viewModelModule = module {
     viewModel { DailyStockViewModel(get(), get()) }
     viewModel { OperationalExpenseViewModel(get()) }
     viewModel { TransactionsViewModel(get()) }
-    viewModel { CloseShiftViewModel(get(), get()) }
     viewModel { ShiftSummaryViewModel(get()) }
     viewModel { RevenueViewModel(get()) }
 }
