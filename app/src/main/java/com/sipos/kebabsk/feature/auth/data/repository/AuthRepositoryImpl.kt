@@ -17,12 +17,8 @@ class AuthRepositoryImpl(
 ) : AuthRepository {
     override suspend fun login(identifier: String, password: String): Result<AuthSession> {
         return suspendRunCatching {
-            val request = mapOf(
-                "email" to identifier,
-                "username" to identifier,
-                "login" to identifier,
-                "password" to password
-            )
+            val normalizedIdentifier = identifier.trim()
+            val request = buildLoginRequest(normalizedIdentifier, password)
 
             val response = authApiService.login(request)
             val body = response.body()
@@ -32,7 +28,7 @@ class AuthRepositoryImpl(
                 AuthSessionMapper.fromResponse(body, normalizeAccessToken(token), identifier)
             } else {
                 val msg = extractErrorMessage(response.errorBody()?.string(), body)
-                    ?: "Login belum berhasil. Periksa kembali email/username dan password Anda."
+                    ?: "Login belum berhasil. Periksa kembali username dan password Anda."
                 throw IllegalStateException(normalizeAuthError(msg, "Login belum berhasil. Silakan coba lagi."))
             }
         }
@@ -47,6 +43,13 @@ class AuthRepositoryImpl(
                 throw IllegalStateException(normalizeAuthError(msg, "Logout server belum berhasil."))
             }
         }
+    }
+
+    private fun buildLoginRequest(identifier: String, password: String): Map<String, String> {
+        return mapOf(
+            "username" to identifier,
+            "password" to password
+        )
     }
 
     override suspend fun me(token: String): Result<AuthSession> {

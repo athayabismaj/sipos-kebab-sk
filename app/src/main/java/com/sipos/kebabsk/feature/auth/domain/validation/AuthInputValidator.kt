@@ -5,7 +5,7 @@ import com.sipos.kebabsk.common.validation.ValidationResult
 class AuthInputValidator {
     fun validateLogin(identifier: String, password: String): ValidationResult {
         return if (identifier.trim().isBlank() || password.isBlank()) {
-            ValidationResult.Invalid("Email/username dan password wajib diisi")
+            ValidationResult.Invalid("Username dan password wajib diisi")
         } else {
             ValidationResult.Valid
         }
