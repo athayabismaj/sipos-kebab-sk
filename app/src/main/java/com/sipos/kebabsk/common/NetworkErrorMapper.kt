@@ -1,5 +1,7 @@
 package com.sipos.kebabsk.common
 
+import com.google.gson.JsonParseException
+
 object NetworkErrorMapper {
     fun mapHttpCodeToUserMessage(
         code: Int,
@@ -8,6 +10,7 @@ object NetworkErrorMapper {
         message422: String? = null
     ): String {
         return when (code) {
+            400 -> "Permintaan tidak valid. Silakan periksa kembali."
             401 -> "Sesi login sudah berakhir. Silakan login ulang."
             403 -> "Akses tidak diizinkan."
             404 -> message404 ?: fallback
@@ -21,6 +24,8 @@ object NetworkErrorMapper {
     fun mapThrowableToUserMessage(throwable: Throwable, fallback: String): String {
         val message = throwable.message.orEmpty()
         return when {
+            throwable is JsonParseException ->
+                "Respons server tidak dapat dibaca. Silakan coba lagi."
             message.contains("timeout", ignoreCase = true) ->
                 "Permintaan sedang padat. Silakan coba beberapa saat lagi."
             message.contains("unable to resolve host", ignoreCase = true) ||

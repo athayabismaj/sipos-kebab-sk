@@ -1,5 +1,6 @@
 package com.sipos.kebabsk.common
 
+import com.google.gson.JsonParseException
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.net.UnknownHostException
@@ -16,6 +17,14 @@ class NetworkErrorMapperTest {
     @Test
     fun mapHttpCodeToUserMessage_maps403() {
         assertEquals("Akses tidak diizinkan.", NetworkErrorMapper.mapHttpCodeToUserMessage(403, "Fallback"))
+    }
+
+    @Test
+    fun mapHttpCodeToUserMessage_maps400() {
+        assertEquals(
+            "Permintaan tidak valid. Silakan periksa kembali.",
+            NetworkErrorMapper.mapHttpCodeToUserMessage(400, "Fallback")
+        )
     }
 
     @Test
@@ -65,6 +74,14 @@ class NetworkErrorMapperTest {
     @Test
     fun mapThrowableToUserMessage_mapsFailedToConnect() {
         assertEquals("Koneksi internet bermasalah. Periksa jaringan lalu coba lagi.", NetworkErrorMapper.mapThrowableToUserMessage(ConnectException("Failed to connect"), "Fallback"))
+    }
+
+    @Test
+    fun mapThrowableToUserMessage_mapsMalformedJson() {
+        assertEquals(
+            "Respons server tidak dapat dibaca. Silakan coba lagi.",
+            NetworkErrorMapper.mapThrowableToUserMessage(JsonParseException("Malformed JSON"), "Fallback")
+        )
     }
 
     @Test
