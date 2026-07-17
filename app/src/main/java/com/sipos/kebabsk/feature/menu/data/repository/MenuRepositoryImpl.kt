@@ -63,16 +63,24 @@ class MenuRepositoryImpl(
                     )
                 }
 
-                val isDailySessionOpen = body.data.dailySession?.isOpen
+                // Missing session fields must not be interpreted as a closed session.
+                // The UI blocks checkout until the server can confirm the actual state.
+                val reportedSessionState = body.data.dailySession?.isOpen
                     ?: body.data.isDailySessionOpen
-                    ?: false
+                val isDailySessionKnown = reportedSessionState != null
+                val isDailySessionOpen = reportedSessionState == true
 
                 val dailySession = DailySessionStatus(
                     isOpen = isDailySessionOpen,
                     label = body.data.dailySession?.statusLabel
                         ?: body.data.dailySessionStatusLabel
-                        ?: if (isDailySessionOpen) "Sesi Harian Aktif" else "Sesi Harian Belum Dibuka",
-                    targetRevenue = body.data.dailySession?.targetRevenue
+                        ?: when (reportedSessionState) {
+                            true -> "Sesi Harian Aktif"
+                            false -> "Sesi Harian Belum Dibuka"
+                            null -> "Status sesi harian belum dapat diverifikasi"
+                        },
+                    targetRevenue = body.data.dailySession?.targetRevenue,
+                    isKnown = isDailySessionKnown
                 )
 
                 val dailyStockItems = body.data.dailyStockItems.orEmpty().mapNotNull { stock ->

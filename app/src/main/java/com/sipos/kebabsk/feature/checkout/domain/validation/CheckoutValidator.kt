@@ -8,6 +8,7 @@ import com.sipos.kebabsk.feature.cart.domain.validation.CartValidator
 data class CheckoutValidationInput(
     val cartItems: List<CartItem>,
     val isDailySessionOpen: Boolean,
+    val isDailySessionStatusKnown: Boolean = true,
     val paymentMethodId: Long?,
     val paidAmountInput: String
 )
@@ -30,6 +31,12 @@ class CheckoutValidator(
         when (val cartValidation = cartValidator.validate(input.cartItems)) {
             ValidationResult.Valid -> Unit
             is ValidationResult.Invalid -> return CheckoutValidationResult.Invalid(cartValidation.message)
+        }
+
+        if (!input.isDailySessionStatusKnown) {
+            return CheckoutValidationResult.Invalid(
+                "Status sesi harian belum dapat diverifikasi. Tunggu sinkronisasi lalu coba lagi."
+            )
         }
 
         if (!input.isDailySessionOpen) {

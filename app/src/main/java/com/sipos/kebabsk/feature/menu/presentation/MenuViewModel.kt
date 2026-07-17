@@ -22,6 +22,7 @@ data class MenuUiState(
     val cashierName: String = "",
     val cashierRole: String? = null,
     val isDailySessionOpen: Boolean = false,
+    val isDailySessionStatusKnown: Boolean = false,
     val dailySessionStatusLabel: String? = null,
     val dailyTargetRevenue: Long? = null,
     val dailyStockItems: List<DailyStockItem> = emptyList(),
@@ -73,6 +74,7 @@ class MenuViewModel(
                                     cashierName = payload.user.name,
                                     cashierRole = payload.user.role,
                                     isDailySessionOpen = payload.dailySession.isOpen,
+                                    isDailySessionStatusKnown = payload.dailySession.isKnown,
                                     dailySessionStatusLabel = payload.dailySession.label,
                                     dailyTargetRevenue = payload.dailySession.targetRevenue,
                                     dailyStockItems = payload.dailyStockItems,
@@ -82,8 +84,13 @@ class MenuViewModel(
                             onLoaded()
                         }
                         .onFailure { error ->
+                            loadedToken = null
                             _uiState.update {
                                 it.copy(
+                                    // Do not continue to trust a stale session after a failed refresh.
+                                    isDailySessionOpen = false,
+                                    isDailySessionStatusKnown = false,
+                                    dailySessionStatusLabel = "Status sesi harian belum dapat diverifikasi",
                                     errorMessage = sanitizeUserMessage(
                                         error.message,
                                         "Menu belum bisa dimuat. Silakan coba lagi."

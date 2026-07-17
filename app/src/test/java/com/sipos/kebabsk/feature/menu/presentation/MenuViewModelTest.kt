@@ -40,6 +40,7 @@ class MenuViewModelTest {
         assertEquals("Cahyo", state.cashierName)
         assertEquals("kasir", state.cashierRole)
         assertTrue(state.isDailySessionOpen)
+        assertTrue(state.isDailySessionStatusKnown)
         assertEquals("Sesi Harian Aktif", state.dailySessionStatusLabel)
         assertEquals(200_000L, state.dailyTargetRevenue)
         assertEquals(samplePayload().dailyStockItems, state.dailyStockItems)
@@ -59,6 +60,7 @@ class MenuViewModelTest {
 
         assertEquals("menu gagal dimuat", viewModel.uiState.value.errorMessage)
         assertTrue(viewModel.uiState.value.menus.isEmpty())
+        assertFalse(viewModel.uiState.value.isDailySessionStatusKnown)
         assertFalse(viewModel.uiState.value.isLoading)
     }
 

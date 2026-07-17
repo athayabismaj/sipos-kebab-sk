@@ -78,6 +78,7 @@ fun DashboardScreen(
     cashierName: String,
     cashierRole: String,
     isDailySessionOpen: Boolean,
+    isDailySessionStatusKnown: Boolean,
     dailySessionLabel: String?,
     dailyTargetRevenue: Long?,
     shiftSummaryUiState: ShiftSummaryUiState,
@@ -168,6 +169,7 @@ fun DashboardScreen(
                 cashierRole = cashierRole,
                 currentTime = currentTime.format(timeFormatter),
                 isDailySessionOpen = isDailySessionOpen,
+                isDailySessionStatusKnown = isDailySessionStatusKnown,
                 dailySessionLabel = dailySessionLabel
             )
 
@@ -324,11 +326,13 @@ fun DashboardScreen(
             }
 
             MainActionButton(
-                enabled = isDailySessionOpen,
+                enabled = isDailySessionStatusKnown && isDailySessionOpen,
                 onClick = onStartTransaction
             )
 
-            if (!isDailySessionOpen) {
+            if (!isDailySessionStatusKnown) {
+                SessionStatusUnknownNotice()
+            } else if (!isDailySessionOpen) {
                 ClosedSessionNotice(dailySessionLabel = dailySessionLabel)
             }
 
@@ -393,16 +397,35 @@ private fun ClosedSessionNotice(
 }
 
 @Composable
+private fun SessionStatusUnknownNotice() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF7EA)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.dashboard_session_unknown_notice),
+            style = MaterialTheme.typography.bodySmall,
+            color = KebabTextGray,
+            modifier = Modifier.padding(14.dp)
+        )
+    }
+}
+
+@Composable
 private fun UserInfoSection(
     cashierName: String,
     cashierRole: String,
     currentTime: String,
     isDailySessionOpen: Boolean,
+    isDailySessionStatusKnown: Boolean,
     dailySessionLabel: String?
 ) {
     val sessionOpenState = stringResource(R.string.dashboard_session_open_state)
     val sessionClosedState = stringResource(R.string.dashboard_session_closed_state)
     val statusLabel = when {
+        !isDailySessionStatusKnown -> stringResource(R.string.dashboard_session_unknown_label)
         isDailySessionOpen -> dailySessionLabel ?: stringResource(R.string.dashboard_session_active_label)
         !dailySessionLabel.isNullOrBlank() -> dailySessionLabel
         else -> stringResource(R.string.dashboard_session_closed_label)
@@ -479,9 +502,12 @@ private fun UserInfoSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(if (isDailySessionOpen) KebabSuccessBg else Color(0xFFF9E8E8))
+                    .background(
+                        if (isDailySessionStatusKnown && isDailySessionOpen) KebabSuccessBg
+                        else Color(0xFFF9E8E8)
+                    )
                     .semantics {
-                        stateDescription = if (isDailySessionOpen) {
+                        stateDescription = if (isDailySessionStatusKnown && isDailySessionOpen) {
                             sessionOpenState
                         } else {
                             sessionClosedState
@@ -492,7 +518,11 @@ private fun UserInfoSection(
             ) {
                 Text(
                     text = statusLabel,
-                    color = if (isDailySessionOpen) KebabSuccess else MaterialTheme.colorScheme.error,
+                    color = if (isDailySessionStatusKnown && isDailySessionOpen) {
+                        KebabSuccess
+                    } else {
+                        MaterialTheme.colorScheme.error
+                    },
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 15.sp,
                     lineHeight = 20.sp

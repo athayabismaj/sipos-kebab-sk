@@ -114,7 +114,7 @@ fun AuthRoot(
     onQuickAmountSelected: (amount: Long) -> Unit,
     onPaidAmountChanged: (String) -> Unit,
     onNoteChanged: (String) -> Unit,
-    onSubmitCheckout: (token: String, cartItems: List<CartItem>, isDailySessionOpen: Boolean) -> Unit,
+    onSubmitCheckout: (token: String, cartItems: List<CartItem>, isDailySessionOpen: Boolean, isDailySessionStatusKnown: Boolean) -> Unit,
     onDismissCheckoutPreview: () -> Unit,
     onClearCheckoutMessage: () -> Unit
 ) {
@@ -228,7 +228,7 @@ private fun AppScaffold(
     onQuickAmountSelected: (amount: Long) -> Unit,
     onPaidAmountChanged: (String) -> Unit,
     onNoteChanged: (String) -> Unit,
-    onSubmitCheckout: (token: String, cartItems: List<CartItem>, isDailySessionOpen: Boolean) -> Unit,
+    onSubmitCheckout: (token: String, cartItems: List<CartItem>, isDailySessionOpen: Boolean, isDailySessionStatusKnown: Boolean) -> Unit,
     onDismissCheckoutPreview: () -> Unit,
     onClearCheckoutMessage: () -> Unit
 ) {
@@ -242,6 +242,8 @@ private fun AppScaffold(
     // Shared DailyStockViewModel agar sessionId bisa diakses oleh Transactions tab (untuk Void)
     val sharedDailyStockViewModel: DailyStockViewModel = koinViewModel()
     val sharedDailyStockUiState by sharedDailyStockViewModel.uiState.collectAsStateWithLifecycle()
+    val isDashboardDailySessionStatusKnown = !sharedDailyStockUiState.isLoading &&
+        (sharedDailyStockUiState.isSessionOpen != null || menuUiState.isDailySessionStatusKnown)
     val isDashboardDailySessionOpen = sharedDailyStockUiState.isSessionOpen ?: menuUiState.isDailySessionOpen
     val dashboardDailySessionLabel = sharedDailyStockUiState.sessionStatusLabel ?: menuUiState.dailySessionStatusLabel
 
@@ -251,8 +253,14 @@ private fun AppScaffold(
         }
     }
 
+    // Verify the session gate before the dashboard enables a new transaction.
+    LaunchedEffect(session.token) {
+        onLoadMenus(session.token, false)
+    }
+
     LaunchedEffect(cashierTransactionStarted, session.token) {
         if (cashierTransactionStarted) {
+            sharedDailyStockViewModel.refresh()
             onLoadMenus(session.token, false)
         }
     }
@@ -279,6 +287,7 @@ private fun AppScaffold(
                             cashierName = if (menuUiState.cashierName.isBlank()) session.displayName else menuUiState.cashierName,
                             cashierRole = session.role ?: menuUiState.cashierRole ?: "kasir",
                             isDailySessionOpen = isDashboardDailySessionOpen,
+                            isDailySessionStatusKnown = isDashboardDailySessionStatusKnown,
                             dailySessionLabel = dashboardDailySessionLabel,
                             dailyTargetRevenue = menuUiState.dailyTargetRevenue,
                             shiftSummaryUiState = shiftSummaryUiState,
@@ -294,7 +303,10 @@ private fun AppScaffold(
                             menuUiState = menuUiState,
                             cartUiState = cartUiState,
                             checkoutUiState = checkoutUiState,
+                            isDailySessionOpen = isDashboardDailySessionOpen,
+                            isDailySessionStatusKnown = isDashboardDailySessionStatusKnown,
                             onRefresh = { onLoadMenus(session.token, true) },
+                            onRefreshSessionStatus = sharedDailyStockViewModel::refresh,
                             onCategorySelected = onCategorySelected,
                             onLoadPaymentMethods = { onLoadPaymentMethods(session.token) },
                             onAddVariant = onAddVariant,
@@ -304,7 +316,14 @@ private fun AppScaffold(
                             onQuickAmountSelected = onQuickAmountSelected,
                             onPaidAmountChanged = onPaidAmountChanged,
                             onNoteChanged = onNoteChanged,
-                            onSubmitCheckout = { onSubmitCheckout(session.token, cartUiState.cartItems, menuUiState.isDailySessionOpen) },
+                            onSubmitCheckout = {
+                                onSubmitCheckout(
+                                    session.token,
+                                    cartUiState.cartItems,
+                                    isDashboardDailySessionOpen,
+                                    isDashboardDailySessionStatusKnown
+                                )
+                            },
                             onDismissCheckoutPreview = onDismissCheckoutPreview,
                             onClearCheckoutMessage = onClearCheckoutMessage
                         )

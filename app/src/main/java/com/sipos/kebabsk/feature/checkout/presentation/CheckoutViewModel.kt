@@ -28,6 +28,7 @@ data class CheckoutUiState(
     val isSubmitting: Boolean = false,
     val errorMessage: String? = null,
     val paymentMethods: List<PaymentMethod> = emptyList(),
+    val paymentMethodsLoadCompleted: Boolean = false,
     val selectedPaymentMethodId: Long? = null,
     val paidAmountInput: String = "",
     val noteInput: String = "",
@@ -61,11 +62,12 @@ class CheckoutViewModel(
                 val paymentResult = getPaymentMethodsUseCase(token)
                 paymentResult
                     .onSuccess { methods ->
-                        paymentMethodsLoaded = true
                         val cashMethods = methods.filter { it.isCashPaymentMethod() }
+                        paymentMethodsLoaded = cashMethods.isNotEmpty()
                         _uiState.update {
                             it.copy(
                                 paymentMethods = cashMethods,
+                                paymentMethodsLoadCompleted = true,
                                 selectedPaymentMethodId = cashMethods.firstOrNull()?.id,
                                 errorMessage = if (cashMethods.isEmpty()) {
                                     "Metode pembayaran tunai belum tersedia. Hubungi admin untuk pengecekan."
@@ -77,6 +79,7 @@ class CheckoutViewModel(
                         _uiState.update {
                             it.copy(
                                 paymentMethods = emptyList(),
+                                paymentMethodsLoadCompleted = true,
                                 selectedPaymentMethodId = null,
                                 errorMessage = sanitizeUserMessage(
                                     error.message,
@@ -131,7 +134,13 @@ class CheckoutViewModel(
         _uiState.update { it.copy(noteInput = value) }
     }
 
-    fun submitCheckout(token: String, cartItems: List<CartItem>, isDailySessionOpen: Boolean, onSuccess: () -> Unit = {}) {
+    fun submitCheckout(
+        token: String,
+        cartItems: List<CartItem>,
+        isDailySessionOpen: Boolean,
+        isDailySessionStatusKnown: Boolean = true,
+        onSuccess: () -> Unit = {}
+    ) {
         if (_uiState.value.isSubmitting) return
         val cartSnapshot = cartItems.map { it.copy() }
         _uiState.update { it.copy(isSubmitting = true) }
@@ -143,6 +152,7 @@ class CheckoutViewModel(
                         CheckoutValidationInput(
                             cartItems = cartSnapshot,
                             isDailySessionOpen = isDailySessionOpen,
+                            isDailySessionStatusKnown = isDailySessionStatusKnown,
                             paymentMethodId = state.selectedPaymentMethodId,
                             paidAmountInput = state.paidAmountInput
                         )
@@ -246,17 +256,17 @@ class CheckoutViewModel(
             lower.contains("sesi harian") && lower.contains("belum") ->
                 "Sesi harian belum dibuka admin. Checkout belum bisa dilakukan."
             lower.contains("bahan") && lower.contains("stok harian") ->
-                "?? Bahan belum masuk stok harian. Hubungi admin untuk input bahan terlebih dahulu."
+                "Bahan belum masuk stok harian. Hubungi admin untuk input bahan terlebih dahulu."
             lower.contains("stok harian") && (lower.contains("tidak cukup") || lower.contains("kurang")) ->
-                "?? Stok bahan kurang. Kurangi jumlah pesanan atau hubungi admin untuk tambah stok."
+                "Stok bahan kurang. Kurangi jumlah pesanan atau hubungi admin untuk tambah stok."
             lower.contains("pembayaran kurang") || lower.contains("deficit") ->
                 "Nominal pembayaran kurang. Silakan periksa kembali."
             lower.contains("tidak tersedia untuk dijual") || (lower.contains("variant") && lower.contains("tidak tersedia")) ->
-                "?? Stok bahan kurang untuk salah satu menu. Kurangi jumlah pesanan atau hubungi admin untuk menambah stok."
+                "Stok bahan kurang untuk salah satu menu. Kurangi jumlah pesanan atau hubungi admin untuk menambah stok."
             lower.contains("stok") && (lower.contains("tidak cukup") || lower.contains("kurang") || lower.contains("habis")) ->
-                "?? Stok bahan kurang. Kurangi jumlah pesanan atau hubungi admin untuk tambah stok."
+                "Stok bahan kurang. Kurangi jumlah pesanan atau hubungi admin untuk tambah stok."
             lower.contains("resep") || lower.contains("recipe") ->
-                "?? Bahan tidak mencukupi resep. Hubungi admin untuk menambah stok bahan."
+                "Bahan tidak mencukupi resep. Hubungi admin untuk menambah stok bahan."
             else -> message
         }
     }

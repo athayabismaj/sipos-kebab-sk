@@ -77,6 +77,8 @@
     <string name="dashboard_session_closed_state">Sesi harian belum dibuka</string>
     <string name="dashboard_session_active_label">Sesi Harian Aktif</string>
     <string name="dashboard_session_closed_label">Sesi Harian Belum Dibuka</string>
+    <string name="dashboard_session_unknown_label">Status sesi harian sedang disinkronkan</string>
+    <string name="dashboard_session_unknown_notice">Transaksi dikunci sampai status sesi harian berhasil disinkronkan.</string>
     <string name="dashboard_total_transactions">Total Transaksi</string>
     <string name="dashboard_items_sold">Item Terjual</string>
     <string name="dashboard_today_revenue">Pendapatan Hari Ini</string>
@@ -118,9 +120,14 @@
 
     <!-- Checkout -->
     <string name="checkout_cash_unavailable">Metode pembayaran tunai belum tersedia.</string>
+    <string name="checkout_cash_loading">Menyiapkan metode pembayaran tunai...</string>
     <string name="checkout_total_paid">Total dibayar</string>
     <string name="checkout_change">Kembalian</string>
-    <string name="checkout_pay_cash">Bayar Tunai</string>
+    <string name="checkout_pay_cash">Bayar</string>
+    <string name="checkout_session_closed_title">Sesi harian belum dibuka</string>
+    <string name="checkout_session_closed_message">Transaksi dapat dilakukan setelah admin membuka sesi harian untuk hari ini.</string>
+    <string name="checkout_session_unknown_title">Status sesi sedang disinkronkan</string>
+    <string name="checkout_session_unknown_message">Status sesi harian belum dapat diverifikasi. Tunggu sebentar lalu coba lagi.</string>
     <string name="checkout_total_bill">Total Tagihan</string>
     <string name="checkout_cash_direct">Pembayaran langsung tunai</string>
     <string name="checkout_cash_method">Tunai</string>

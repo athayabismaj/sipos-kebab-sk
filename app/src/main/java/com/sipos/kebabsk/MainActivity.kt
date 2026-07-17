@@ -91,8 +91,13 @@ class MainActivity : ComponentActivity() {
                     onQuickAmountSelected = checkoutViewModel::onQuickAmountSelected,
                     onPaidAmountChanged = checkoutViewModel::onPaidAmountChanged,
                     onNoteChanged = checkoutViewModel::onNoteChanged,
-                    onSubmitCheckout = { token, cartItems, isDailySessionOpen ->
-                        checkoutViewModel.submitCheckout(token, cartItems, isDailySessionOpen) {
+                    onSubmitCheckout = { token, cartItems, isDailySessionOpen, isDailySessionStatusKnown ->
+                        checkoutViewModel.submitCheckout(
+                            token,
+                            cartItems,
+                            isDailySessionOpen,
+                            isDailySessionStatusKnown
+                        ) {
                             cartViewModel.clearCart()
                             menuViewModel.loadMenus(token, forceRefresh = true)
                         }

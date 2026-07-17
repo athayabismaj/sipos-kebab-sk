@@ -25,6 +25,7 @@ data class MenusDataResponse(
 )
 
 data class DailySessionResponse(
+    @SerializedName("id") val id: Long? = null,
     @SerializedName(value = "is_open", alternate = ["open", "isOpen"])
     val isOpen: Boolean?,
     @SerializedName(value = "status_label", alternate = ["label", "status"])

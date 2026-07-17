@@ -23,7 +23,9 @@ data class MenuUser(
 data class DailySessionStatus(
     val isOpen: Boolean,
     val label: String?,
-    val targetRevenue: Long?
+    val targetRevenue: Long?,
+    /** False means the API response could not establish the session state safely. */
+    val isKnown: Boolean = true
 )
 
 @Immutable

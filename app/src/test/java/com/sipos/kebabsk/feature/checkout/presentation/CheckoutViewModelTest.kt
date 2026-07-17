@@ -125,6 +125,30 @@ class CheckoutViewModelTest {
     }
 
     @Test
+    fun submitCheckout_whenDailySessionStatusUnknown_blocksTransaction() = runTest {
+        val fakeCheckoutRepo = FakeCheckoutRepository()
+        val viewModel = CheckoutViewModel(fakeCheckoutRepo)
+
+        viewModel.loadPaymentMethods("token")
+        advanceUntilIdle()
+        viewModel.onPaidAmountChanged("12000")
+
+        viewModel.submitCheckout(
+            token = "token",
+            cartItems = sampleCart(),
+            isDailySessionOpen = true,
+            isDailySessionStatusKnown = false
+        )
+        advanceUntilIdle()
+
+        assertEquals(
+            "Status sesi harian belum dapat diverifikasi. Tunggu sinkronisasi lalu coba lagi.",
+            viewModel.uiState.value.errorMessage
+        )
+        assertEquals(0, fakeCheckoutRepo.createCalls)
+    }
+
+    @Test
     fun submitCheckout_whenPaymentMethodNull_setsErrorAndSkipsCreateRequest() = runTest {
         val fakeCheckoutRepo = FakeCheckoutRepository()
         val viewModel = CheckoutViewModel(fakeCheckoutRepo)

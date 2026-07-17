@@ -136,7 +136,10 @@ fun MenuScreen(
     menuUiState: MenuUiState,
     cartUiState: CartUiState,
     checkoutUiState: CheckoutUiState,
+    isDailySessionOpen: Boolean,
+    isDailySessionStatusKnown: Boolean,
     onRefresh: () -> Unit,
+    onRefreshSessionStatus: () -> Unit,
     onCategorySelected: (String?) -> Unit,
     onLoadPaymentMethods: () -> Unit,
     onAddVariant: (menuName: String, variantId: Long, variantName: String, price: Long) -> Unit,
@@ -186,8 +189,16 @@ fun MenuScreen(
     }
 
     LaunchedEffect(cashierPage) {
-        if (cashierPage == CashierPage.MENU) {
-            onRefresh()
+        when (cashierPage) {
+            CashierPage.MENU -> onRefresh()
+            CashierPage.PAYMENT -> {
+                // Status sesi dapat berubah ketika admin membuka atau menutup sesi.
+                // Segarkan sebelum checkout agar tombol Bayar tidak memakai state lama.
+                onRefreshSessionStatus()
+                onRefresh()
+                onLoadPaymentMethods()
+            }
+            CashierPage.CART -> Unit
         }
     }
 
@@ -272,7 +283,8 @@ fun MenuScreen(
                         PaymentTab(
                             checkoutUiState = checkoutUiState,
                             cartItems = cartUiState.cartItems,
-                            isDailySessionOpen = menuUiState.isDailySessionOpen,
+                            isDailySessionOpen = isDailySessionOpen,
+                            isDailySessionStatusKnown = isDailySessionStatusKnown,
                             isLoading = menuUiState.isLoading,
                             totalAmount = totalAmount,
                             exactAmount = exactAmount,
