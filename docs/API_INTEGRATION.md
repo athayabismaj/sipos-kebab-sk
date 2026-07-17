@@ -29,10 +29,13 @@ credential atau token di file konfigurasi.
 
 ## Branch
 
-Backend mengambil cabang dari user pemilik token. Android menyimpan branch dari
-login/profil untuk state dan tampilan, tetapi tidak mengirim `branch_id` pada
-checkout, stok, transaksi, atau pengeluaran. Branch nullable ditangani tanpa
-default hard-coded. Logout menghapus branch tersimpan.
+Backend menentukan cabang yang diizinkan dari cabang utama dan penugasan aktif
+user. Untuk operasi kasir, cabang aktual berasal dari sesi stok harian aktif
+milik kasir pada tanggal bisnis aplikasi. Karena itu branch dari login/profil
+tetap hanya state tampilan cabang utama dan tidak harus sama dengan cabang sesi.
+Android tidak mengirim `branch_id` pada checkout, stok, transaksi, atau
+pengeluaran. Branch nullable ditangani tanpa default hard-coded. Logout
+menghapus branch tersimpan.
 
 ## Endpoint Retrofit aktif
 
@@ -68,6 +71,13 @@ menutupnya melalui `POST daily-stock-sessions/close`.
 - Network/timeout/JSON rusak: status unknown; checkout tetap terkunci sampai
   refresh berhasil.
 - `409`: konflik state bisnis; tampilkan pesan backend yang sudah disanitasi.
+- Current-status, daily-stock-items, checkout, pengeluaran, dan close-session
+  menggunakan sesi operasional yang sama. `session_id` status dan stok harus
+  identik.
+- Sesi terbuka dari tanggal sebelumnya tidak dipakai sebagai sesi hari ini.
+- Jika backend mendeteksi sesi aktif ambigu, operasi gagal aman dengan `409`.
+- Kuantitas `kg` dan `l` dapat berupa desimal; jangan mengubahnya menjadi
+  integer sebelum ditampilkan atau dikirim kembali.
 
 ## Checkout
 
@@ -122,14 +132,21 @@ logout pada emulator/device yang terhubung ke backend development.
 
 ## Hasil verifikasi 17 Juli 2026
 
-- Android unit test run 1 dan run 2: 193 test, 0 gagal, 0 skipped.
+- Android unit test run 1 dan run 2: 194 test, 0 gagal, 0 skipped.
 - Android lint: lulus.
 - `assembleDebug`: lulus untuk universal dan seluruh ABI yang dikonfigurasi.
 - `assembleRelease`: lulus sebagai APK unsigned; signing production tidak diubah.
-- Backend Laravel: 229 test, 1.562 assertion, 0 gagal.
+- Backend Laravel run 1 dan run 2: 242 test, 1.641 assertion, 0 gagal.
 - PostgreSQL concurrency run 1 dan 2: 11 test, 61 assertion, 0 gagal.
+- Contract test backend membuktikan kasir dengan primary branch A tetap memakai
+  sesi operasional aktif di assigned branch B untuk current-status, stok harian,
+  checkout, pengeluaran, ringkasan pendapatan, riwayat, receipt, void, dan tutup
+  sesi tanpa mengirim `branch_id` dari Android.
 - Smoke emulator: APK terpasang dan cold-start; profil/dashboard serta riwayat
   dapat dimuat; current-status 404 tampil sebagai sesi belum dibuka; tidak ada
   crash, 401, route 404, atau JSON parse error dari aplikasi di Logcat.
 - Checkout, receipt, dan logout-login ulang pada device belum dijalankan karena
   sesi testing hari itu belum dibuka dan tidak ada transaksi testing aktif.
+- Skenario device end-to-end khusus primary branch A dengan sesi aktif assigned
+  branch B belum dijalankan; hasil di atas untuk skenario tersebut berasal dari
+  contract test otomatis backend dan fixture Android.
