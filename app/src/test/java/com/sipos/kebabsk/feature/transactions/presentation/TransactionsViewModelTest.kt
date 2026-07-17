@@ -151,10 +151,6 @@ private class FakeTransactionsRepository(
         return Result.failure(IllegalStateException("Detail struk belum tersedia"))
     }
 
-    override suspend fun getRevenueTrend(token: String, date: LocalDate): Result<List<Pair<String, Long>>> {
-        return Result.success(emptyList())
-    }
-
     override suspend fun voidTransaction(token: String, transactionId: Long, reason: String, sessionId: Long): Result<String> {
         return Result.success("Success")
     }

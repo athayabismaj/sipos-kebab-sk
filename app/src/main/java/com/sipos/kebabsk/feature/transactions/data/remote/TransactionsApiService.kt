@@ -32,12 +32,6 @@ interface TransactionsApiService {
         @retrofit2.http.Query("date") date: String? = null
     ): Response<RevenueSummaryResponse>
 
-    @GET("revenue/trend")
-    suspend fun getRevenueTrend(
-        @Header("Authorization") authorization: String,
-        @retrofit2.http.Query("date") date: String? = null
-    ): Response<RevenueTrendResponse>
-
     @retrofit2.http.POST("transactions/{id}/void")
     suspend fun voidTransaction(
         @Header("Authorization") authorization: String,

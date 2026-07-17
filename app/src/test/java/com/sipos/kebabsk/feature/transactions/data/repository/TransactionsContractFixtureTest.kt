@@ -3,7 +3,6 @@ package com.sipos.kebabsk.feature.transactions.data.repository
 import com.google.gson.Gson
 import com.google.gson.JsonElement
 import com.sipos.kebabsk.feature.transactions.data.remote.RevenueSummaryResponse
-import com.sipos.kebabsk.feature.transactions.data.remote.RevenueTrendResponse
 import com.sipos.kebabsk.feature.transactions.data.remote.TransactionsApiService
 import com.sipos.kebabsk.feature.transactions.data.remote.TransactionsResponse
 import com.sipos.kebabsk.feature.transactions.data.remote.VoidTransactionRequest
@@ -67,6 +66,7 @@ class TransactionsContractFixtureTest {
         assertEquals(1_250_000L, receipt.totalAmount)
         assertEquals(1_300_000L, receipt.paidAmount)
         assertEquals(50_000L, receipt.changeAmount)
+        assertEquals("Jl. Kampus UMK, Kudus", receipt.branchAddress)
         assertEquals(1, receipt.items.size)
         assertEquals("Kebab Spesial Keju Mozzarella Panjang", receipt.items.single().name)
         assertEquals(1_250_000L, receipt.items.single().subtotal)
@@ -101,11 +101,6 @@ class TransactionsContractFixtureTest {
             authorization: String,
             date: String?
         ): Response<RevenueSummaryResponse> = error("Not used in transaction fixture test")
-
-        override suspend fun getRevenueTrend(
-            authorization: String,
-            date: String?
-        ): Response<RevenueTrendResponse> = error("Not used in transaction fixture test")
 
         override suspend fun voidTransaction(
             authorization: String,

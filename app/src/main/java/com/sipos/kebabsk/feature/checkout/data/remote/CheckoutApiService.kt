@@ -44,9 +44,16 @@ data class CreateTransactionResponse(
 data class CreateTransactionData(
     @SerializedName("transaction_id") val transactionId: Long?,
     @SerializedName("transaction_code") val transactionCode: String?,
+    @SerializedName("branch") val branch: CreateTransactionBranchData?,
     @SerializedName("total_amount") val totalAmount: Long?,
     @SerializedName("paid_amount") val paidAmount: Long?,
     @SerializedName("change_amount") val changeAmount: Long?
+)
+
+data class CreateTransactionBranchData(
+    @SerializedName("id") val id: Long?,
+    @SerializedName("name") val name: String?,
+    @SerializedName("address") val address: String?
 )
 
 interface CheckoutApiService {

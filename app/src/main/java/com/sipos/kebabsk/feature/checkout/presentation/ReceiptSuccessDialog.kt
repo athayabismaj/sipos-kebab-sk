@@ -1,8 +1,7 @@
 package com.sipos.kebabsk.feature.checkout.presentation
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,9 +12,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -25,190 +24,121 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.sipos.kebabsk.R
 import com.sipos.kebabsk.common.MoneyUtils
+import com.sipos.kebabsk.common.TransactionCodeFormatter
 import com.sipos.kebabsk.common.VariantDisplayUtils
 import com.sipos.kebabsk.feature.checkout.domain.model.ReceiptData
+import com.sipos.kebabsk.feature.checkout.domain.model.ReceiptItem
 import com.sipos.kebabsk.ui.theme.KebabSuccess
 import com.sipos.kebabsk.ui.theme.KebabSuccessBg
 
 private val KebabPrimary = Color(0xFF904D00)
-private val KebabTextDark = Color(0xFF1D1B19)
-private val KebabTextGray = Color(0xFF564334)
-private val KebabDivider = Color(0xFFDDC1AE).copy(alpha = 0.5f)
-
-private val ZigzagShape = GenericShape { size, _ ->
-    val zigzagWidth = 20f
-    val zigzagHeight = 15f
-    val count = (size.width / zigzagWidth).toInt()
-
-    moveTo(0f, 0f)
-    lineTo(size.width, 0f)
-    lineTo(size.width, size.height - zigzagHeight)
-    for (i in count downTo 0) {
-        val x = i * zigzagWidth
-        val y = if (i % 2 == 0) size.height else size.height - zigzagHeight
-        lineTo(x, y)
-    }
-    close()
-}
+private val KebabTextDark = Color(0xFF1F1F1F)
+private val KebabTextGray = Color(0xFF6B625A)
+private val ReceiptBorder = Color(0xFFD8D0C6)
+private val ReceiptDash = Color(0xFFB8AEA3)
 
 @Composable
 fun ReceiptSuccessDialog(
     receiptData: ReceiptData,
-    isPrinting: Boolean,
-    onPrint: () -> Unit,
     onShare: () -> Unit,
     onClose: () -> Unit
 ) {
     Dialog(
-        onDismissRequest = { },
-        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
+        onDismissRequest = {},
+        properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false
+        )
     ) {
-        Box(
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Transparent),
-            contentAlignment = Alignment.Center
+                .widthIn(max = 398.dp),
+            shape = RoundedCornerShape(32.dp),
+            color = Color(0xFFFFF0EA),
+            tonalElevation = 10.dp,
+            shadowElevation = 24.dp
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 24.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .verticalScroll(rememberScrollState())
+                    .padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(ZigzagShape)
-                        .background(Color.White)
-                        .padding(bottom = 24.dp)
+                SuccessHeader()
+
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .clip(CircleShape)
-                                .background(KebabSuccessBg),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = KebabSuccess, modifier = Modifier.size(32.dp))
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Pembayaran Berhasil!",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = KebabTextDark
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = receiptData.createdAt,
-                            fontSize = 12.sp,
-                            color = KebabTextGray
-                        )
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            receiptData.items.forEach { item ->
-                                Column(
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    val hasVariant = !item.variantName.equals("Regular", ignoreCase = true) &&
-                                        !item.variantName.equals("Default", ignoreCase = true)
-                                    val displayVariant = VariantDisplayUtils.formatVariantName(item.menuName, item.variantName)
-
-                                    if (hasVariant) {
-                                        Text(text = item.menuName, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
-                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                            Text(text = displayVariant, fontSize = 12.sp, color = KebabTextGray)
-                                            Text(text = MoneyUtils.formatRupiah(item.subtotal), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
-                                        }
-                                    } else {
-                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                            Text(text = item.menuName, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
-                                            Text(text = MoneyUtils.formatRupiah(item.subtotal), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
-                                        }
-                                    }
-
-                                    Text(text = "${item.quantity}x ${MoneyUtils.formatRupiah(item.unitPrice)}", fontSize = 12.sp, color = KebabTextGray, modifier = Modifier.padding(top = 2.dp))
-                                }
-                            }
-                        }
-
-                        DashedDivider()
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        ReceiptRow(label = "Total Belanja", value = MoneyUtils.formatRupiah(receiptData.totalAmount), isBold = true)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        ReceiptRow(label = "Tunai/Dibayar", value = MoneyUtils.formatRupiah(receiptData.paidAmount))
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        DashedDivider()
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Text(
-                            text = "Kembalian",
-                            fontSize = 14.sp,
-                            color = KebabTextGray
-                        )
-                        Text(
-                            text = MoneyUtils.formatRupiah(receiptData.changeAmount),
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = KebabPrimary,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
+                    CheckoutReceiptPreview(receiptData)
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
 
                 Button(
                     onClick = onClose,
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp),
+                    shape = RoundedCornerShape(18.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = KebabPrimary)
                 ) {
-                    Text("Transaksi Selesai", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Transaksi Selesai",
+                        color = Color.White,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 15.sp
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(12.dp))
 
                 OutlinedButton(
                     onClick = onShare,
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, Color.White),
-                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White.copy(alpha = 0.1f))
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    border = androidx.compose.foundation.BorderStroke(
+                        width = 1.dp,
+                        color = KebabPrimary.copy(alpha = 0.45f)
+                    ),
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White.copy(alpha = 0.72f))
                 ) {
-                    Icon(Icons.Default.Share, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = null,
+                        tint = KebabPrimary,
+                        modifier = Modifier.size(18.dp)
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Bagikan Struk", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "Bagikan Struk",
+                        color = KebabPrimary,
+                        fontWeight = FontWeight.ExtraBold
+                    )
                 }
             }
         }
@@ -216,35 +146,277 @@ fun ReceiptSuccessDialog(
 }
 
 @Composable
-private fun DashedDivider() {
-    Canvas(modifier = Modifier.fillMaxWidth().height(1.dp)) {
-        drawLine(
-            color = KebabDivider,
-            start = Offset(0f, 0f),
-            end = Offset(size.width, 0f),
-            strokeWidth = 1.dp.toPx(),
-            pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+private fun SuccessHeader() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 2.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Surface(
+            modifier = Modifier.size(48.dp),
+            shape = CircleShape,
+            color = KebabSuccessBg
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = KebabSuccess,
+                    modifier = Modifier.size(26.dp)
+                )
+            }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(
+                text = "Pembayaran Berhasil",
+                color = KebabTextDark,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.ExtraBold
+            )
+            Text(
+                text = "Periksa detail transaksi sebelum selesai.",
+                color = KebabTextGray,
+                fontSize = 12.sp,
+                lineHeight = 17.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun CheckoutReceiptPreview(receipt: ReceiptData) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .widthIn(max = 352.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .border(1.dp, ReceiptBorder, RoundedCornerShape(12.dp))
+            .padding(horizontal = 22.dp, vertical = 26.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            androidx.compose.foundation.Image(
+                painter = painterResource(id = R.drawable.sk_receipt_logo),
+                contentDescription = "Logo Kebab SK",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(46.dp)
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "KEBAB SK",
+                color = KebabTextDark,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 20.sp,
+                letterSpacing = 2.sp,
+                fontWeight = FontWeight.ExtraBold
+            )
+            receipt.branchAddress?.trim()?.takeIf { it.isNotEmpty() }?.let { address ->
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = address,
+                    color = KebabTextGray,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 10.sp,
+                    lineHeight = 14.sp,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
+        ReceiptDashedDivider()
+
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            CheckoutReceiptRow(
+                label = "No.",
+                value = TransactionCodeFormatter.formatForDisplay(receipt.transactionCode).ifBlank { "-" }
+            )
+            CheckoutReceiptRow(
+                label = "Kasir",
+                value = receipt.cashierName.ifBlank { "Kasir" }
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, ReceiptDash, RoundedCornerShape(4.dp))
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ReceiptBadge("LUNAS")
+            ReceiptBadge(receipt.paymentMethodName?.takeIf(String::isNotBlank) ?: "Tunai")
+        }
+
+        ReceiptDashedDivider()
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            receipt.items.forEachIndexed { index, item ->
+                CheckoutReceiptItem(index = index + 1, item = item)
+            }
+        }
+
+        ReceiptDashedDivider()
+        CheckoutReceiptRow(
+            label = "Total QTY",
+            value = receipt.items.sumOf { it.quantity }.toString()
+        )
+        ReceiptDashedDivider()
+
+        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            CheckoutReceiptRow("Sub Total", MoneyUtils.formatRupiah(receipt.totalAmount))
+            CheckoutReceiptRow("Total", MoneyUtils.formatRupiah(receipt.totalAmount), isBold = true)
+            CheckoutReceiptRow("Bayar", MoneyUtils.formatRupiah(receipt.paidAmount))
+            CheckoutReceiptRow("Kembalian", MoneyUtils.formatRupiah(receipt.changeAmount))
+        }
+
+        ReceiptDashedDivider()
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            Text(
+                text = "Terima kasih telah berbelanja",
+                color = KebabTextGray,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = receipt.createdAt,
+                color = KebabTextGray.copy(alpha = 0.82f),
+                fontFamily = FontFamily.Monospace,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun CheckoutReceiptItem(index: Int, item: ReceiptItem) {
+    val variant = VariantDisplayUtils.formatVariantName(item.menuName, item.variantName)
+        .takeIf {
+            item.variantName.isNotBlank() &&
+                !item.variantName.equals("Default", ignoreCase = true) &&
+                !item.variantName.equals("Regular", ignoreCase = true)
+        }
+
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 8.dp)
+            ) {
+                Text(
+                    text = "$index. ${item.menuName}",
+                    color = KebabTextDark,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+                variant?.let {
+                    Text(
+                        text = "  $it",
+                        color = KebabTextGray,
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 11.sp
+                    )
+                }
+            }
+            Text(
+                text = MoneyUtils.formatRupiah(item.subtotal),
+                color = KebabTextDark,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.ExtraBold
+            )
+        }
+        Text(
+            text = "  ${item.quantity} x ${MoneyUtils.formatRupiah(item.unitPrice)}",
+            color = KebabTextGray,
+            fontFamily = FontFamily.Monospace,
+            fontSize = 11.sp
         )
     }
 }
 
 @Composable
-private fun ReceiptRow(label: String, value: String, isBold: Boolean = false) {
+private fun CheckoutReceiptRow(
+    label: String,
+    value: String,
+    isBold: Boolean = false
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = label,
-            fontSize = 14.sp,
+            modifier = Modifier.weight(0.42f),
             color = if (isBold) KebabTextDark else KebabTextGray,
-            fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal
+            fontFamily = FontFamily.Monospace,
+            fontSize = if (isBold) 14.sp else 13.sp,
+            fontWeight = if (isBold) FontWeight.ExtraBold else FontWeight.Medium
         )
         Text(
             text = value,
-            fontSize = 14.sp,
+            modifier = Modifier.weight(0.58f),
             color = KebabTextDark,
-            fontWeight = if (isBold) FontWeight.Bold else FontWeight.Medium
+            fontFamily = FontFamily.Monospace,
+            fontSize = if (isBold) 14.sp else 13.sp,
+            fontWeight = if (isBold) FontWeight.ExtraBold else FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.End
         )
+    }
+}
+
+@Composable
+private fun ReceiptBadge(text: String) {
+    Text(
+        text = text,
+        color = KebabTextDark,
+        fontFamily = FontFamily.Monospace,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.ExtraBold
+    )
+}
+
+@Composable
+private fun ReceiptDashedDivider() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(1.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        repeat(24) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(1.dp)
+                    .background(ReceiptDash.copy(alpha = 0.55f))
+            )
+        }
     }
 }

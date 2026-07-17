@@ -46,8 +46,6 @@ import com.sipos.kebabsk.feature.profile.presentation.EditProfileScreen
 import com.sipos.kebabsk.feature.profile.presentation.BluetoothPrinterScreen
 import com.sipos.kebabsk.feature.profile.presentation.OperationalExpenseScreen
 import com.sipos.kebabsk.feature.profile.presentation.ProfileScreen
-import com.sipos.kebabsk.feature.profile.presentation.RevenueSummaryScreen
-import com.sipos.kebabsk.feature.profile.presentation.RevenueViewModel
 import com.sipos.kebabsk.feature.shift.presentation.ShiftSummaryUiState
 import com.sipos.kebabsk.feature.shift.presentation.ShiftSummaryViewModel
 import com.sipos.kebabsk.feature.splash.presentation.KebabSkSplashScreen
@@ -72,7 +70,6 @@ enum class AppTab(@param:StringRes val labelRes: Int, val selectedIcon: ImageVec
 
 private enum class ProfilePage {
     SUMMARY,
-    REVENUE_SUMMARY,
     DAILY_STOCK,
     OPERATIONAL_EXPENSE,
     BLUETOOTH_PRINTER,
@@ -357,9 +354,6 @@ private fun AppScaffold(
                                     onClearProfileMessage()
                                     profilePage = ProfilePage.CHANGE_PASSWORD
                                 },
-                                onViewRevenue = {
-                                    profilePage = ProfilePage.REVENUE_SUMMARY
-                                },
                                 onViewDailyStock = {
                                     profilePage = ProfilePage.DAILY_STOCK
                                 },
@@ -405,21 +399,6 @@ private fun AppScaffold(
                             },
                             onSave = { currentPassword, newPassword, confirmPassword ->
                                 onChangePassword(currentPassword, newPassword, confirmPassword)
-                            }
-                        )
-                    }
-
-                    ProfilePage.REVENUE_SUMMARY -> {
-                        val revenueViewModel: RevenueViewModel = koinViewModel()
-                        val revenueUiState by revenueViewModel.uiState.collectAsStateWithLifecycle()
-
-                        RevenueSummaryScreen(
-                            modifier = Modifier.padding(innerPadding),
-                            uiState = revenueUiState,
-                            onDateChanged = revenueViewModel::setDate,
-                            onRefresh = revenueViewModel::refresh,
-                            onBack = {
-                                profilePage = ProfilePage.SUMMARY
                             }
                         )
                     }

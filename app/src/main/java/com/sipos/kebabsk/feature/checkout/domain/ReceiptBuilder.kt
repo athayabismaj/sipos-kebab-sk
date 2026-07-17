@@ -1,6 +1,7 @@
 package com.sipos.kebabsk.feature.checkout.domain
 
 import com.sipos.kebabsk.common.MoneyUtils
+import com.sipos.kebabsk.common.TransactionCodeFormatter
 import com.sipos.kebabsk.common.VariantDisplayUtils
 import com.sipos.kebabsk.feature.checkout.domain.model.ReceiptData
 import java.io.ByteArrayOutputStream
@@ -11,6 +12,10 @@ class ReceiptBuilder {
     fun buildText(receipt: ReceiptData): String {
         val sb = StringBuilder()
         sb.append("KEBAB SK\n")
+        receipt.branchAddress?.trim()?.takeIf { it.isNotEmpty() }?.let { sb.append("$it\n") }
+        sb.append("-----------------------------\n")
+        sb.append("No. ${TransactionCodeFormatter.formatForDisplay(receipt.transactionCode)}\n")
+        sb.append("Kasir ${receipt.cashierName}\n")
         sb.append("-----------------------------\n")
         receipt.items.forEach { item ->
             val hasVariant = !item.variantName.equals("Regular", ignoreCase = true) &&
@@ -30,7 +35,13 @@ class ReceiptBuilder {
             sb.append("${item.quantity}x ${MoneyUtils.formatRupiah(item.unitPrice)}\n")
         }
         sb.append("-----------------------------\n")
+        sb.append("Sub Total: ${MoneyUtils.formatRupiah(receipt.totalAmount)}\n")
         sb.append("Total: ${MoneyUtils.formatRupiah(receipt.totalAmount)}\n")
+        sb.append("Bayar: ${MoneyUtils.formatRupiah(receipt.paidAmount)}\n")
+        sb.append("Kembalian: ${MoneyUtils.formatRupiah(receipt.changeAmount)}\n")
+        sb.append("-----------------------------\n")
+        sb.append("Terima kasih telah berbelanja\n")
+        sb.append("${receipt.createdAt}\n")
         return sb.toString()
     }
 
@@ -59,9 +70,11 @@ class ReceiptBuilder {
         text("KEBAB SK")
         size(0x00)
         bold(false)
-        text(receipt.createdAt)
-        receipt.transactionCode.takeIf { it.isNotBlank() }?.let { text(it) }
+        receipt.branchAddress?.trim()?.takeIf { it.isNotEmpty() }?.let { text(it.take(PRINTER_RECEIPT_WIDTH)) }
         align(0)
+        line()
+        text(receiptColumns("No.", TransactionCodeFormatter.formatForDisplay(receipt.transactionCode)))
+        text(receiptColumns("Kasir", receipt.cashierName))
         line()
 
         receipt.items.forEach { item ->
@@ -92,6 +105,7 @@ class ReceiptBuilder {
         size(0x00)
         bold(false)
         text("Terima kasih")
+        text(receipt.createdAt.take(PRINTER_RECEIPT_WIDTH))
         text()
         text()
         command(0x1D, 0x56, 0x42, 0x00)

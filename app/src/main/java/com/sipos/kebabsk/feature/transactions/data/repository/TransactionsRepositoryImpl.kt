@@ -206,35 +206,6 @@ class TransactionsRepositoryImpl(
         }
     }
 
-    override suspend fun getRevenueTrend(token: String, date: LocalDate): Result<List<Pair<String, Long>>> {
-        return suspendRunCatching {
-            val formattedQueryDate = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-            val response = retryNetworkRequest {
-                apiService.getRevenueTrend("Bearer $token", formattedQueryDate)
-            }
-
-            val body = response.body()
-            if (!response.isSuccessful || body?.success != true || body.data == null) {
-                throw IllegalStateException(
-                    mapHttpFailure(
-                        code = response.code(),
-                        rawMessage = body?.message,
-                        fallback = "Grafik omzet belum bisa dimuat. Silakan coba lagi."
-                    )
-                )
-            }
-
-            body.data.map { Pair(it.date ?: "", it.totalRevenue ?: 0L) }
-        }.recoverCatching { throwable ->
-            throw IllegalStateException(
-                mapThrowable(
-                    throwable = throwable,
-                    fallback = "Grafik omzet belum bisa dimuat. Silakan coba lagi."
-                )
-            )
-        }
-    }
-
     override suspend fun voidTransaction(token: String, transactionId: Long, reason: String, sessionId: Long): Result<String> {
         return suspendRunCatching {
             val idempotencyKey = java.util.UUID.randomUUID().toString()
@@ -373,6 +344,7 @@ class TransactionsRepositoryImpl(
                 ?: root.objectValue("payment_method", "paymentMethod")
             val cashierObject = transaction.objectValue("cashier", "kasir", "user", "created_by", "createdBy")
                 ?: root.objectValue("cashier", "kasir", "user", "created_by", "createdBy")
+            val branchObject = transaction.objectValue("branch") ?: root.objectValue("branch")
 
             TransactionReceipt(
                 id = transaction.longValue("id") ?: root.longValue("id") ?: transactionId,
@@ -398,6 +370,9 @@ class TransactionsRepositoryImpl(
                     ?: root.stringValue("cashier_name", "kasir_name", "cashier", "kasir", "user_name", "created_by_name")
                     ?: cashierObject?.stringValue("name", "username", "full_name", "display_name")
                     ?: "Kebab SK POS",
+                branchAddress = branchObject?.stringValue("address", "alamat")
+                    ?.trim()
+                    ?.takeIf { it.isNotEmpty() },
                 isDetailed = parsedItems.isNotEmpty()
             )
         }

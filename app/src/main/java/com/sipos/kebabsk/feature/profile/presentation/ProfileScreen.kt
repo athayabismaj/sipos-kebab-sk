@@ -27,7 +27,6 @@ import androidx.compose.material.icons.filled.LockReset
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Print
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Logout
 import androidx.compose.material3.Icon
@@ -67,7 +66,6 @@ fun ProfileScreen(
     onLogout: () -> Unit,
     onEditProfile: () -> Unit = {},
     onChangePassword: () -> Unit = {},
-    onViewRevenue: () -> Unit = {},
     onViewDailyStock: () -> Unit = {},
     onViewOperationalExpense: () -> Unit = {},
     onConnectReceiptPrinter: () -> Unit = {}
@@ -203,12 +201,6 @@ fun ProfileScreen(
 
             // === MENU OPERASIONAL ===
             MenuSection(title = "Operasional") {
-                ProfilMenuItem(
-                    title = "Ringkasan Penjualan",
-                    subtitle = "Lihat omzet dan performa harian",
-                    icon = Icons.AutoMirrored.Filled.TrendingUp,
-                    onClick = onViewRevenue
-                )
                 ProfilMenuItem(
                     title = "Stok Bahan Harian",
                     subtitle = "Pantau bahan dan tutup sesi stok",

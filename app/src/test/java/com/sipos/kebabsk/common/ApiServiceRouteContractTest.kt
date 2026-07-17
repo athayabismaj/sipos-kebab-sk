@@ -31,7 +31,6 @@ class ApiServiceRouteContractTest {
         assertRoute<TransactionsApiService>("getTransactionDetail", "GET", "transactions/{reference}")
         assertRoute<TransactionsApiService>("getTransactionReceiptDetail", "GET", "transactions/{reference}/receipt")
         assertRoute<TransactionsApiService>("getRevenueSummary", "GET", "revenue/summary")
-        assertRoute<TransactionsApiService>("getRevenueTrend", "GET", "revenue/trend")
         assertRoute<TransactionsApiService>("voidTransaction", "POST", "transactions/{id}/void")
     }
 

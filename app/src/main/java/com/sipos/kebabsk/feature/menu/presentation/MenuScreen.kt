@@ -283,6 +283,7 @@ fun MenuScreen(
                         PaymentTab(
                             checkoutUiState = checkoutUiState,
                             cartItems = cartUiState.cartItems,
+                            cashierName = menuUiState.cashierName.ifBlank { session.displayName },
                             isDailySessionOpen = isDailySessionOpen,
                             isDailySessionStatusKnown = isDailySessionStatusKnown,
                             isLoading = menuUiState.isLoading,

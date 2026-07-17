@@ -260,6 +260,7 @@ class CheckoutViewModelTest {
         assertEquals(1, fakeCheckoutRepo.createCalls)
         assertEquals(1, successCalls)
         assertEquals("TRX-TEST-1001", viewModel.uiState.value.checkoutTransactionCode)
+        assertEquals("Jl. Kampus UMK, Kudus", viewModel.uiState.value.checkoutBranchAddress)
         assertEquals(sampleCart(), viewModel.uiState.value.checkoutReceiptItems)
         assertEquals(12_000L, viewModel.uiState.value.checkoutTotalAmount)
         assertEquals(15_000L, viewModel.uiState.value.checkoutPaidAmount)
@@ -289,6 +290,7 @@ class CheckoutViewModelTest {
         assertEquals(0, successCalls)
         assertEquals("network failure", viewModel.uiState.value.errorMessage)
         assertNull(viewModel.uiState.value.checkoutTransactionCode)
+        assertNull(viewModel.uiState.value.checkoutBranchAddress)
         assertTrue(viewModel.uiState.value.checkoutReceiptItems.isEmpty())
         assertFalse(viewModel.uiState.value.isSubmitting)
         assertFalse(viewModel.uiState.value.isLoading)
@@ -429,6 +431,7 @@ private class FakeCheckoutRepository(
             CheckoutResult(
                 transactionId = 1001L,
                 transactionCode = "TRX-TEST-1001",
+                branchAddress = "Jl. Kampus UMK, Kudus",
                 totalAmount = request.items.sumOf { item ->
                     if (item.variantId == 11L) 12_000L * item.qty else 0L
                 },

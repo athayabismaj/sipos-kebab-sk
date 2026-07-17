@@ -55,6 +55,7 @@ class CheckoutContractFixtureTest {
 
         assertEquals(1001L, result.transactionId)
         assertEquals("TRX-FIX-20260715-001", result.transactionCode)
+        assertEquals("Jl. Kampus UMK, Kudus", result.branchAddress)
         assertEquals(10_000L, result.totalAmount)
         assertEquals(15_000L, result.paidAmount)
         assertEquals(5_000L, result.changeAmount)

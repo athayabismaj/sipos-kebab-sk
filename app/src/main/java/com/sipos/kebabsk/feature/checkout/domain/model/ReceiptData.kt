@@ -5,6 +5,7 @@ import com.sipos.kebabsk.common.validation.safeMultiply
 data class ReceiptData(
     val transactionCode: String,
     val cashierName: String,
+    val branchAddress: String?,
     val items: List<ReceiptItem>,
     val totalAmount: Long,
     val paidAmount: Long,

@@ -94,6 +94,7 @@ import com.sipos.kebabsk.common.AppTime
 import com.sipos.kebabsk.feature.profile.presentation.BluetoothPrinterConnection
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionHistoryItem
 import com.sipos.kebabsk.common.MoneyUtils
+import com.sipos.kebabsk.common.TransactionCodeFormatter
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionReceipt
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionReceiptItem
 import com.sipos.kebabsk.ui.theme.KebabBg
@@ -810,7 +811,7 @@ private fun TransactionItemCard(
                         color = KebabTextGray.copy(alpha = opacity)
                     )
                     Text(
-                        text = trx.code,
+                        text = TransactionCodeFormatter.formatForDisplay(trx.code),
                         fontSize = 15.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = KebabTextDark.copy(alpha = opacity),
@@ -1187,6 +1188,17 @@ private fun ReceiptPreviewCard(receipt: TransactionReceipt) {
                 letterSpacing = 2.sp,
                 fontWeight = FontWeight.ExtraBold
             )
+            receipt.branchAddress?.trim()?.takeIf { it.isNotEmpty() }?.let { address ->
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = address,
+                    color = ReceiptDarkMuted,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 10.sp,
+                    lineHeight = 14.sp,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
         }
 
         DashedReceiptDivider()
@@ -1579,7 +1591,7 @@ private fun buildReceiptEscPosBytes(receipt: TransactionReceipt): ByteArray {
     text("KEBAB SK")
     size(0x00)
     bold(false)
-    RECEIPT_BUSINESS_CONTACT_LINES.forEach { text(it.take(PRINTER_RECEIPT_WIDTH)) }
+    receipt.branchAddress?.trim()?.takeIf { it.isNotEmpty() }?.let { text(it.take(PRINTER_RECEIPT_WIDTH)) }
     line()
     text(receiptColumns("No.", receiptDisplayCode(receipt).take(20)))
     text("Kasir")
@@ -1647,7 +1659,8 @@ private fun receiptPaymentDisplay(paymentMethod: String): String {
 }
 
 private fun receiptDisplayCode(receipt: TransactionReceipt): String {
-    return receipt.code.trim().takeIf { it.isNotBlank() } ?: "TRX-${receipt.id}"
+    val originalCode = receipt.code.trim().takeIf { it.isNotBlank() } ?: "TRX-${receipt.id}"
+    return TransactionCodeFormatter.formatForDisplay(originalCode)
 }
 
 private fun receiptPrintHelperText(receipt: TransactionReceipt): String {
@@ -1675,7 +1688,6 @@ private fun formatShortRupiah(amount: Long): String {
 }
 
 private const val PRINTER_RECEIPT_WIDTH = 32
-private val RECEIPT_BUSINESS_CONTACT_LINES = emptyList<String>()
 private val ReceiptDarkBg = Color.White
 private val ReceiptDarkBorder = Color(0xFFD8D0C6)
 private val ReceiptDarkDash = Color(0xFFB8AEA3)

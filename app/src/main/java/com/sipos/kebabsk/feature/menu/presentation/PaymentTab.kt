@@ -134,6 +134,7 @@ private val KebabCyanBg = Color(0xFFE0F2FE)
 fun PaymentTab(
     checkoutUiState: CheckoutUiState,
     cartItems: List<CartItem>,
+    cashierName: String,
     isDailySessionOpen: Boolean,
     isDailySessionStatusKnown: Boolean,
     isLoading: Boolean,
@@ -156,8 +157,8 @@ fun PaymentTab(
     val receiptPrinter = remember { BluetoothReceiptPrinter() }
     val receiptKey = checkoutUiState.checkoutTransactionCode
         ?: changeAmount?.let { "${checkoutUiState.checkoutTotalAmount}-${checkoutUiState.checkoutPaidAmount}-$it" }
-    val receiptData = remember(receiptKey) {
-        if (changeAmount != null) checkoutUiState.toReceiptData() else null
+    val receiptData = remember(receiptKey, cashierName, checkoutUiState.checkoutBranchAddress) {
+        if (changeAmount != null) checkoutUiState.toReceiptData(cashierName) else null
     }
 
     LaunchedEffect(receiptKey) {
@@ -176,8 +177,6 @@ fun PaymentTab(
         val receiptText = receiptBuilder.buildText(receiptData)
         ReceiptSuccessDialog(
             receiptData = receiptData,
-            isPrinting = false,
-            onPrint = {},
             onShare = {
                 val sendIntent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
@@ -741,11 +740,12 @@ private fun PaymentSummaryRow(label: String, value: String, isBold: Boolean = fa
     }
 }
 
-private fun CheckoutUiState.toReceiptData(): ReceiptData {
+private fun CheckoutUiState.toReceiptData(cashierName: String): ReceiptData {
     val totalAmount = checkoutTotalAmount ?: 0L
     return ReceiptData(
         transactionCode = checkoutTransactionCode.orEmpty(),
-        cashierName = "",
+        cashierName = cashierName.trim(),
+        branchAddress = checkoutBranchAddress,
         items = checkoutReceiptItems.map { item ->
             ReceiptItem(
                 menuName = item.menuName,

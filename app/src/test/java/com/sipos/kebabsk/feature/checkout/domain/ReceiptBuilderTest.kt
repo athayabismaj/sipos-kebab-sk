@@ -18,6 +18,8 @@ class ReceiptBuilderTest {
         val text = builder.buildText(receipt)
 
         assertTrue(text.contains("KEBAB SK"))
+        assertTrue(text.contains("Jl. Kampus UMK, Kudus"))
+        assertTrue(text.contains("TRX-0001"))
         assertTrue(text.contains("Kebab"))
         assertTrue(text.contains("Kecil"))
         assertTrue(text.contains("2x Rp 20.000"))
@@ -33,8 +35,9 @@ class ReceiptBuilderTest {
 
         assertTrue(text.startsWith("\u001B@"))
         assertTrue(text.contains("KEBAB SK"))
+        assertTrue(text.contains("Jl. Kampus UMK, Kudus"))
         assertTrue(text.contains("05 Jul 2026, 17:04"))
-        assertTrue(text.contains("TRX-001"))
+        assertTrue(text.contains("TRX-0001"))
         assertTrue(text.contains("Kebab"))
         assertTrue(text.contains("Kecil"))
         assertTrue(text.contains("2x Rp 20.000"))
@@ -59,6 +62,33 @@ class ReceiptBuilderTest {
         assertEquals("Tunai", receipt.paymentMethodName)
         assertEquals("Tanpa pedas", receipt.note)
         assertEquals("Cahyo", receipt.cashierName)
+        assertEquals("Jl. Kampus UMK, Kudus", receipt.branchAddress)
+    }
+
+    @Test
+    fun shareAndPrinterUseTheSameShortCodeAndTransactionBranchAddress() {
+        val receipt = sampleReceipt().copy(transactionCode = "TRX-UMK-20260717-0001")
+
+        val sharedText = builder.buildText(receipt)
+        val printerText = builder.buildEscPos(receipt).toString(Charsets.ISO_8859_1)
+
+        listOf(sharedText, printerText).forEach { output ->
+            assertTrue(output.contains("TRX-0001"))
+            assertTrue(output.contains("Jl. Kampus UMK, Kudus"))
+            assertTrue(!output.contains("Alamat Cabang Pengguna Lain"))
+            assertTrue(!output.contains("TRX-UMK-20260717-0001"))
+        }
+    }
+
+    @Test
+    fun nullBranchAddressIsSafeAndDoesNotAddAnAddressLine() {
+        val receipt = sampleReceipt().copy(branchAddress = null)
+
+        val sharedText = builder.buildText(receipt)
+        val printerText = builder.buildEscPos(receipt).toString(Charsets.ISO_8859_1)
+
+        assertTrue(!sharedText.contains("Jl. Kampus UMK, Kudus"))
+        assertTrue(!printerText.contains("Jl. Kampus UMK, Kudus"))
     }
 
     @Test
@@ -68,6 +98,7 @@ class ReceiptBuilderTest {
         val receipt = ReceiptData(
             transactionCode = data.get("transaction_code").asString,
             cashierName = "Kasir Fixture",
+            branchAddress = data.getAsJsonObject("branch").get("address").asString,
             items = listOf(
                 ReceiptItem(
                     menuName = item.get("menu_name").asString,
@@ -89,7 +120,7 @@ class ReceiptBuilderTest {
 
         assertTrue(plainText.contains("Kebab Spesial Keju Mozzarella Panjang"))
         assertTrue(plainText.contains("Rp 1.250.000"))
-        assertTrue(printerText.contains("TRX-FIX-20260715-003"))
+        assertTrue(printerText.contains("TRX-003"))
         assertTrue(printerText.contains("Rp 1.300.000"))
         assertTrue(printerText.contains("Rp 50.000"))
     }
@@ -115,8 +146,9 @@ class ReceiptBuilderTest {
 
     private fun sampleReceipt(): ReceiptData {
         return ReceiptData(
-            transactionCode = "TRX-001",
+            transactionCode = "TRX-UMK-20260717-0001",
             cashierName = "Cahyo",
+            branchAddress = "Jl. Kampus UMK, Kudus",
             items = listOf(
                 ReceiptItem(
                     menuName = "Kebab",

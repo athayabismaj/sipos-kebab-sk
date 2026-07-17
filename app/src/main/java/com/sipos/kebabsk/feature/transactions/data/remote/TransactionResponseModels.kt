@@ -41,17 +41,6 @@ data class RevenueSummaryData(
     val dailyTargetRevenue: Long?
 )
 
-data class RevenueTrendResponse(
-    @SerializedName("success") val success: Boolean?,
-    @SerializedName("message") val message: String?,
-    @SerializedName("data") val data: List<RevenueTrendData>?
-)
-
-data class RevenueTrendData(
-    @SerializedName("date") val date: String?,
-    @SerializedName("total_revenue") val totalRevenue: Long?
-)
-
 data class VoidTransactionRequest(
     @SerializedName("reason") val reason: String,
     @SerializedName("current_session_id") val currentSessionId: Long,

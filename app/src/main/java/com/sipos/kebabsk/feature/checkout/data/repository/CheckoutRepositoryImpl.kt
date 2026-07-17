@@ -66,6 +66,7 @@ class CheckoutRepositoryImpl(
             CheckoutResult(
                 transactionId = data.transactionId ?: 0L,
                 transactionCode = data.transactionCode ?: "-",
+                branchAddress = data.branch?.address?.trim()?.takeIf { it.isNotEmpty() },
                 totalAmount = data.totalAmount ?: 0L,
                 paidAmount = data.paidAmount ?: 0L,
                 changeAmount = data.changeAmount ?: 0L

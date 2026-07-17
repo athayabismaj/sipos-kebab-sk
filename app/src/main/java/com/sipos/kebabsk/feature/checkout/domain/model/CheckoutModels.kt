@@ -20,6 +20,7 @@ data class CheckoutItemInput(
 data class CheckoutResult(
     val transactionId: Long,
     val transactionCode: String,
+    val branchAddress: String?,
     val totalAmount: Long,
     val paidAmount: Long,
     val changeAmount: Long

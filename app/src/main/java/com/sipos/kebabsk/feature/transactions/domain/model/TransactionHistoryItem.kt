@@ -26,6 +26,7 @@ data class TransactionReceipt(
     val status: String,
     val items: List<TransactionReceiptItem>,
     val cashierName: String = "Kebab SK POS",
+    val branchAddress: String? = null,
     val displayCode: String? = null,
     val isDetailed: Boolean = true
 )

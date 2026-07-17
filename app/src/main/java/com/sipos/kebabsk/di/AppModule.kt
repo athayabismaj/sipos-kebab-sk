@@ -25,7 +25,6 @@ import com.sipos.kebabsk.feature.menu.domain.repository.MenuRepository
 import com.sipos.kebabsk.feature.menu.presentation.MenuViewModel
 import com.sipos.kebabsk.feature.cart.presentation.CartViewModel
 import com.sipos.kebabsk.feature.checkout.presentation.CheckoutViewModel
-import com.sipos.kebabsk.feature.profile.presentation.RevenueViewModel
 import com.sipos.kebabsk.feature.shift.presentation.ShiftSummaryViewModel
 import com.sipos.kebabsk.feature.transactions.data.remote.TransactionsApiService
 import com.sipos.kebabsk.feature.transactions.data.repository.TransactionsRepositoryImpl
@@ -149,7 +148,6 @@ val viewModelModule = module {
     viewModel { OperationalExpenseViewModel(get()) }
     viewModel { TransactionsViewModel(get()) }
     viewModel { ShiftSummaryViewModel(get()) }
-    viewModel { RevenueViewModel(get()) }
 }
 
 val appModule = listOf(networkModule, repositoryModule, viewModelModule)
