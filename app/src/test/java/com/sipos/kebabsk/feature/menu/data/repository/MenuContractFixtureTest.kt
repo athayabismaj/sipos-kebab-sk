@@ -35,6 +35,7 @@ class MenuContractFixtureTest {
         assertEquals(10_000L, result.menus.single().variants.single().price)
         assertTrue(result.menus.single().variants.single().isAvailable)
         assertFalse(result.dailySession.isOpen)
+        assertFalse(result.dailySession.isKnown)
     }
 }
 
