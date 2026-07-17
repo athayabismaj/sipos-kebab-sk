@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "message": "Berhasil mengambil stok bahan harian",
+  "data": {
+    "session_id": 802,
+    "items": [
+      {
+        "ingredient_id": 902,
+        "name": "Daging Fixture",
+        "qty": 1,
+        "remaining_qty": 0.5,
+        "unit": "kg",
+        "display_qty": "1"
+      }
+    ]
+  }
+}

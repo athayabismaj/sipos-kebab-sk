@@ -27,6 +27,18 @@ class DailyStockContractFixtureTest {
     }
 
     @Test
+    fun operationalSessionKeepsDecimalDisplayQuantityForKilograms() = runTest {
+        val api = FixtureDailyStockApiService("stock_session_decimal_kg.json")
+        val result = DailyStockRepositoryImpl(api).getDailyStock("fixture-token").getOrThrow()
+
+        assertEquals(802L, result.sessionId)
+        assertEquals(902L, result.items.single().ingredientId)
+        assertEquals(1.0, result.items.single().qty, 0.0)
+        assertEquals(0.5, result.items.single().remainingQty ?: -1.0, 0.0)
+        assertEquals("kg", result.items.single().unit)
+    }
+
+    @Test
     fun closedSessionKeepsCurrentRepositoryGateWithoutInventingStock() = runTest {
         val api = FixtureDailyStockApiService("stock_session_closed.json")
 
