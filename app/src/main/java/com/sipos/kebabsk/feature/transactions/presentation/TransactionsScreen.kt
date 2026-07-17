@@ -202,123 +202,90 @@ fun TransactionsScreen(
             properties = DialogProperties(dismissOnBackPress = !uiState.isVoiding, dismissOnClickOutside = !uiState.isVoiding)
         ) {
             Surface(
-                shape = RoundedCornerShape(28.dp),
+                shape = RoundedCornerShape(20.dp),
                 color = KebabCardBg,
-                tonalElevation = 8.dp,
-                shadowElevation = 18.dp,
+                tonalElevation = 2.dp,
+                shadowElevation = 8.dp,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .widthIn(max = 360.dp)
+                    .widthIn(max = 320.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier.padding(24.dp)
                 ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = KebabPrimaryContainer.copy(alpha = 0.75f),
-                        modifier = Modifier.size(58.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.DeleteForever,
-                                contentDescription = null,
-                                tint = KebabPrimary,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
                     Text(
                         text = "Alasan Pembatalan",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.ExtraBold,
                         color = KebabTextDark
                     )
-
                     Spacer(modifier = Modifier.height(6.dp))
-
                     Text(
-                        text = "Tentukan perlakuan bahan dari transaksi yang dibatalkan.",
+                        text = "Tentukan perlakuan bahan baku dari transaksi ini.",
                         fontSize = 13.sp,
-                        lineHeight = 20.sp,
-                        color = KebabTextGray,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        lineHeight = 18.sp,
+                        color = KebabTextGray
                     )
-
-                    Spacer(modifier = Modifier.height(22.dp))
-
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
                     if (uiState.isVoiding) {
-                        Surface(
-                            shape = RoundedCornerShape(18.dp),
-                            color = KebabDateInactiveBg,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                CircularProgressIndicator(
-                                    color = KebabPrimary,
-                                    strokeWidth = 3.dp,
-                                    modifier = Modifier.size(28.dp)
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = "Membatalkan transaksi...",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = KebabTextDark
-                                )
-                            }
-                        }
-                    } else {
-                        Button(
-                            onClick = {
-                                if (sessionId != null) {
-                                    viewModel.voidTransaction(transactionToVoid!!, VoidReason.RESTOCK, sessionId)
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = KebabSuccess),
-                            shape = RoundedCornerShape(18.dp),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(68.dp)
+                                .padding(vertical = 16.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = Color.White.copy(alpha = 0.18f),
-                                    modifier = Modifier.size(40.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            Icons.Default.Recycling,
-                                            contentDescription = null,
-                                            tint = Color.White,
-                                            modifier = Modifier.size(22.dp)
-                                        )
+                            CircularProgressIndicator(
+                                color = KebabPrimary,
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "Memproses...",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = KebabTextDark
+                            )
+                        }
+                    } else {
+                        // Kembalikan ke Stok
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = KebabSuccess.copy(alpha = 0.08f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, KebabSuccess.copy(alpha = 0.25f)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (sessionId != null) {
+                                        viewModel.voidTransaction(transactionToVoid!!, VoidReason.RESTOCK, sessionId)
                                     }
                                 }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Recycling,
+                                    contentDescription = null,
+                                    tint = KebabSuccess,
+                                    modifier = Modifier.size(20.dp)
+                                )
                                 Spacer(modifier = Modifier.width(12.dp))
-                                Column(modifier = Modifier.weight(1f)) {
+                                Column {
                                     Text(
                                         text = "Kembalikan ke Stok",
-                                        fontSize = 15.sp,
+                                        fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color.White
+                                        color = KebabSuccess
                                     )
                                     Text(
-                                        text = "Bahan masih layak dipakai kembali",
-                                        fontSize = 11.sp,
-                                        color = Color.White.copy(alpha = 0.86f)
+                                        text = "Bahan masih layak pakai",
+                                        fontSize = 12.sp,
+                                        color = KebabTextGray
                                     )
                                 }
                             }
@@ -326,74 +293,62 @@ fun TransactionsScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        OutlinedButton(
-                            onClick = {
-                                if (sessionId != null) {
-                                    viewModel.voidTransaction(transactionToVoid!!, VoidReason.WASTE, sessionId)
-                                }
-                            },
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = KebabErrorBg.copy(alpha = 0.18f),
-                                contentColor = KebabErrorText
-                            ),
-                            shape = RoundedCornerShape(18.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.2.dp, KebabErrorText.copy(alpha = 0.55f)),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+                        // Buang sebagai Sampah
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = KebabErrorBg.copy(alpha = 0.15f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, KebabErrorText.copy(alpha = 0.2f)),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(68.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = Color.White,
-                                    modifier = Modifier.size(40.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            Icons.Default.DeleteForever,
-                                            contentDescription = null,
-                                            tint = KebabErrorText,
-                                            modifier = Modifier.size(22.dp)
-                                        )
+                                .clickable {
+                                    if (sessionId != null) {
+                                        viewModel.voidTransaction(transactionToVoid!!, VoidReason.WASTE, sessionId)
                                     }
                                 }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.DeleteForever,
+                                    contentDescription = null,
+                                    tint = KebabErrorText,
+                                    modifier = Modifier.size(20.dp)
+                                )
                                 Spacer(modifier = Modifier.width(12.dp))
-                                Column(modifier = Modifier.weight(1f)) {
+                                Column {
                                     Text(
                                         text = "Buang sebagai Sampah",
-                                        fontSize = 15.sp,
+                                        fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = KebabErrorText
                                     )
                                     Text(
-                                        text = "Bahan rusak atau tidak boleh dipakai",
-                                        fontSize = 11.sp,
-                                        color = KebabErrorText.copy(alpha = 0.72f)
+                                        text = "Bahan rusak / tak layak",
+                                        fontSize = 12.sp,
+                                        color = KebabTextGray
                                     )
                                 }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(18.dp))
-                        HorizontalDivider(color = KebabDivider.copy(alpha = 0.35f))
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
 
-                        TextButton(
-                            onClick = { transactionToVoid = null },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(44.dp),
-                            shape = RoundedCornerShape(14.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
                         ) {
-                            Text(
-                                text = "Batal",
-                                color = KebabTextGray,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            TextButton(
+                                onClick = { transactionToVoid = null },
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    text = "Batal",
+                                    color = KebabTextGray,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }

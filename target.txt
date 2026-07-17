@@ -1,0 +1,203 @@
+        Dialog(
+            onDismissRequest = { if (!uiState.isVoiding) transactionToVoid = null },
+            properties = DialogProperties(dismissOnBackPress = !uiState.isVoiding, dismissOnClickOutside = !uiState.isVoiding)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = KebabCardBg,
+                tonalElevation = 8.dp,
+                shadowElevation = 18.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 360.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = KebabPrimaryContainer.copy(alpha = 0.75f),
+                        modifier = Modifier.size(58.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteForever,
+                                contentDescription = null,
+                                tint = KebabPrimary,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text(
+                        text = "Alasan Pembatalan",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = KebabTextDark
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = "Tentukan perlakuan bahan dari transaksi yang dibatalkan.",
+                        fontSize = 13.sp,
+                        lineHeight = 20.sp,
+                        color = KebabTextGray,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(22.dp))
+
+                    if (uiState.isVoiding) {
+                        Surface(
+                            shape = RoundedCornerShape(18.dp),
+                            color = KebabDateInactiveBg,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    color = KebabPrimary,
+                                    strokeWidth = 3.dp,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = "Membatalkan transaksi...",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = KebabTextDark
+                                )
+                            }
+                        }
+                    } else {
+                        Button(
+                            onClick = {
+                                if (sessionId != null) {
+                                    viewModel.voidTransaction(transactionToVoid!!, VoidReason.RESTOCK, sessionId)
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = KebabSuccess),
+                            shape = RoundedCornerShape(18.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(68.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = Color.White.copy(alpha = 0.18f),
+                                    modifier = Modifier.size(40.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            Icons.Default.Recycling,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Kembalikan ke Stok",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                    Text(
+                                        text = "Bahan masih layak dipakai kembali",
+                                        fontSize = 11.sp,
+                                        color = Color.White.copy(alpha = 0.86f)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        OutlinedButton(
+                            onClick = {
+                                if (sessionId != null) {
+                                    viewModel.voidTransaction(transactionToVoid!!, VoidReason.WASTE, sessionId)
+                                }
+                            },
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = KebabErrorBg.copy(alpha = 0.18f),
+                                contentColor = KebabErrorText
+                            ),
+                            shape = RoundedCornerShape(18.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.2.dp, KebabErrorText.copy(alpha = 0.55f)),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(68.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = Color.White,
+                                    modifier = Modifier.size(40.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            Icons.Default.DeleteForever,
+                                            contentDescription = null,
+                                            tint = KebabErrorText,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Buang sebagai Sampah",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = KebabErrorText
+                                    )
+                                    Text(
+                                        text = "Bahan rusak atau tidak boleh dipakai",
+                                        fontSize = 11.sp,
+                                        color = KebabErrorText.copy(alpha = 0.72f)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(18.dp))
+                        HorizontalDivider(color = KebabDivider.copy(alpha = 0.35f))
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        TextButton(
+                            onClick = { transactionToVoid = null },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Text(
+                                text = "Batal",
+                                color = KebabTextGray,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
