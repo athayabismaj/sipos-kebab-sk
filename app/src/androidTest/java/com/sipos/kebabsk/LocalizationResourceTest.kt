@@ -16,7 +16,7 @@ class LocalizationResourceTest {
         assertEquals("Halo, cahyo", context.getString(R.string.dashboard_cashier_greeting, "cahyo"))
         assertEquals("12 item", context.resources.getQuantityString(R.plurals.item_count, 12, 12))
         assertEquals("3 item pesanan", context.resources.getQuantityString(R.plurals.cart_order_count, 3, 3))
-        assertEquals("Target harian: 34.5% tercapai", context.getString(R.string.dashboard_target_progress, 34.5))
+        assertEquals("Omzet transaksi berhasil hari ini", context.getString(R.string.dashboard_today_revenue_subtitle))
     }
 
     @Test

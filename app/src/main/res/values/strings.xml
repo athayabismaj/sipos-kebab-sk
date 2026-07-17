@@ -86,7 +86,7 @@
     <string name="dashboard_items_sold_subtitle">Item terjual</string>
     <string name="dashboard_empty_value">Belum ada</string>
     <string name="dashboard_dominant_item">Top: %1$s</string>
-    <string name="dashboard_target_progress">Target harian: %1$.1f%% tercapai</string>
+    <string name="dashboard_today_revenue_subtitle">Omzet transaksi berhasil hari ini</string>
     <string name="dashboard_session_closed_notice">Transaksi akan aktif setelah admin membuka sesi harian.</string>
     <string name="dashboard_start_transaction">Mulai Transaksi Baru</string>
     <string name="dashboard_start_transaction_subtitle">Buka kasir dan pilih menu</string>

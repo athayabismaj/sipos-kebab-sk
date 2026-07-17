@@ -24,7 +24,6 @@ data class MenuUiState(
     val isDailySessionOpen: Boolean = false,
     val isDailySessionStatusKnown: Boolean = false,
     val dailySessionStatusLabel: String? = null,
-    val dailyTargetRevenue: Long? = null,
     val dailyStockItems: List<DailyStockItem> = emptyList(),
     val menus: List<MenuItem> = emptyList(),
     val selectedCategory: String? = null
@@ -76,7 +75,6 @@ class MenuViewModel(
                                     isDailySessionOpen = payload.dailySession.isOpen,
                                     isDailySessionStatusKnown = payload.dailySession.isKnown,
                                     dailySessionStatusLabel = payload.dailySession.label,
-                                    dailyTargetRevenue = payload.dailySession.targetRevenue,
                                     dailyStockItems = payload.dailyStockItems,
                                     errorMessage = null
                                 )

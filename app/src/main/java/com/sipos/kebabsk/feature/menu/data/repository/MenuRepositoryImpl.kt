@@ -79,7 +79,6 @@ class MenuRepositoryImpl(
                             false -> "Sesi Harian Belum Dibuka"
                             null -> "Status sesi harian belum dapat diverifikasi"
                         },
-                    targetRevenue = body.data.dailySession?.targetRevenue,
                     isKnown = isDailySessionKnown
                 )
 

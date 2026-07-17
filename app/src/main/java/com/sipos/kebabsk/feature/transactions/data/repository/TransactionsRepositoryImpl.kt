@@ -192,9 +192,7 @@ class TransactionsRepositoryImpl(
                 totalRevenue = body.data.totalRevenue ?: 0L,
                 totalCount = body.data.totalCount ?: 0,
                 transactionGrowthPercentage = body.data.transactionGrowthPercentage,
-                dominantItemName = body.data.dominantItemName,
-                revenueTargetPercentage = body.data.revenueTargetPercentage,
-                dailyTargetRevenue = body.data.dailyTargetRevenue
+                dominantItemName = body.data.dominantItemName
             )
         }.recoverCatching { throwable ->
             throw IllegalStateException(

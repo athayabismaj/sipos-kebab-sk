@@ -42,7 +42,6 @@ class MenuViewModelTest {
         assertTrue(state.isDailySessionOpen)
         assertTrue(state.isDailySessionStatusKnown)
         assertEquals("Sesi Harian Aktif", state.dailySessionStatusLabel)
-        assertEquals(200_000L, state.dailyTargetRevenue)
         assertEquals(samplePayload().dailyStockItems, state.dailyStockItems)
         assertNull(state.errorMessage)
         assertFalse(state.isLoading)
@@ -210,7 +209,6 @@ private fun samplePayload(): MenuListPayload {
         dailySession = DailySessionStatus(
             isOpen = true,
             label = "Sesi Harian Aktif",
-            targetRevenue = 200_000L
         ),
         dailyStockItems = listOf(
             DailyStockItem(

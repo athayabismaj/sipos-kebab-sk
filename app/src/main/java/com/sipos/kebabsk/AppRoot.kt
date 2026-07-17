@@ -286,7 +286,6 @@ private fun AppScaffold(
                             isDailySessionOpen = isDashboardDailySessionOpen,
                             isDailySessionStatusKnown = isDashboardDailySessionStatusKnown,
                             dailySessionLabel = dashboardDailySessionLabel,
-                            dailyTargetRevenue = menuUiState.dailyTargetRevenue,
                             shiftSummaryUiState = shiftSummaryUiState,
                             onRetryShiftSummary = shiftSummaryViewModel::refresh,
                             onForceLogout = onLogout,

@@ -80,7 +80,6 @@ fun DashboardScreen(
     isDailySessionOpen: Boolean,
     isDailySessionStatusKnown: Boolean,
     dailySessionLabel: String?,
-    dailyTargetRevenue: Long?,
     shiftSummaryUiState: ShiftSummaryUiState,
     onRetryShiftSummary: () -> Unit,
     onForceLogout: () -> Unit,
@@ -308,17 +307,7 @@ fun DashboardScreen(
                     DashboardMetricCard(
                         title = stringResource(R.string.dashboard_today_revenue),
                         value = MoneyUtils.formatRupiah(shiftSummaryUiState.totalRevenue),
-                        subValue = run {
-                            val target = shiftSummaryUiState.dailyTargetRevenue
-                                ?.takeIf { it > 0.0 }
-                                ?: dailyTargetRevenue?.takeIf { it > 0.0 }
-                            val percentage = when {
-                                target != null -> (shiftSummaryUiState.totalRevenue / target) * 100.0
-                                shiftSummaryUiState.revenueTargetPercentage != null -> shiftSummaryUiState.revenueTargetPercentage
-                                else -> 0.0
-                            }
-                            stringResource(R.string.dashboard_target_progress, percentage)
-                        },
+                        subValue = stringResource(R.string.dashboard_today_revenue_subtitle),
                         icon = Icons.AutoMirrored.Outlined.List,
                         isPrimary = true
                     )

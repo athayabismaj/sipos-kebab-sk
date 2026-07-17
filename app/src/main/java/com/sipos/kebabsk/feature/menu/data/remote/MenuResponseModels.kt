@@ -29,9 +29,7 @@ data class DailySessionResponse(
     @SerializedName(value = "is_open", alternate = ["open", "isOpen"])
     val isOpen: Boolean?,
     @SerializedName(value = "status_label", alternate = ["label", "status"])
-    val statusLabel: String?,
-    @SerializedName(value = "target_revenue", alternate = ["targetRevenue"])
-    val targetRevenue: Long?
+    val statusLabel: String?
 )
 
 data class UserResponse(
