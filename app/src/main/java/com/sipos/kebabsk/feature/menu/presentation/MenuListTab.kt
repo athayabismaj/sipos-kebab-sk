@@ -28,7 +28,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Remove
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -36,7 +35,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
@@ -80,7 +78,6 @@ fun MenuListTab(
     menuItems: List<MenuVariantItem>,
     categories: List<MenuCategory>,
     selectedCategoryId: Long?,
-    searchQuery: String,
     isLoadingMore: Boolean,
     hasMore: Boolean,
     loadMoreErrorMessage: String?,
@@ -88,7 +85,6 @@ fun MenuListTab(
     cartInteractionEnabled: Boolean = true,
     emptyStateMessage: String? = null,
     onCategorySelected: (Long?) -> Unit,
-    onSearchQueryChanged: (String) -> Unit,
     onLoadMore: () -> Unit,
     onRetryLoadMore: () -> Unit,
     onAddVariant: (String, Long, String, Long) -> Unit,
@@ -124,49 +120,15 @@ fun MenuListTab(
         columns = GridCells.Fixed(2),
         state = gridState,
         modifier = Modifier.fillMaxSize(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(bottom = 100.dp, start = 24.dp, end = 24.dp, top = 16.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        contentPadding = PaddingValues(bottom = 100.dp, start = 12.dp, end = 12.dp, top = 6.dp)
     ) {
-        // --- HEADER ---
-        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.menu_select_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = KebabTextDark
-                )
-            }
-        }
-
-        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChanged,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-                singleLine = true,
-                leadingIcon = {
-                    Icon(Icons.Outlined.Search, contentDescription = null)
-                },
-                placeholder = {
-                    Text(text = stringResource(R.string.menu_search_placeholder))
-                },
-                shape = RoundedCornerShape(14.dp)
-            )
-        }
-
         // --- CATEGORY CHIPS ---
         item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
             LazyRow(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 item {
                     CategoryChip(
@@ -277,7 +239,7 @@ fun CategoryChip(title: String, isSelected: Boolean, onClick: () -> Unit) {
             .minimumInteractiveComponentSize()
             .semantics { stateDescription = if (isSelected) selectedState else notSelectedState }
             .clickable { onClick() }
-            .padding(horizontal = 20.dp, vertical = 10.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(

@@ -92,7 +92,6 @@
     <string name="dashboard_start_transaction_subtitle">Buka kasir dan pilih menu</string>
 
     <!-- Menu and cart -->
-    <string name="menu_select_title">Pilih Menu</string>
     <string name="menu_empty_message">Tidak ada menu tersedia</string>
     <string name="menu_stock_low">Stok Bahan Kurang</string>
     <string name="menu_inactive">Nonaktif</string>
@@ -105,7 +104,6 @@
     <string name="menu_category_selected">Kategori dipilih</string>
     <string name="menu_category_not_selected">Kategori tidak dipilih</string>
     <string name="menu_category_all">Semua</string>
-    <string name="menu_search_placeholder">Cari menu atau varian</string>
     <string name="cart_title">Keranjang Belanja</string>
     <string name="cart_subtitle">Daftar pesanan Anda saat ini</string>
     <string name="cart_empty_title">Keranjang masih kosong</string>

@@ -86,7 +86,6 @@ class MainActivity : ComponentActivity() {
                     onRemoveVariant = cartViewModel::removeFromCart,
                     onDeleteVariant = cartViewModel::deleteFromCart,
                     onCategorySelected = menuViewModel::onCategorySelected,
-                    onSearchQueryChanged = menuViewModel::onSearchQueryChanged,
                     onLoadMoreMenus = menuViewModel::loadNextPage,
                     onRetryLoadMoreMenus = menuViewModel::retryLoadMore,
                     onLoadPaymentMethods = checkoutViewModel::loadPaymentMethods,

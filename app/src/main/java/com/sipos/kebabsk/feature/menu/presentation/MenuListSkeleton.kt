@@ -20,45 +20,22 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.sipos.kebabsk.ui.components.shimmerEffect
 
 @Composable
 fun MenuListSkeletonTab() {
     Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Pilih Menu",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color(0xFF1D1B19)
-            )
-            // Mock refresh button placeholder if needed, usually omitted in skeletons
-            Box(
-                modifier = Modifier
-                    .size(24.dp)
-                    .clip(CircleShape)
-                    .shimmerEffect()
-            )
-        }
-
         // --- SKELETON CATEGORY CHIPS ---
         LazyRow(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-            contentPadding = PaddingValues(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+            contentPadding = PaddingValues(horizontal = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(5) {
                 Box(
@@ -71,15 +48,15 @@ fun MenuListSkeletonTab() {
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         // --- SKELETON MENU GRID ---
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(bottom = 100.dp, start = 24.dp, end = 24.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(bottom = 100.dp, start = 12.dp, end = 12.dp)
         ) {
             items(6) {
                 Card(

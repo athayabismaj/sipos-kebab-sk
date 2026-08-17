@@ -24,7 +24,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -142,7 +141,6 @@ fun MenuScreen(
     onRefresh: () -> Unit,
     onRefreshSessionStatus: () -> Unit,
     onCategorySelected: (Long?) -> Unit,
-    onSearchQueryChanged: (String) -> Unit,
     onLoadMore: () -> Unit,
     onRetryLoadMore: () -> Unit,
     onLoadPaymentMethods: () -> Unit,
@@ -256,7 +254,6 @@ fun MenuScreen(
                                     menuItems = menuItems,
                                     categories = menuUiState.categories,
                                     selectedCategoryId = menuUiState.selectedCategoryId,
-                                    searchQuery = menuUiState.searchQuery,
                                     isLoadingMore = menuUiState.isLoadingMore,
                                     hasMore = menuUiState.hasMore,
                                     loadMoreErrorMessage = menuUiState.loadMoreErrorMessage,
@@ -264,7 +261,6 @@ fun MenuScreen(
                                     cartInteractionEnabled = cartInteractionEnabled,
                                     emptyStateMessage = emptyStateMessage,
                                     onCategorySelected = onCategorySelected,
-                                    onSearchQueryChanged = onSearchQueryChanged,
                                     onLoadMore = onLoadMore,
                                     onRetryLoadMore = onRetryLoadMore,
                                     onAddVariant = onAddVariant,
@@ -398,16 +394,16 @@ private fun MenuTopBar(
             .fillMaxWidth()
             .background(KebabBg)
             .statusBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 12.dp)
+            .padding(horizontal = 10.dp, vertical = 6.dp)
     ) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(22.dp),
+            shape = RoundedCornerShape(16.dp),
             color = Color.White,
-            shadowElevation = 2.dp
+            shadowElevation = 1.dp
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -418,9 +414,8 @@ private fun MenuTopBar(
                     if (cashierPage == CashierPage.MENU) {
                         Box(
                             modifier = Modifier
-                                .size(44.dp)
-                                .clip(RoundedCornerShape(15.dp))
-                                .background(Color.Black),
+                                .size(38.dp)
+                                .clip(RoundedCornerShape(12.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             Image(
@@ -434,7 +429,7 @@ private fun MenuTopBar(
                         IconButton(
                             onClick = onBack,
                             modifier = Modifier
-                                .size(44.dp)
+                                .size(38.dp)
                                 .clip(CircleShape)
                                 .background(KebabPrimary.copy(alpha = 0.10f))
                         ) {
@@ -446,17 +441,17 @@ private fun MenuTopBar(
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
                             text = title,
-                            fontSize = 20.sp,
+                            fontSize = 17.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = KebabPrimary
                         )
                         Text(
                             text = subtitle,
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
                             color = KebabTextGray
                         )
@@ -474,13 +469,13 @@ private fun MenuTopBar(
                 }
                 Text(
                     text = badgeText,
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = KebabPrimary,
                     modifier = Modifier
                         .clip(RoundedCornerShape(50))
                         .background(KebabPrimary.copy(alpha = 0.10f))
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
                 )
             }
         }
