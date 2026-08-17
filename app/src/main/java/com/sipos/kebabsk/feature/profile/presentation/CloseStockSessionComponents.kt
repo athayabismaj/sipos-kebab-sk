@@ -1,8 +1,8 @@
 package com.sipos.kebabsk.feature.profile.presentation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,16 +16,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sipos.kebabsk.common.AppTime
@@ -122,30 +118,30 @@ fun RingkasanSesiCard() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(4.dp, RoundedCornerShape(24.dp), spotColor = Color.Black.copy(alpha = 0.04f))
-            .clip(RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(Color.White)
-            .padding(24.dp)
+            .border(1.dp, Color(0xFFF0E4DB), RoundedCornerShape(16.dp))
+            .padding(14.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 24.dp)) {
-                Icon(Icons.Default.Schedule, contentDescription = null, tint = KebabPrimary, modifier = Modifier.size(24.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 12.dp)) {
+                Icon(Icons.Default.Schedule, contentDescription = null, tint = KebabPrimary, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Ringkasan Sesi", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
+                Text("Ringkasan Sesi", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
             }
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
                     Text("TANGGAL SESI", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = KebabTextGray, letterSpacing = 1.sp)
-                    Text(hariIniStr, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = KebabTextDark, modifier = Modifier.padding(vertical = 4.dp))
+                    Text(hariIniStr, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = KebabTextDark, modifier = Modifier.padding(top = 3.dp))
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text("STATUS", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = KebabTextGray, letterSpacing = 1.sp)
-                    Text("Akan Ditutup", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = KebabPrimary, modifier = Modifier.padding(vertical = 4.dp))
+                    Text("Akan Ditutup", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = KebabPrimary, modifier = Modifier.padding(top = 3.dp))
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Profil Kasir Bertugas
             Row(
@@ -153,16 +149,16 @@ fun RingkasanSesiCard() {
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
                     .background(KebabCardBg)
-                    .padding(16.dp),
+                    .padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
-                    modifier = Modifier.size(40.dp).clip(CircleShape).background(KebabTertiaryContainer),
+                    modifier = Modifier.size(34.dp).clip(CircleShape).background(KebabTertiaryContainer),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(Icons.Default.Person, contentDescription = null, tint = KebabOnTertiaryContainer)
                 }
-                Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 Column {
                     Text("Sesi Operasional", fontSize = 12.sp, color = KebabTextGray)
                     Text("Harian", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
@@ -180,19 +176,16 @@ fun DetailPenggunaanSection(
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = "Detail Penggunaan",
-            fontSize = 18.sp,
+            fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             color = KebabTextDark,
-            modifier = Modifier.padding(start = 8.dp, bottom = 16.dp)
+            modifier = Modifier.padding(start = 2.dp, bottom = 10.dp)
         )
         
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(24.dp))
-                .background(Color.White)
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items.forEachIndexed { index, item ->
                 val sisa = remainingInputs[item.ingredientId]?.toDoubleOrNull() ?: 0.0
@@ -224,55 +217,76 @@ fun PenggunaanItemCard(
     terpakai: String, 
     unit: String
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(KebabCardBg)
-            .padding(16.dp),
-        verticalAlignment = Alignment.Top
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = BorderStroke(1.dp, Color(0xFFF0E4DB))
     ) {
-        Box(
-            modifier = Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(KebabItemBg),
-            contentAlignment = Alignment.Center
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Icon(icon, contentDescription = null, tint = KebabTextGray, modifier = Modifier.size(20.dp))
-        }
-        
-        Spacer(modifier = Modifier.width(16.dp))
-        
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = KebabTextDark)
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Stock Awal", fontSize = 14.sp, color = KebabTextGray)
-                Text("$stockAwal $unit", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = KebabTextDark)
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Sisa Akhir", fontSize = 14.sp, color = KebabTextGray)
-                Text("$sisaAkhir $unit", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = KebabTextDark)
-            }
-            
-            HorizontalDivider(color = KebabDivider, modifier = Modifier.padding(vertical = 12.dp))
-            
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = KebabError, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Terpakai", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = KebabError)
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(KebabInputBg),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(icon, contentDescription = null, tint = KebabPrimary, modifier = Modifier.size(18.dp))
                 }
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = buildAnnotatedString {
-                        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, fontSize = 18.sp, color = KebabTextDark)) { append(terpakai) }
-                        withStyle(style = SpanStyle(fontWeight = FontWeight.Normal, fontSize = 14.sp, color = KebabTextGray)) { append(" $unit") }
-                    }
+                    text = title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = KebabTextDark,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 2
                 )
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(KebabError.copy(alpha = 0.08f))
+                        .padding(horizontal = 9.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.TrendingDown, contentDescription = null, tint = KebabError, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("$terpakai $unit", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = KebabError)
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(KebabInputBg)
+                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                ) {
+                    Text("Stok awal", fontSize = 10.sp, color = KebabTextGray)
+                    Text("$stockAwal $unit", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
+                }
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(KebabPrimary.copy(alpha = 0.07f))
+                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                ) {
+                    Text("Sisa akhir", fontSize = 10.sp, color = KebabTextGray)
+                    Text("$sisaAkhir $unit", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = KebabPrimary)
+                }
             }
         }
     }
@@ -302,169 +316,110 @@ fun BahanInputCard(
         onSisaChange(nextText)
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(2.dp, RoundedCornerShape(16.dp))
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color.White)
-    ) {
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .size(68.dp)
-                .offset(x = 4.dp, y = 4.dp)
-                .clip(CircleShape)
-                .background(accentColor.copy(alpha = 0.1f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(KebabInputBg),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, contentDescription = null, tint = accentColor, modifier = Modifier.size(20.dp))
-            }
-        }
+    val terpakaiText = if (terpakai == "--") terpakai else "$terpakai $satuan"
 
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = BorderStroke(1.dp, Color(0xFFF0E4DB))
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(accentColor.copy(alpha = 0.10f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(icon, contentDescription = null, tint = accentColor, modifier = Modifier.size(19.dp))
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = KebabTextDark, maxLines = 2)
+                    Text(text = "Stok awal $stokAwal", fontSize = 12.sp, color = KebabTextGray)
+                }
                 Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 76.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(KebabInputBg)
+                        .padding(horizontal = 9.dp, vertical = 6.dp),
+                    horizontalAlignment = Alignment.End
                 ) {
-                    Text(text = title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row {
-                        Text(text = "Stok Awal: ", fontSize = 14.sp, color = KebabTextGray)
-                        Text(text = stokAwal, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
-                    }
+                    Text("Terpakai", fontSize = 9.sp, color = KebabTextGray)
+                    Text(terpakaiText, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = KebabPrimary)
                 }
             }
-
-            Spacer(modifier = Modifier.height(28.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "SISA AKHIR ($satuan)", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = KebabTextGray, letterSpacing = 1.sp)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(60.dp)
-                            .clip(RoundedCornerShape(20.dp)),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(
-                            onClick = { updateSisa(-inputStep) },
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(Color.White)
-                                .border(1.dp, KebabDivider, RoundedCornerShape(18.dp))
-                        ) {
-                            Icon(
-                                Icons.Default.Remove,
-                                contentDescription = "Kurangi sisa",
-                                tint = KebabPrimary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                                .height(60.dp)
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(KebabInputBg)
-                                .border(1.dp, Color.White.copy(alpha = 0.8f), RoundedCornerShape(18.dp))
-                                .padding(horizontal = 16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            BasicTextField(
-                                value = sisaValue,
-                                onValueChange = onSisaChange,
-                                textStyle = TextStyle(
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = KebabTextDark,
-                                    textAlign = TextAlign.Center
-                                ),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                modifier = Modifier.fillMaxWidth(),
-                                decorationBox = { innerTextField ->
-                                    Box(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        innerTextField()
-                                    }
-                                }
-                            )
-                        }
-                        IconButton(
-                            onClick = { updateSisa(inputStep) },
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(KebabPrimaryContainer.copy(alpha = 0.14f))
-                                .border(1.dp, KebabPrimary.copy(alpha = 0.12f), RoundedCornerShape(18.dp))
-                        ) {
-                            Icon(
-                                Icons.Default.Add,
-                                contentDescription = "Tambah sisa",
-                                tint = KebabPrimary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
+                    Text(text = "SISA AKHIR", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = KebabTextGray, letterSpacing = 0.6.sp)
+                    Text(text = "Stok fisik ($satuan)", fontSize = 11.sp, color = KebabTextGray)
                 }
 
-                Column(
-                    modifier = Modifier.width(92.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(KebabInputBg)
+                        .padding(2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
-                    Text(
-                        text = "Terpakai",
-                        fontSize = 10.sp,
-                        color = KebabTextGray,
-                        letterSpacing = 0.5.sp
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    if (terpakai == "--") {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(60.dp)
-                                .clip(RoundedCornerShape(18.dp))
-                                .border(1.dp, KebabDivider, RoundedCornerShape(18.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(text = "--", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = KebabTextGray.copy(alpha = 0.5f))
-                        }
-                    } else {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(60.dp)
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(Color(0xFFE7E1DD)),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(text = terpakai, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Icon(Icons.AutoMirrored.Filled.TrendingDown, contentDescription = null, tint = KebabPrimary, modifier = Modifier.size(16.dp))
-                        }
+                    IconButton(
+                        onClick = { updateSisa(-inputStep) },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color.White)
+                    ) {
+                        Icon(Icons.Default.Remove, contentDescription = "Kurangi sisa", tint = KebabPrimary, modifier = Modifier.size(18.dp))
+                    }
+                    Box(
+                        modifier = Modifier
+                            .width(76.dp)
+                            .height(40.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color.White),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        BasicTextField(
+                            value = sisaValue,
+                            onValueChange = onSisaChange,
+                            textStyle = TextStyle(
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = KebabTextDark,
+                                textAlign = TextAlign.Center
+                            ),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.fillMaxWidth(),
+                            decorationBox = { innerTextField ->
+                                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                    innerTextField()
+                                }
+                            }
+                        )
+                    }
+                    IconButton(
+                        onClick = { updateSisa(inputStep) },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(KebabPrimary)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Tambah sisa", tint = Color.White, modifier = Modifier.size(18.dp))
                     }
                 }
             }

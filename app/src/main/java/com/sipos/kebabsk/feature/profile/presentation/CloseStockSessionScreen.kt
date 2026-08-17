@@ -166,15 +166,15 @@ fun CloseStockSessionScreen(
 
             // === SCROLLABLE CONTENT ===
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
-                verticalArrangement = if (step == 1) Arrangement.spacedBy(12.dp) else Arrangement.Top,
+                modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp),
+                verticalArrangement = if (step == 1) Arrangement.spacedBy(8.dp) else Arrangement.Top,
                 horizontalAlignment = if (step == 2) Alignment.CenterHorizontally else Alignment.Start
             ) {
                 // Shared Header (Stepper + Error)
                 item {
                     Spacer(modifier = Modifier.height(8.dp))
                     StepperSection(step = step)
-                    Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
                     if (!closeErrorMessage.isNullOrBlank()) {
                         Card(
@@ -197,8 +197,8 @@ fun CloseStockSessionScreen(
                 if (step == 1) {
                     // --- STEP 1: INPUT SISA ---
                     item {
-                        Text(text = "Bahan", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(text = "Bahan", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
 
                     items(items.size, key = { index -> items[index].ingredientId }) { index ->
@@ -264,9 +264,9 @@ fun CloseStockSessionScreen(
                     // --- STEP 2: REVIEW TUTUP SESI ---
                     item {
                         RingkasanSesiCard()
-                        Spacer(modifier = Modifier.height(32.dp))
+                        Spacer(modifier = Modifier.height(18.dp))
                         DetailPenggunaanSection(items = items, remainingInputs = remainingInputs)
-                        Spacer(modifier = Modifier.height(32.dp))
+                        Spacer(modifier = Modifier.height(18.dp))
                         
                         // Catatan Sesi Pindah Ke Step 2 Sesuai Mockup
                         Column(modifier = Modifier.fillMaxWidth()) {
@@ -275,15 +275,16 @@ fun CloseStockSessionScreen(
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = KebabTextDark,
-                                modifier = Modifier.padding(start = 8.dp, bottom = 16.dp)
+                                modifier = Modifier.padding(start = 2.dp, bottom = 10.dp)
                             )
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(120.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(KebabCardBg)
-                                    .padding(16.dp)
+                                    .height(104.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(Color.White)
+                                    .border(1.dp, Color(0xFFF0E4DB), RoundedCornerShape(14.dp))
+                                    .padding(14.dp)
                             ) {
                                 if (notesInput.value.isEmpty()) {
                                     Text(
