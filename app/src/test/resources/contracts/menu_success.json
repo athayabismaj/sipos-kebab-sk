@@ -4,6 +4,7 @@
   "data": {
     "user": {"id": 101, "name": "Kasir Fixture", "role": "kasir", "is_privileged": false},
     "filters": {"search": null, "category_id": null},
+    "categories": [{"id": 301, "name": "Kebab"}],
     "menus": [
       {
         "id": 201,
@@ -20,13 +21,19 @@
             "price": 10000,
             "is_available": true,
             "unavailable_reason": null,
-            "required_ingredients": [],
             "sort_order": 1
           }
         ],
         "can_edit": false,
         "can_sell": true
       }
-    ]
+    ],
+    "pagination": {
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 20,
+      "total": 1,
+      "has_more": false
+    }
   }
 }

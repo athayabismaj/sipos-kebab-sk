@@ -38,6 +38,9 @@ class MenuContractFixtureTest {
             result.menus.single().variants.single().imageUrl
         )
         assertTrue(result.menus.single().variants.single().isAvailable)
+        assertEquals(301L, result.categories.single().id)
+        assertEquals(1, result.pagination.currentPage)
+        assertFalse(result.pagination.hasMore)
         assertFalse(result.dailySession.isOpen)
         assertFalse(result.dailySession.isKnown)
     }
@@ -47,13 +50,19 @@ private class FixtureMenuApiService(
     private val responseBody: MenusResponse
 ) : MenuApiService {
     var authorization: String? = null
+    var requestedPage: Int? = null
+    var requestedPerPage: Int? = null
 
     override suspend fun getMenus(
         authorization: String,
         search: String?,
-        categoryId: Long?
+        categoryId: Long?,
+        page: Int,
+        perPage: Int
     ): Response<MenusResponse> {
         this.authorization = authorization
+        requestedPage = page
+        requestedPerPage = perPage
         return Response.success(responseBody)
     }
 }

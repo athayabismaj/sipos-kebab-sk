@@ -58,15 +58,6 @@ fun buildMenuVariantItems(menus: List<MenuItem>): List<MenuVariantItem> {
     }
 }
 
-fun buildMenuCategories(menuItems: List<MenuVariantItem>): List<String?> {
-    val uniqueCategories = menuItems.mapNotNull { it.categoryName }.distinct().sorted()
-    return listOf(null) + uniqueCategories
-}
-
-fun filterMenuItems(menuItems: List<MenuVariantItem>, selectedCategory: String?): List<MenuVariantItem> {
-    return if (selectedCategory == null) menuItems else menuItems.filter { it.categoryName == selectedCategory }
-}
-
 fun buildQuickAmounts(totalAmount: Long): List<Long> {
     if (totalAmount == 0L) return emptyList()
 

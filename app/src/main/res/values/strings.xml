@@ -104,6 +104,8 @@
     <string name="menu_badge_cashier">Kasir</string>
     <string name="menu_category_selected">Kategori dipilih</string>
     <string name="menu_category_not_selected">Kategori tidak dipilih</string>
+    <string name="menu_category_all">Semua</string>
+    <string name="menu_search_placeholder">Cari menu atau varian</string>
     <string name="cart_title">Keranjang Belanja</string>
     <string name="cart_subtitle">Daftar pesanan Anda saat ini</string>
     <string name="cart_empty_title">Keranjang masih kosong</string>

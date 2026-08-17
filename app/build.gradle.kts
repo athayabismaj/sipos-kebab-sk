@@ -4,6 +4,7 @@ import org.gradle.api.GradleException
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
 }
 
 // Baca URL API dari local.properties (file ini tidak ter-push ke Git)
@@ -119,6 +120,11 @@ dependencies {
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp.logging.interceptor)
     implementation(libs.coil.compose)
+
+    // Local catalog cache (stale-while-revalidate)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
 
     // Performance
     implementation(libs.androidx.metrics.performance)

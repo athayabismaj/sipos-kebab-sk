@@ -10,7 +10,9 @@ data class MenusResponse(
 
 data class MenusDataResponse(
     @SerializedName("user") val user: UserResponse?,
+    @SerializedName("categories") val categories: List<CategoryResponse>?,
     @SerializedName("menus") val menus: List<MenuResponse>?,
+    @SerializedName("pagination") val pagination: MenuPaginationResponse?,
     @SerializedName(value = "daily_session", alternate = ["dailySession", "sesi_harian", "cashier_session"])
     val dailySession: DailySessionResponse?,
     @SerializedName(value = "is_daily_session_open", alternate = ["daily_session_open", "session_open"])
@@ -22,6 +24,14 @@ data class MenusDataResponse(
         alternate = ["dailyStocks", "daily_stock", "stok_harian_bawa", "carried_stock_items"]
     )
     val dailyStockItems: List<DailyStockItemResponse>?
+)
+
+data class MenuPaginationResponse(
+    @SerializedName("current_page") val currentPage: Int?,
+    @SerializedName("last_page") val lastPage: Int?,
+    @SerializedName("per_page") val perPage: Int?,
+    @SerializedName("total") val total: Int?,
+    @SerializedName("has_more") val hasMore: Boolean?
 )
 
 data class DailySessionResponse(

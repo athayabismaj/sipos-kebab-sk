@@ -10,6 +10,8 @@ interface MenuApiService {
     suspend fun getMenus(
         @Header("Authorization") authorization: String,
         @Query("search") search: String? = null,
-        @Query("category_id") categoryId: Long? = null
+        @Query("category_id") categoryId: Long? = null,
+        @Query("page") page: Int = 1,
+        @Query("per_page") perPage: Int = 20
     ): Response<MenusResponse>
 }

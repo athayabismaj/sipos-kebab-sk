@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,22 +28,33 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Remove
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -55,30 +67,62 @@ import androidx.compose.ui.unit.sp
 import com.sipos.kebabsk.R
 import com.sipos.kebabsk.common.MoneyUtils
 import com.sipos.kebabsk.feature.cart.domain.model.CartItem
+import com.sipos.kebabsk.feature.menu.domain.model.MenuCategory
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 import com.sipos.kebabsk.ui.theme.*
 
 @Composable
 fun MenuListTab(
     menuItems: List<MenuVariantItem>,
-    categories: List<String?>,
-    selectedCategory: String?,
+    categories: List<MenuCategory>,
+    selectedCategoryId: Long?,
+    searchQuery: String,
+    isLoadingMore: Boolean,
+    hasMore: Boolean,
+    loadMoreErrorMessage: String?,
     cartItems: List<CartItem>,
     cartInteractionEnabled: Boolean = true,
     emptyStateMessage: String? = null,
-    onCategorySelected: (String?) -> Unit,
+    onCategorySelected: (Long?) -> Unit,
+    onSearchQueryChanged: (String) -> Unit,
+    onLoadMore: () -> Unit,
+    onRetryLoadMore: () -> Unit,
     onAddVariant: (String, Long, String, Long) -> Unit,
     onRemoveVariant: (Long) -> Unit
 ) {
     val resolvedEmptyStateMessage = emptyStateMessage ?: stringResource(R.string.menu_empty_message)
+    val gridState = rememberLazyGridState()
 
     val cartQtyMap = remember(cartItems) {
         cartItems.associate { it.variantId to it.qty }
     }
 
+    LaunchedEffect(gridState, menuItems.size, hasMore, isLoadingMore) {
+        snapshotFlow {
+            val layoutInfo = gridState.layoutInfo
+            val lastVisibleIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+            lastVisibleIndex to layoutInfo.totalItemsCount
+        }
+            .distinctUntilChanged()
+            .collect { (lastVisibleIndex, totalItems) ->
+                if (
+                    totalItems > 0 &&
+                    lastVisibleIndex >= totalItems - LOAD_MORE_THRESHOLD &&
+                    hasMore &&
+                    !isLoadingMore
+                ) {
+                    onLoadMore()
+                }
+            }
+    }
+
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
+        state = gridState,
         modifier = Modifier.fillMaxSize(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -100,17 +144,42 @@ fun MenuListTab(
             }
         }
 
+        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = onSearchQueryChanged,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                singleLine = true,
+                leadingIcon = {
+                    Icon(Icons.Outlined.Search, contentDescription = null)
+                },
+                placeholder = {
+                    Text(text = stringResource(R.string.menu_search_placeholder))
+                },
+                shape = RoundedCornerShape(14.dp)
+            )
+        }
+
         // --- CATEGORY CHIPS ---
         item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
             LazyRow(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                items(categories) { category ->
+                item {
                     CategoryChip(
-                        title = category ?: "Semua",
-                        isSelected = category == selectedCategory,
-                        onClick = { onCategorySelected(category) }
+                        title = stringResource(R.string.menu_category_all),
+                        isSelected = selectedCategoryId == null,
+                        onClick = { onCategorySelected(null) }
+                    )
+                }
+                items(categories, key = { it.id }) { category ->
+                    CategoryChip(
+                        title = category.name,
+                        isSelected = category.id == selectedCategoryId,
+                        onClick = { onCategorySelected(category.id) }
                     )
                 }
             }
@@ -154,8 +223,45 @@ fun MenuListTab(
                 )
             }
         }
+
+        if (isLoadingMore) {
+            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(28.dp))
+                }
+            }
+        } else if (!loadMoreErrorMessage.isNullOrBlank()) {
+            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = loadMoreErrorMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center
+                    )
+                    Button(
+                        onClick = onRetryLoadMore,
+                        modifier = Modifier.padding(top = 8.dp)
+                    ) {
+                        Text(stringResource(R.string.action_retry))
+                    }
+                }
+            }
+        }
     }
 }
+
+private const val LOAD_MORE_THRESHOLD = 6
 
 @Composable
 fun CategoryChip(title: String, isSelected: Boolean, onClick: () -> Unit) {
@@ -231,10 +337,9 @@ private fun MenuItemCard(
                 )
 
                 item.imageUrl?.let { imageUrl ->
-                    AsyncImage(
-                        model = imageUrl,
+                    ReliableMenuImage(
+                        imageUrl = imageUrl,
                         contentDescription = "${item.menuName} ${item.variantName}",
-                        contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .fillMaxSize()
                             .alpha(if (isInsufficientStock) 0.65f else 1f)
@@ -247,6 +352,9 @@ private fun MenuItemCard(
             // Nama menu dan varian ditampilkan sebagai satu judul.
             Text(
                 text = buildMenuVariantTitle(item.menuName, item.variantName),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(40.dp),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 color = if (isInsufficientStock) KebabTextDark.copy(alpha = 0.7f) else KebabTextDark,
@@ -254,8 +362,6 @@ private fun MenuItemCard(
                 lineHeight = 18.sp,
                 overflow = TextOverflow.Ellipsis
             )
-
-            Spacer(modifier = Modifier.weight(1f))
 
             // Bottom area: price first, quantity selector anchored at the lower-right.
             Column(
@@ -321,6 +427,57 @@ private fun MenuItemCard(
         }
     }
 }
+
+@Composable
+private fun ReliableMenuImage(
+    imageUrl: String,
+    contentDescription: String,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    var retryAttempt by remember(imageUrl) { mutableIntStateOf(0) }
+    var retryRequested by remember(imageUrl) { mutableStateOf(false) }
+
+    LaunchedEffect(imageUrl, retryRequested, retryAttempt) {
+        if (retryRequested && retryAttempt < MAX_IMAGE_RETRIES) {
+            delay(500L * (retryAttempt + 1))
+            retryRequested = false
+            retryAttempt++
+        }
+    }
+
+    val requestUrl = remember(imageUrl, retryAttempt) {
+        if (retryAttempt == 0) {
+            imageUrl
+        } else {
+            val separator = if ('?' in imageUrl) '&' else '?'
+            "$imageUrl${separator}image_retry=$retryAttempt"
+        }
+    }
+    val request = remember(requestUrl, imageUrl) {
+        ImageRequest.Builder(context)
+            .data(requestUrl)
+            .memoryCacheKey(imageUrl)
+            .diskCacheKey(imageUrl)
+            .crossfade(false)
+            .build()
+    }
+
+    AsyncImage(
+        model = request,
+        contentDescription = contentDescription,
+        contentScale = ContentScale.Crop,
+        modifier = modifier,
+        onSuccess = { retryRequested = false },
+        onError = {
+            if (retryAttempt < MAX_IMAGE_RETRIES) {
+                retryRequested = true
+            }
+        }
+    )
+}
+
+private const val MAX_IMAGE_RETRIES = 2
 
 @Composable
 private fun QuantitySelector(qty: Int, enabled: Boolean, onAdd: () -> Unit, onRemove: () -> Unit) {

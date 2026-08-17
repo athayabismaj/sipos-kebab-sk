@@ -28,7 +28,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
@@ -142,7 +141,10 @@ fun MenuScreen(
     isDailySessionStatusKnown: Boolean,
     onRefresh: () -> Unit,
     onRefreshSessionStatus: () -> Unit,
-    onCategorySelected: (String?) -> Unit,
+    onCategorySelected: (Long?) -> Unit,
+    onSearchQueryChanged: (String) -> Unit,
+    onLoadMore: () -> Unit,
+    onRetryLoadMore: () -> Unit,
     onLoadPaymentMethods: () -> Unit,
     onAddVariant: (menuName: String, variantId: Long, variantName: String, price: Long) -> Unit,
     onRemoveVariant: (variantId: Long) -> Unit,
@@ -171,10 +173,6 @@ fun MenuScreen(
             rawMenuItems
         }
     }
-    val categories = remember(menuItems) { buildMenuCategories(menuItems) }
-    val filteredMenuItems = remember(menuItems, menuUiState.selectedCategory) {
-        filterMenuItems(menuItems, menuUiState.selectedCategory)
-    }
     val emptyStateMessage = "Belum ada menu yang tersedia untuk dijual saat ini."
 
     var cashierPage by rememberSaveable { mutableStateOf(CashierPage.MENU) }
@@ -192,7 +190,7 @@ fun MenuScreen(
 
     LaunchedEffect(cashierPage) {
         when (cashierPage) {
-            CashierPage.MENU -> onRefresh()
+            CashierPage.MENU -> Unit
             CashierPage.PAYMENT -> {
                 // Status sesi dapat berubah ketika admin membuka atau menutup sesi.
                 // Segarkan sebelum checkout agar tombol Bayar tidak memakai state lama.
@@ -243,24 +241,32 @@ fun MenuScreen(
                 when (cashierPage) {
                     CashierPage.MENU -> {
                         PullToRefreshBox(
-                            isRefreshing = menuUiState.isLoading,
+                            isRefreshing = menuUiState.isRefreshing,
                             onRefresh = {
                                 onRefreshSessionStatus()
                                 onRefresh()
                             },
+                            indicator = {},
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            if (menuUiState.isLoading) {
+                            if (menuUiState.isInitialLoading && menuUiState.menus.isEmpty()) {
                                 MenuListSkeletonTab()
                             } else {
                                 MenuListTab(
-                                    menuItems = filteredMenuItems,
-                                    categories = categories,
-                                    selectedCategory = menuUiState.selectedCategory,
+                                    menuItems = menuItems,
+                                    categories = menuUiState.categories,
+                                    selectedCategoryId = menuUiState.selectedCategoryId,
+                                    searchQuery = menuUiState.searchQuery,
+                                    isLoadingMore = menuUiState.isLoadingMore,
+                                    hasMore = menuUiState.hasMore,
+                                    loadMoreErrorMessage = menuUiState.loadMoreErrorMessage,
                                     cartItems = cartUiState.cartItems,
                                     cartInteractionEnabled = cartInteractionEnabled,
                                     emptyStateMessage = emptyStateMessage,
                                     onCategorySelected = onCategorySelected,
+                                    onSearchQueryChanged = onSearchQueryChanged,
+                                    onLoadMore = onLoadMore,
+                                    onRetryLoadMore = onRetryLoadMore,
                                     onAddVariant = onAddVariant,
                                     onRemoveVariant = onRemoveVariant
                                 )

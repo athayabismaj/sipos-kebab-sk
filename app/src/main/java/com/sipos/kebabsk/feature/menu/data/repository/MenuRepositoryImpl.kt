@@ -1,12 +1,16 @@
 package com.sipos.kebabsk.feature.menu.data.repository
 
+import com.sipos.kebabsk.BuildConfig
 import com.sipos.kebabsk.common.retryNetworkRequest
 import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.common.suspendRunCatching
 import com.sipos.kebabsk.common.NetworkErrorMapper
+import com.sipos.kebabsk.feature.menu.data.local.MenuCatalogCacheStore
 import com.sipos.kebabsk.feature.menu.data.remote.MenuApiService
 import com.sipos.kebabsk.feature.menu.domain.model.DailyStockItem
 import com.sipos.kebabsk.feature.menu.domain.model.MenuItem
+import com.sipos.kebabsk.feature.menu.domain.model.MenuCategory
+import com.sipos.kebabsk.feature.menu.domain.model.MenuPagination
 import com.sipos.kebabsk.feature.menu.domain.model.DailySessionStatus
 import com.sipos.kebabsk.feature.menu.domain.model.MenuListPayload
 import com.sipos.kebabsk.feature.menu.domain.model.MenuUser
@@ -16,15 +20,35 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class MenuRepositoryImpl(
-    private val menuApiService: MenuApiService
+    private val menuApiService: MenuApiService,
+    private val menuCacheStore: MenuCatalogCacheStore? = null
 ) : MenuRepository {
-    override suspend fun getMenus(token: String, search: String?, categoryId: Long?): Result<MenuListPayload> {
+    override suspend fun getCachedMenus(
+        token: String,
+        search: String?,
+        categoryId: Long?
+    ): MenuListPayload? {
+        return runCatching {
+            menuCacheStore?.read(token, search, categoryId)
+                ?.withResolvedImageUrls()
+        }.getOrNull()
+    }
+
+    override suspend fun getMenus(
+        token: String,
+        search: String?,
+        categoryId: Long?,
+        page: Int,
+        perPage: Int
+    ): Result<MenuListPayload> {
         return suspendRunCatching {
             val response = retryNetworkRequest {
                 menuApiService.getMenus(
                     authorization = "Bearer $token",
                     search = search,
-                    categoryId = categoryId
+                    categoryId = categoryId,
+                    page = page,
+                    perPage = perPage
                 )
             }
 
@@ -35,7 +59,7 @@ class MenuRepositoryImpl(
                 )
             }
 
-            withContext(Dispatchers.Default) {
+            val payload = withContext(Dispatchers.Default) {
                 val userResponse = body.data.user
                 val user = MenuUser(
                     id = userResponse?.id ?: 0L,
@@ -51,11 +75,15 @@ class MenuRepositoryImpl(
                         description = item.description,
                         isActive = item.isActive ?: false,
                         categoryName = item.category?.name,
+                        categoryId = item.category?.id,
                         variants = item.variants.orEmpty().map { variant ->
                             MenuVariant(
                                 id = variant.id ?: 0L,
                                 name = variant.name ?: "Varian",
-                                imageUrl = variant.imageUrl?.trim()?.takeIf { it.isNotEmpty() },
+                                imageUrl = resolveMenuImageUrl(
+                                    rawImageUrl = variant.imageUrl,
+                                    apiBaseUrl = BuildConfig.API_BASE_URL
+                                ),
                                 price = variant.price ?: 0L,
                                 isAvailable = variant.isAvailable ?: false,
                                 insufficientStock = variant.insufficientStock ?: false
@@ -63,6 +91,22 @@ class MenuRepositoryImpl(
                         }
                     )
                 }
+                val categories = body.data.categories.orEmpty()
+                    .mapNotNull { category ->
+                        val id = category.id ?: return@mapNotNull null
+                        val name = category.name?.trim().orEmpty()
+                        if (name.isBlank()) return@mapNotNull null
+                        MenuCategory(id = id, name = name)
+                    }
+                    .distinctBy { it.id }
+                val paginationResponse = body.data.pagination
+                val pagination = MenuPagination(
+                    currentPage = paginationResponse?.currentPage ?: page,
+                    lastPage = paginationResponse?.lastPage ?: page,
+                    perPage = paginationResponse?.perPage ?: perPage,
+                    total = paginationResponse?.total ?: menus.sumOf { it.variants.size },
+                    hasMore = paginationResponse?.hasMore ?: false
+                )
 
                 // Missing session fields must not be interpreted as a closed session.
                 // The UI blocks checkout until the server can confirm the actual state.
@@ -98,9 +142,24 @@ class MenuRepositoryImpl(
                     user = user,
                     menus = menus,
                     dailySession = dailySession,
-                    dailyStockItems = dailyStockItems
+                    dailyStockItems = dailyStockItems,
+                    categories = categories,
+                    pagination = pagination
                 )
             }
+
+            runCatching {
+                menuCacheStore?.write(
+                    token = token,
+                    search = search,
+                    categoryId = categoryId,
+                    page = page,
+                    perPage = perPage,
+                    payload = payload
+                )
+            }
+
+            payload
         }.recoverCatching { throwable ->
             throw IllegalStateException(
                 mapThrowableError(throwable)
@@ -125,5 +184,22 @@ class MenuRepositoryImpl(
 
     private fun mapThrowableError(throwable: Throwable): String {
         return NetworkErrorMapper.mapThrowableToUserMessage(throwable, "Menu belum bisa dimuat. Silakan coba lagi.")
+    }
+
+    private fun MenuListPayload.withResolvedImageUrls(): MenuListPayload {
+        return copy(
+            menus = menus.map { menu ->
+                menu.copy(
+                    variants = menu.variants.map { variant ->
+                        variant.copy(
+                            imageUrl = resolveMenuImageUrl(
+                                rawImageUrl = variant.imageUrl,
+                                apiBaseUrl = BuildConfig.API_BASE_URL
+                            )
+                        )
+                    }
+                )
+            }
+        )
     }
 }

@@ -1,5 +1,6 @@
 package com.sipos.kebabsk.di
 
+import androidx.room.Room
 import com.sipos.kebabsk.BuildConfig
 import com.sipos.kebabsk.common.AppSessionStore
 import com.sipos.kebabsk.common.AuthSessionEvents
@@ -20,6 +21,8 @@ import com.sipos.kebabsk.feature.expense.data.repository.OperationalExpenseRepos
 import com.sipos.kebabsk.feature.expense.domain.repository.OperationalExpenseRepository
 import com.sipos.kebabsk.feature.expense.presentation.OperationalExpenseViewModel
 import com.sipos.kebabsk.feature.menu.data.remote.MenuApiService
+import com.sipos.kebabsk.feature.menu.data.local.MenuCatalogCacheStore
+import com.sipos.kebabsk.feature.menu.data.local.SiposDatabase
 import com.sipos.kebabsk.feature.menu.data.repository.MenuRepositoryImpl
 import com.sipos.kebabsk.feature.menu.domain.repository.MenuRepository
 import com.sipos.kebabsk.feature.menu.presentation.MenuViewModel
@@ -34,6 +37,7 @@ import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import org.koin.androidx.viewmodel.dsl.viewModel
+import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
 import retrofit2.Retrofit
@@ -129,9 +133,21 @@ val networkModule = module {
     single { get<Retrofit>().create(TransactionsApiService::class.java) }
 }
 
+val databaseModule = module {
+    single {
+        Room.databaseBuilder(
+            androidContext(),
+            SiposDatabase::class.java,
+            "sipos-catalog.db"
+        ).build()
+    }
+    single { get<SiposDatabase>().menuCatalogDao() }
+    single { MenuCatalogCacheStore(get()) }
+}
+
 val repositoryModule = module {
     single<AuthRepository> { AuthRepositoryImpl(get()) }
-    single<MenuRepository> { MenuRepositoryImpl(get()) }
+    single<MenuRepository> { MenuRepositoryImpl(get(), get()) }
     single<CheckoutRepository> { CheckoutRepositoryImpl(get()) }
     single<DailyStockRepository> { DailyStockRepositoryImpl(get()) }
     single<OperationalExpenseRepository> { OperationalExpenseRepositoryImpl(get()) }
@@ -150,4 +166,4 @@ val viewModelModule = module {
     viewModel { ShiftSummaryViewModel(get()) }
 }
 
-val appModule = listOf(networkModule, repositoryModule, viewModelModule)
+val appModule = listOf(databaseModule, networkModule, repositoryModule, viewModelModule)
