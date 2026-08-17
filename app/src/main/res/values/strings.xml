@@ -121,6 +121,7 @@
     <!-- Checkout -->
     <string name="checkout_cash_unavailable">Metode pembayaran tunai belum tersedia.</string>
     <string name="checkout_cash_loading">Menyiapkan metode pembayaran tunai...</string>
+    <string name="checkout_processing_payment">Memproses pembayaran...</string>
     <string name="checkout_total_paid">Total dibayar</string>
     <string name="checkout_change">Kembalian</string>
     <string name="checkout_pay_cash">Bayar</string>

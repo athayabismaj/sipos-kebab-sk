@@ -253,7 +253,7 @@ fun PaymentTab(
                     value = checkoutUiState.paidAmountInput,
                     quickAmounts = quickAmounts,
                     exactAmount = exactAmount,
-                    enabled = cartInteractionEnabled,
+                    enabled = cartInteractionEnabled && !checkoutUiState.isSubmitting,
                     onSelectCash = { onPaymentMethodSelected(cashMethod.id) },
                     onPaidAmountChanged = onPaidAmountChanged,
                     onQuickAmountSelected = onQuickAmountSelected
@@ -336,6 +336,8 @@ fun PaymentTab(
             isDailySessionStatusKnown &&
             isDailySessionOpen &&
             !isLoading &&
+            !checkoutUiState.isLoading &&
+            !checkoutUiState.isSubmitting &&
             cartInteractionEnabled &&
             checkoutUiState.selectedPaymentMethodId != null
 
@@ -392,7 +394,7 @@ fun PaymentTab(
 
             Button(
                 onClick = {
-                    if (cartInteractionEnabled) {
+                    if (cartInteractionEnabled && !checkoutUiState.isSubmitting) {
                         onSubmitCheckout()
                     }
                 },
@@ -403,9 +405,24 @@ fun PaymentTab(
                 shape = RoundedCornerShape(18.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = KebabPrimaryContainer)
             ) {
-                Text(text = stringResource(R.string.checkout_pay_cash), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Spacer(modifier = Modifier.width(8.dp))
-                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                if (checkoutUiState.isSubmitting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = stringResource(R.string.checkout_processing_payment),
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                } else {
+                    Text(text = stringResource(R.string.checkout_pay_cash), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                }
             }
         }
     }
