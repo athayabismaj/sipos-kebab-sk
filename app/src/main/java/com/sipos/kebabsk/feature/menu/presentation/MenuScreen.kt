@@ -38,6 +38,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -129,6 +130,7 @@ enum class CashierPage {
     PAYMENT
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MenuScreen(
     modifier: Modifier = Modifier,
@@ -240,20 +242,29 @@ fun MenuScreen(
             Box(modifier = Modifier.weight(1f)) {
                 when (cashierPage) {
                     CashierPage.MENU -> {
-                        if (menuUiState.isLoading) {
-                            MenuListSkeletonTab()
-                        } else {
-                            MenuListTab(
-                                menuItems = filteredMenuItems,
-                                categories = categories,
-                                selectedCategory = menuUiState.selectedCategory,
-                                cartItems = cartUiState.cartItems,
-                                cartInteractionEnabled = cartInteractionEnabled,
-                                emptyStateMessage = emptyStateMessage,
-                                onCategorySelected = onCategorySelected,
-                                onAddVariant = onAddVariant,
-                                onRemoveVariant = onRemoveVariant
-                            )
+                        PullToRefreshBox(
+                            isRefreshing = menuUiState.isLoading,
+                            onRefresh = {
+                                onRefreshSessionStatus()
+                                onRefresh()
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            if (menuUiState.isLoading) {
+                                MenuListSkeletonTab()
+                            } else {
+                                MenuListTab(
+                                    menuItems = filteredMenuItems,
+                                    categories = categories,
+                                    selectedCategory = menuUiState.selectedCategory,
+                                    cartItems = cartUiState.cartItems,
+                                    cartInteractionEnabled = cartInteractionEnabled,
+                                    emptyStateMessage = emptyStateMessage,
+                                    onCategorySelected = onCategorySelected,
+                                    onAddVariant = onAddVariant,
+                                    onRemoveVariant = onRemoveVariant
+                                )
+                            }
                         }
                     }
 

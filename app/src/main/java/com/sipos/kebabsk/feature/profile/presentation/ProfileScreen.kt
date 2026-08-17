@@ -31,8 +31,10 @@ import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Logout
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,6 +58,7 @@ import com.sipos.kebabsk.ui.theme.KebabPrimaryContainer
 import com.sipos.kebabsk.ui.theme.KebabTextDark
 import com.sipos.kebabsk.ui.theme.KebabTextGray
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     modifier: Modifier = Modifier,
@@ -63,6 +66,8 @@ fun ProfileScreen(
     email: String,
     username: String,
     role: String?,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
     onLogout: () -> Unit,
     onEditProfile: () -> Unit = {},
     onChangePassword: () -> Unit = {},
@@ -72,58 +77,63 @@ fun ProfileScreen(
 ) {
     val scrollState = rememberScrollState()
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(KebabBg)
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = modifier.fillMaxSize()
     ) {
-        // === TOP APP BAR ===
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(72.dp)
-                .padding(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = "Profil",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = KebabTextDark
-                )
-                Text(
-                    text = "Akun dan operasional kasir",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = KebabTextGray
-                )
-            }
-
-            IconButton(
-                onClick = onEditProfile,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White)
-                    .border(1.dp, KebabPrimary.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
-            ) {
-                Icon(
-                    Icons.Outlined.AccountCircle,
-                    contentDescription = "Edit profil",
-                    tint = KebabPrimary
-                )
-            }
-        }
-
-        // === SCROLLABLE CONTENT ===
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .background(KebabBg)
         ) {
+            // === TOP APP BAR ===
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(72.dp)
+                    .padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "Profil",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = KebabTextDark
+                    )
+                    Text(
+                        text = "Akun dan operasional kasir",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = KebabTextGray
+                    )
+                }
+
+                IconButton(
+                    onClick = onEditProfile,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White)
+                        .border(1.dp, KebabPrimary.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+                ) {
+                    Icon(
+                        Icons.Outlined.AccountCircle,
+                        contentDescription = "Edit profil",
+                        tint = KebabPrimary
+                    )
+                }
+            }
+
+            // === SCROLLABLE CONTENT ===
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
             // === KARTU PROFIL ===
             Box(
                 modifier = Modifier
@@ -246,7 +256,8 @@ fun ProfileScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(116.dp))
+                Spacer(modifier = Modifier.height(116.dp))
+            }
         }
     }
 }

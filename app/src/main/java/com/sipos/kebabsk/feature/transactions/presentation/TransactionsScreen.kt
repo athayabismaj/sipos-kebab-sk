@@ -50,6 +50,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
@@ -356,13 +357,18 @@ fun TransactionsScreen(
         }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(KebabBg)
+    PullToRefreshBox(
+        isRefreshing = uiState.isLoading,
+        onRefresh = viewModel::fetchTransactions,
+        modifier = modifier.fillMaxSize()
     ) {
-        // === TOP APP BAR ===
-        TransactionTopAppBar(onCalendarClick = { showDatePicker = true })
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(KebabBg)
+        ) {
+            // === TOP APP BAR ===
+            TransactionTopAppBar(onCalendarClick = { showDatePicker = true })
 
         // === DATE PICKER DIALOG ===
         if (showDatePicker) {
@@ -387,14 +393,14 @@ fun TransactionsScreen(
             }
         }
 
-        // === SCROLLABLE CONTENT ===
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(top = 12.dp, bottom = 132.dp)
-        ) {
+            // === SCROLLABLE CONTENT ===
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(top = 12.dp, bottom = 132.dp)
+            ) {
             // --- DATE SCROLLER ---
             item {
                 DateScroller(
@@ -527,6 +533,8 @@ fun TransactionsScreen(
             }
         }
     }
+}
+
 }
 
 // === TOP APP BAR ===

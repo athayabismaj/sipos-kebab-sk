@@ -29,11 +29,13 @@ import androidx.compose.material.icons.outlined.RiceBowl
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,6 +65,7 @@ import kotlin.math.absoluteValue
 val KebabSecondary = Color(0xFF795900)
 val KebabTertiary = Color(0xFF00658F)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DailyStockScreen(
     modifier: Modifier = Modifier,
@@ -80,16 +83,21 @@ fun DailyStockScreen(
     val dateFormatter = DateTimeFormatter.ofPattern("EEEE, dd MMM yyyy", Locale.forLanguageTag("id-ID"))
     val hariIni = AppTime.todayJakarta().format(dateFormatter)
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(KebabBg)
+    PullToRefreshBox(
+        isRefreshing = isLoading,
+        onRefresh = onRetry,
+        modifier = modifier.fillMaxSize()
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(KebabBg)
         ) {
-            // === TOP BAR ===
-            StokTopBar(onBack = onBack)
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // === TOP BAR ===
+                StokTopBar(onBack = onBack)
 
             // === MAIN SCROLLABLE CONTENT ===
             Column(
@@ -280,6 +288,8 @@ fun DailyStockScreen(
             }
         }
     }
+}
+
 }
 
 @Composable

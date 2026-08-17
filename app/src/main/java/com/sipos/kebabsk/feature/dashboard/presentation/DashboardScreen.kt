@@ -30,9 +30,11 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -72,6 +74,7 @@ import kotlinx.coroutines.delay
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     modifier: Modifier = Modifier,
@@ -81,6 +84,8 @@ fun DashboardScreen(
     isDailySessionStatusKnown: Boolean,
     dailySessionLabel: String?,
     shiftSummaryUiState: ShiftSummaryUiState,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
     onRetryShiftSummary: () -> Unit,
     onForceLogout: () -> Unit,
     onStartTransaction: () -> Unit,
@@ -98,114 +103,119 @@ fun DashboardScreen(
         }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = modifier.fillMaxSize()
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color.Black),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.kebab_sk_logo),
-                            contentDescription = stringResource(R.string.cd_app_logo),
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = stringResource(R.string.dashboard_title),
-                            color = KebabPrimary,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 20.sp
-                        )
-                        Text(
-                            text = stringResource(R.string.dashboard_subtitle),
-                            color = KebabTextGray,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(50))
-                        .background(Color.White)
-                        .border(1.dp, KebabPrimary.copy(alpha = 0.08f), RoundedCornerShape(50))
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.dashboard_today_chip),
-                        color = KebabPrimary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            UserInfoSection(
-                cashierName = firstName,
-                cashierRole = cashierRole,
-                currentTime = currentTime.format(timeFormatter),
-                isDailySessionOpen = isDailySessionOpen,
-                isDailySessionStatusKnown = isDailySessionStatusKnown,
-                dailySessionLabel = dailySessionLabel
-            )
-
-            if (isPendingSync) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(KebabSecondaryContainer.copy(alpha = 0.15f))
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(14.dp),
-                        strokeWidth = 2.dp,
-                        color = KebabPrimary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(R.string.dashboard_sync_pending),
-                        fontSize = 12.sp,
-                        color = KebabPrimary,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Color.Black),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.kebab_sk_logo),
+                                contentDescription = stringResource(R.string.cd_app_logo),
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = stringResource(R.string.dashboard_title),
+                                color = KebabPrimary,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 20.sp
+                            )
+                            Text(
+                                text = stringResource(R.string.dashboard_subtitle),
+                                color = KebabTextGray,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .background(Color.White)
+                            .border(1.dp, KebabPrimary.copy(alpha = 0.08f), RoundedCornerShape(50))
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.dashboard_today_chip),
+                            color = KebabPrimary,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                UserInfoSection(
+                    cashierName = firstName,
+                    cashierRole = cashierRole,
+                    currentTime = currentTime.format(timeFormatter),
+                    isDailySessionOpen = isDailySessionOpen,
+                    isDailySessionStatusKnown = isDailySessionStatusKnown,
+                    dailySessionLabel = dailySessionLabel
+                )
+
+                if (isPendingSync) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(KebabSecondaryContainer.copy(alpha = 0.15f))
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(14.dp),
+                            strokeWidth = 2.dp,
+                            color = KebabPrimary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.dashboard_sync_pending),
+                            fontSize = 12.sp,
+                            color = KebabPrimary,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             }
-        }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            when {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                when {
                 shiftSummaryUiState.isLoading -> {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -312,20 +322,21 @@ fun DashboardScreen(
                         isPrimary = true
                     )
                 }
+                }
+
+                MainActionButton(
+                    enabled = isDailySessionStatusKnown && isDailySessionOpen,
+                    onClick = onStartTransaction
+                )
+
+                if (!isDailySessionStatusKnown) {
+                    SessionStatusUnknownNotice()
+                } else if (!isDailySessionOpen) {
+                    ClosedSessionNotice(dailySessionLabel = dailySessionLabel)
+                }
+
+                Spacer(modifier = Modifier.height(104.dp))
             }
-
-            MainActionButton(
-                enabled = isDailySessionStatusKnown && isDailySessionOpen,
-                onClick = onStartTransaction
-            )
-
-            if (!isDailySessionStatusKnown) {
-                SessionStatusUnknownNotice()
-            } else if (!isDailySessionOpen) {
-                ClosedSessionNotice(dailySessionLabel = dailySessionLabel)
-            }
-
-            Spacer(modifier = Modifier.height(104.dp))
         }
     }
 }

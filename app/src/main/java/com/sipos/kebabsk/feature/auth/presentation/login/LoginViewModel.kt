@@ -21,6 +21,7 @@ data class LoginUiState(
     val identifier: String = "",
     val password: String = "",
     val isLoading: Boolean = false,
+    val isRefreshingSession: Boolean = false,
     val isLoggingOut: Boolean = false,
     val errorMessage: String? = null,
     val successMessage: String? = null,
@@ -190,19 +191,26 @@ class LoginViewModel(
 
     fun refreshSession() {
         val session = _uiState.value.session ?: return
-        viewModelScope.launch {
-            authRepository.me(session.token)
-                .onSuccess { fresh ->
-                    if (!fresh.hasCashierRole()) {
-                        rejectNonCashierSession()
-                        return@onSuccess
-                    }
+        if (_uiState.value.isRefreshingSession) return
 
-                    _uiState.update {
-                        it.copy(session = fresh, errorMessage = null)
+        _uiState.update { it.copy(isRefreshingSession = true) }
+        viewModelScope.launch {
+            try {
+                authRepository.me(session.token)
+                    .onSuccess { fresh ->
+                        if (!fresh.hasCashierRole()) {
+                            rejectNonCashierSession()
+                            return@onSuccess
+                        }
+
+                        _uiState.update {
+                            it.copy(session = fresh, errorMessage = null)
+                        }
+                        sessionStore.saveSession(fresh)
                     }
-                    sessionStore.saveSession(fresh)
-                }
+            } finally {
+                _uiState.update { it.copy(isRefreshingSession = false) }
+            }
         }
     }
 

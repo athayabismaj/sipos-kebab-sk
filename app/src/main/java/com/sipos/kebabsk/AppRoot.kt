@@ -182,6 +182,7 @@ fun AuthRoot(
             cartUiState = cartUiState,
             checkoutUiState = checkoutUiState,
             onLoadMenus = onLoadMenus,
+            onRefreshSession = onRefreshSession,
             onLogout = {
                 onLogout()
                 route = AuthRoute.LOGIN
@@ -212,6 +213,7 @@ private fun AppScaffold(
     cartUiState: CartUiState,
     checkoutUiState: CheckoutUiState,
     onLoadMenus: (token: String, forceRefresh: Boolean) -> Unit,
+    onRefreshSession: () -> Unit,
     onLogout: () -> Unit,
     onUpdateProfile: (name: String, username: String, email: String) -> Unit,
     onChangePassword: (currentPassword: String, newPassword: String, confirmPassword: String) -> Unit,
@@ -232,12 +234,13 @@ private fun AppScaffold(
     val session = checkNotNull(loginUiState.session)
     val profileEmail = session.email
     val profileUsername = session.username
-    var selectedTab by rememberSaveable { mutableStateOf(AppTab.CASHIER) }
-    var profilePage by rememberSaveable { mutableStateOf(ProfilePage.SUMMARY) }
-    var cashierTransactionStarted by rememberSaveable { mutableStateOf(false) }
+    val sessionStateKey = remember(session.token) { session.token.hashCode().toString() }
+    var selectedTab by rememberSaveable(sessionStateKey) { mutableStateOf(AppTab.CASHIER) }
+    var profilePage by rememberSaveable(sessionStateKey) { mutableStateOf(ProfilePage.SUMMARY) }
+    var cashierTransactionStarted by rememberSaveable(sessionStateKey) { mutableStateOf(false) }
 
     // Shared DailyStockViewModel agar sessionId bisa diakses oleh Transactions tab (untuk Void)
-    val sharedDailyStockViewModel: DailyStockViewModel = koinViewModel()
+    val sharedDailyStockViewModel: DailyStockViewModel = koinViewModel(key = "daily-stock-$sessionStateKey")
     val sharedDailyStockUiState by sharedDailyStockViewModel.uiState.collectAsStateWithLifecycle()
     val isDashboardDailySessionStatusKnown = !sharedDailyStockUiState.isLoading &&
         (sharedDailyStockUiState.isSessionOpen != null || menuUiState.isDailySessionStatusKnown)
@@ -275,7 +278,7 @@ private fun AppScaffold(
         ) { innerPadding ->
             when (selectedTab) {
                 AppTab.CASHIER -> {
-                    val shiftSummaryViewModel: ShiftSummaryViewModel = koinViewModel()
+                    val shiftSummaryViewModel: ShiftSummaryViewModel = koinViewModel(key = "shift-summary-$sessionStateKey")
                     val shiftSummaryUiState by shiftSummaryViewModel.uiState.collectAsStateWithLifecycle()
 
                     if (!cashierTransactionStarted) {
@@ -287,6 +290,13 @@ private fun AppScaffold(
                             isDailySessionStatusKnown = isDashboardDailySessionStatusKnown,
                             dailySessionLabel = dashboardDailySessionLabel,
                             shiftSummaryUiState = shiftSummaryUiState,
+                            isRefreshing = shiftSummaryUiState.isLoading ||
+                                sharedDailyStockUiState.isLoading || menuUiState.isLoading,
+                            onRefresh = {
+                                shiftSummaryViewModel.refresh()
+                                sharedDailyStockViewModel.refresh()
+                                onLoadMenus(session.token, true)
+                            },
                             onRetryShiftSummary = shiftSummaryViewModel::refresh,
                             onForceLogout = onLogout,
                             onStartTransaction = { cashierTransactionStarted = true },
@@ -327,7 +337,7 @@ private fun AppScaffold(
                 }
 
                 AppTab.TRANSACTIONS -> {
-                    val transactionsViewModel: TransactionsViewModel = koinViewModel()
+                    val transactionsViewModel: TransactionsViewModel = koinViewModel(key = "transactions-$sessionStateKey")
                     TransactionsScreen(
                         viewModel = transactionsViewModel,
                         modifier = Modifier.padding(innerPadding),
@@ -345,6 +355,11 @@ private fun AppScaffold(
                                 email = profileEmail,
                                 username = profileUsername,
                                 role = session.role ?: menuUiState.cashierRole,
+                                isRefreshing = loginUiState.isRefreshingSession || menuUiState.isLoading,
+                                onRefresh = {
+                                    onRefreshSession()
+                                    onLoadMenus(session.token, true)
+                                },
                                 onEditProfile = {
                                     onClearProfileMessage()
                                     profilePage = ProfilePage.EDIT
@@ -423,7 +438,7 @@ private fun AppScaffold(
                     }
 
                     ProfilePage.CLOSE_STOCK_SESSION -> {
-                        val dailyStockViewModel: DailyStockViewModel = koinViewModel()
+                        val dailyStockViewModel = sharedDailyStockViewModel
                         val dailyStockUiState by dailyStockViewModel.uiState.collectAsStateWithLifecycle()
 
                         LaunchedEffect(Unit) {
@@ -452,7 +467,8 @@ private fun AppScaffold(
                     }
 
                     ProfilePage.OPERATIONAL_EXPENSE -> {
-                        val expenseViewModel: OperationalExpenseViewModel = koinViewModel()
+                        val expenseViewModel: OperationalExpenseViewModel =
+                            koinViewModel(key = "operational-expense-$sessionStateKey")
                         val expenseUiState by expenseViewModel.uiState.collectAsStateWithLifecycle()
 
                         OperationalExpenseScreen(
