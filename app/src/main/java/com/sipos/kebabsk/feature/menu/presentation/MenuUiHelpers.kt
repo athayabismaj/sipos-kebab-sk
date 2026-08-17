@@ -1,6 +1,7 @@
 package com.sipos.kebabsk.feature.menu.presentation
 
 import androidx.compose.runtime.Immutable
+import com.sipos.kebabsk.common.VariantDisplayUtils
 import com.sipos.kebabsk.feature.menu.domain.model.MenuItem
 import java.text.NumberFormat
 import java.util.Locale
@@ -13,8 +14,32 @@ data class MenuVariantItem(
     val variantName: String,
     val price: Long,
     val isAvailable: Boolean,
-    val insufficientStock: Boolean = false
+    val insufficientStock: Boolean = false,
+    val imageUrl: String? = null
 )
+
+fun buildMenuVariantTitle(menuName: String, variantName: String): String {
+    val menu = menuName.trim()
+    val variant = variantName.trim()
+
+    if (menu.isBlank()) return variant
+    if (variant.isBlank() || variant.equals(menu, ignoreCase = true)) return menu
+
+    val formattedVariant = VariantDisplayUtils.formatVariantName(menu, variant)
+    if (!formattedVariant.equals(variant, ignoreCase = true)) {
+        return "$menu $formattedVariant".trim()
+    }
+
+    val menuWords = menu.split(Regex("\\s+"))
+    val variantWords = variant.split(Regex("\\s+"))
+    val sharedPrefixLength = menuWords
+        .zip(variantWords)
+        .takeWhile { (menuWord, variantWord) -> menuWord.equals(variantWord, ignoreCase = true) }
+        .size
+    val variantSuffix = variantWords.drop(sharedPrefixLength).joinToString(" ")
+
+    return if (variantSuffix.isBlank()) menu else "$menu $variantSuffix"
+}
 
 fun buildMenuVariantItems(menus: List<MenuItem>): List<MenuVariantItem> {
     return menus.flatMap { menu ->
@@ -26,7 +51,8 @@ fun buildMenuVariantItems(menus: List<MenuItem>): List<MenuVariantItem> {
                 variantName = variant.name,
                 price = variant.price,
                 isAvailable = variant.isAvailable,
-                insufficientStock = variant.insufficientStock
+                insufficientStock = variant.insufficientStock,
+                imageUrl = variant.imageUrl
             )
         }
     }

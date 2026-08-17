@@ -52,5 +52,6 @@ data class MenuVariant(
     val name: String,
     val price: Long,
     val isAvailable: Boolean,
-    val insufficientStock: Boolean = false
+    val insufficientStock: Boolean = false,
+    val imageUrl: String? = null
 )

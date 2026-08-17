@@ -40,7 +40,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -52,8 +54,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sipos.kebabsk.R
 import com.sipos.kebabsk.common.MoneyUtils
-import com.sipos.kebabsk.common.VariantDisplayUtils
 import com.sipos.kebabsk.feature.cart.domain.model.CartItem
+import coil.compose.AsyncImage
 
 import com.sipos.kebabsk.ui.theme.*
 
@@ -207,7 +209,7 @@ private fun MenuItemCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            // Gambar Menu (Rasio 1:1) placeholder
+            // Gambar varian dari API. Ikon tetap terlihat saat URL kosong, memuat, atau gagal.
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -227,13 +229,24 @@ private fun MenuItemCard(
                     tint = if (isInsufficientStock) Color(0xFFF59E0B) else Color.Gray,
                     modifier = Modifier.size(32.dp)
                 )
+
+                item.imageUrl?.let { imageUrl ->
+                    AsyncImage(
+                        model = imageUrl,
+                        contentDescription = "${item.menuName} ${item.variantName}",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .alpha(if (isInsufficientStock) 0.65f else 1f)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Menu Name
+            // Nama menu dan varian ditampilkan sebagai satu judul.
             Text(
-                text = item.menuName,
+                text = buildMenuVariantTitle(item.menuName, item.variantName),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 color = if (isInsufficientStock) KebabTextDark.copy(alpha = 0.7f) else KebabTextDark,
@@ -241,21 +254,6 @@ private fun MenuItemCard(
                 lineHeight = 18.sp,
                 overflow = TextOverflow.Ellipsis
             )
-
-            // Variant name
-            val displayVariantName = VariantDisplayUtils.formatVariantName(item.menuName, item.variantName)
-
-            if (displayVariantName.isNotBlank() && displayVariantName != item.menuName) {
-                Text(
-                    text = displayVariantName,
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = if (isInsufficientStock) KebabTextGray.copy(alpha = 0.7f) else KebabTextGray
-                )
-            } else {
-                Spacer(modifier = Modifier.height(16.dp))
-            }
 
             Spacer(modifier = Modifier.weight(1f))
 

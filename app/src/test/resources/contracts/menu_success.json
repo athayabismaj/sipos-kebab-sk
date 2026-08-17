@@ -16,6 +16,7 @@
           {
             "id": 401,
             "name": "Mini",
+            "image_url": "https://example.test/media/menu-variants/mini.webp",
             "price": 10000,
             "is_available": true,
             "unavailable_reason": null,

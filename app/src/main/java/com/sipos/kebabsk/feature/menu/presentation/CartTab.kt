@@ -32,7 +32,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sipos.kebabsk.R
 import com.sipos.kebabsk.common.MoneyUtils
-import com.sipos.kebabsk.common.VariantDisplayUtils
 import com.sipos.kebabsk.feature.cart.domain.model.CartItem
 import com.sipos.kebabsk.ui.theme.*
 
@@ -152,7 +151,6 @@ fun CartTab(
 
                     items(count = cartItems.size, key = { cartItems[it].variantId }) { index ->
                         val item = cartItems[index]
-                        val displayVariantName = VariantDisplayUtils.formatVariantName(item.menuName, item.variantName)
 
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -170,23 +168,13 @@ fun CartTab(
                                 // Left Side: Info
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = item.menuName,
+                                        text = buildMenuVariantTitle(item.menuName, item.variantName),
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = KebabTextDark,
                                         maxLines = 2,
                                         overflow = TextOverflow.Ellipsis
                                     )
-                                    if (displayVariantName.isNotBlank() && displayVariantName != item.menuName) {
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = displayVariantName,
-                                            fontSize = 13.sp,
-                                            color = KebabTextGray,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
                                 }
 
                                 Spacer(modifier = Modifier.width(16.dp))

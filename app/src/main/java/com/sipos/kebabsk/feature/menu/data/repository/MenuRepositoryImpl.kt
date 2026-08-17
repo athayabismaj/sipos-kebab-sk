@@ -55,6 +55,7 @@ class MenuRepositoryImpl(
                             MenuVariant(
                                 id = variant.id ?: 0L,
                                 name = variant.name ?: "Varian",
+                                imageUrl = variant.imageUrl?.trim()?.takeIf { it.isNotEmpty() },
                                 price = variant.price ?: 0L,
                                 isAvailable = variant.isAvailable ?: false,
                                 insufficientStock = variant.insufficientStock ?: false

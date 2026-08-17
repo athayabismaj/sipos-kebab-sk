@@ -56,6 +56,7 @@ data class CategoryResponse(
 data class VariantResponse(
     @SerializedName("id") val id: Long?,
     @SerializedName("name") val name: String?,
+    @SerializedName("image_url") val imageUrl: String?,
     @SerializedName("price") val price: Long?,
     @SerializedName("is_available") val isAvailable: Boolean?,
     @SerializedName(value = "insufficient_stock", alternate = ["stock_insufficient", "is_stock_insufficient", "out_of_stock"])

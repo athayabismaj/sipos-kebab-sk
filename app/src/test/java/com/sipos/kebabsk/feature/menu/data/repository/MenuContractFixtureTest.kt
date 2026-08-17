@@ -33,6 +33,10 @@ class MenuContractFixtureTest {
         assertEquals("Kebab Fixture", result.menus.single().name)
         assertEquals(null, result.menus.single().description)
         assertEquals(10_000L, result.menus.single().variants.single().price)
+        assertEquals(
+            "https://example.test/media/menu-variants/mini.webp",
+            result.menus.single().variants.single().imageUrl
+        )
         assertTrue(result.menus.single().variants.single().isAvailable)
         assertFalse(result.dailySession.isOpen)
         assertFalse(result.dailySession.isKnown)
