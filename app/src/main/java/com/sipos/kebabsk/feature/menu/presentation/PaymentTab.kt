@@ -194,17 +194,18 @@ fun PaymentTab(
     val kembalian = if (paidLong > totalAmount) paidLong - totalAmount else 0L
     val cashMethod = checkoutUiState.paymentMethods.firstOrNull()
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(KebabBg)
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .weight(1f)
                 .verticalScroll(scrollState)
-                .padding(horizontal = 20.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             TotalTagihanCard(totalAmount = totalAmount, itemsCount = cartItems.sumOf { it.qty })
 
@@ -329,7 +330,7 @@ fun PaymentTab(
                 kembalian = kembalian
             )
 
-            Spacer(modifier = Modifier.height(164.dp))
+            Spacer(modifier = Modifier.height(8.dp))
         }
 
         val isEnabled = cartItems.isNotEmpty() &&
@@ -341,55 +342,61 @@ fun PaymentTab(
             cartInteractionEnabled &&
             checkoutUiState.selectedPaymentMethodId != null
 
-        Column(
+        Row(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .imePadding()
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 72.dp)
-                .shadow(6.dp, RoundedCornerShape(26.dp))
-                .clip(RoundedCornerShape(26.dp))
-                .background(Color.White.copy(alpha = 0.86f))
-                .border(1.dp, Color.White.copy(alpha = 0.72f), RoundedCornerShape(26.dp))
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(horizontal = 14.dp)
+                .padding(bottom = 68.dp)
+                .shadow(4.dp, RoundedCornerShape(18.dp))
+                .clip(RoundedCornerShape(18.dp))
+                .background(Color.White)
+                .border(1.dp, KebabDivider, RoundedCornerShape(18.dp))
+                .padding(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier.weight(0.9f),
+                verticalArrangement = Arrangement.spacedBy(1.dp)
             ) {
-                Column {
-                    Text(
-                        text = stringResource(R.string.checkout_total_paid),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = KebabTextGray
-                    )
-                    Text(
-                        text = MoneyUtils.formatRupiah(totalAmount),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = KebabTextDark
-                    )
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = stringResource(R.string.checkout_change),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = KebabTextGray
-                    )
-                    Text(
-                        text = MoneyUtils.formatRupiah(kembalian),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = KebabCyan
-                    )
-                }
+                Text(
+                    text = stringResource(R.string.checkout_total_paid),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = KebabTextGray,
+                    maxLines = 1
+                )
+                Text(
+                    text = MoneyUtils.formatRupiah(totalAmount),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = KebabTextDark,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Column(
+                modifier = Modifier.weight(0.8f),
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(1.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.checkout_change),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = KebabTextGray,
+                    maxLines = 1
+                )
+                Text(
+                    text = MoneyUtils.formatRupiah(kembalian),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = KebabCyan,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
 
             Button(
@@ -400,28 +407,31 @@ fun PaymentTab(
                 },
                 enabled = isEnabled,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp),
-                shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = KebabPrimaryContainer)
+                    .weight(1.15f)
+                    .height(48.dp),
+                shape = RoundedCornerShape(13.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = KebabPrimaryContainer),
+                contentPadding = PaddingValues(horizontal = 8.dp)
             ) {
                 if (checkoutUiState.isSubmitting) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(18.dp),
                         color = Color.White,
                         strokeWidth = 2.dp
                     )
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = stringResource(R.string.checkout_processing_payment),
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 } else {
-                    Text(text = stringResource(R.string.checkout_pay_cash), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                    Text(text = stringResource(R.string.checkout_pay_cash), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                 }
             }
         }
@@ -433,15 +443,15 @@ private fun TotalTagihanCard(totalAmount: Long, itemsCount: Int) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(28.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(
                 brush = Brush.linearGradient(
-                    colors = listOf(Color(0xFF8A4B10), Color(0xFFFF8C00))
+                    colors = listOf(Color(0xFF7D440D), Color(0xFFE98208))
                 )
             )
-            .padding(24.dp)
+            .padding(horizontal = 18.dp, vertical = 16.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -449,7 +459,7 @@ private fun TotalTagihanCard(totalAmount: Long, itemsCount: Int) {
             ) {
                 Text(
                     text = stringResource(R.string.checkout_total_bill),
-                    style = MaterialTheme.typography.titleMedium,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White.copy(alpha = 0.9f)
                 )
@@ -459,7 +469,7 @@ private fun TotalTagihanCard(totalAmount: Long, itemsCount: Int) {
                     color = Color.White.copy(alpha = 0.18f)
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -486,10 +496,9 @@ private fun TotalTagihanCard(totalAmount: Long, itemsCount: Int) {
                 color = Color.White,
                 letterSpacing = (-1.5).sp,
                 fontSize = when {
-                    totalAmount >= 10_000_000 -> 34.sp  // >= 10 juta
-                    totalAmount >= 1_000_000  -> 40.sp  // >= 1 juta
-                    totalAmount >= 100_000    -> 44.sp  // >= 100 ribu
-                    else                      -> 48.sp  // normal
+                    totalAmount >= 10_000_000 -> 28.sp
+                    totalAmount >= 1_000_000  -> 30.sp
+                    else                      -> 34.sp
                 },
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -497,7 +506,7 @@ private fun TotalTagihanCard(totalAmount: Long, itemsCount: Int) {
 
             Text(
                 text = stringResource(R.string.checkout_cash_direct),
-                fontSize = 14.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color.White.copy(alpha = 0.82f)
             )
@@ -522,43 +531,43 @@ private fun CashPaymentCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(Color.White)
-            .border(1.dp, KebabDivider, RoundedCornerShape(24.dp))
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .border(1.dp, KebabDivider, RoundedCornerShape(18.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(18.dp))
+                .clip(RoundedCornerShape(14.dp))
                 .background(if (selected) KebabPrimary.copy(alpha = 0.10f) else KebabInputBg)
                 .border(
                     width = 1.dp,
                     color = if (selected) KebabPrimary.copy(alpha = 0.32f) else KebabDivider,
-                    shape = RoundedCornerShape(18.dp)
+                    shape = RoundedCornerShape(14.dp)
                 )
                 .minimumInteractiveComponentSize()
                 .semantics {
                     stateDescription = if (selected) activeState else inactiveState
                 }
                 .clickable(enabled = enabled) { onSelectCash() }
-                .padding(16.dp),
+                .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(40.dp)
                     .clip(CircleShape)
                     .background(KebabPrimary),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(imageVector = TunaiIcon, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
+                Icon(imageVector = TunaiIcon, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
             }
-            Spacer(modifier = Modifier.width(14.dp))
+            Spacer(modifier = Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = stringResource(R.string.checkout_cash_method), fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = KebabTextDark)
-                Text(text = stringResource(R.string.checkout_cash_input_help), fontSize = 13.sp, color = KebabTextGray)
+                Text(text = stringResource(R.string.checkout_cash_method), fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = KebabTextDark)
+                Text(text = stringResource(R.string.checkout_cash_input_help), fontSize = 12.sp, color = KebabTextGray)
             }
             Text(
                 text = if (selected) stringResource(R.string.checkout_active_badge) else stringResource(R.string.action_select),
@@ -568,12 +577,12 @@ private fun CashPaymentCard(
                 modifier = Modifier
                     .clip(RoundedCornerShape(50))
                     .background(if (selected) KebabPrimary.copy(alpha = 0.12f) else KebabInputBg)
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                    .padding(horizontal = 9.dp, vertical = 5.dp)
             )
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(text = stringResource(R.string.checkout_received_amount), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
+        Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            Text(text = stringResource(R.string.checkout_received_amount), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
             NominalCustomInput(value = value, enabled = enabled, onValueChange = onPaidAmountChanged)
         }
 
@@ -599,18 +608,18 @@ private fun NominalCustomInput(value: String, enabled: Boolean, onValueChange: (
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(14.dp))
             .background(KebabInputBg)
-            .border(1.dp, KebabDivider, RoundedCornerShape(18.dp))
+            .border(1.dp, KebabDivider, RoundedCornerShape(14.dp))
             .semantics { contentDescription = receivedAmountDescription }
-            .padding(horizontal = 18.dp, vertical = 18.dp)
+            .padding(horizontal = 14.dp, vertical = 13.dp)
     ) {
         BasicTextField(
             value = displayValue,
             onValueChange = onValueChange,
             enabled = enabled,
             textStyle = TextStyle(
-                fontSize = 30.sp,
+                fontSize = 25.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = KebabTextDark
             ),
@@ -619,10 +628,10 @@ private fun NominalCustomInput(value: String, enabled: Boolean, onValueChange: (
             modifier = Modifier.fillMaxWidth()
         ) { innerTextField ->
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = "Rp", fontSize = 18.sp, color = KebabPrimary, fontWeight = FontWeight.ExtraBold)
-                Spacer(modifier = Modifier.width(10.dp))
+                Text(text = "Rp", fontSize = 16.sp, color = KebabPrimary, fontWeight = FontWeight.ExtraBold)
+                Spacer(modifier = Modifier.width(8.dp))
                 if (value.isEmpty()) {
-                    Text(text = "0", fontSize = 30.sp, color = KebabTextGray.copy(alpha = 0.42f), fontWeight = FontWeight.ExtraBold)
+                    Text(text = "0", fontSize = 25.sp, color = KebabTextGray.copy(alpha = 0.42f), fontWeight = FontWeight.ExtraBold)
                 } else {
                     innerTextField()
                 }
@@ -640,12 +649,12 @@ private fun QuickChip(label: String, enabled: Boolean, onClick: () -> Unit) {
             .border(1.dp, KebabPrimary.copy(alpha = 0.14f), RoundedCornerShape(50))
             .minimumInteractiveComponentSize()
             .clickable(enabled = enabled) { onClick() }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 13.dp, vertical = 9.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = label,
-            fontSize = 14.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             color = KebabPrimary,
             maxLines = 1,
@@ -659,18 +668,18 @@ private fun RingkasanOrderCard(cartItems: List<CartItem>, totalAmount: Long, pai
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(KebabSummaryBg)
-            .border(1.dp, KebabDivider, RoundedCornerShape(24.dp))
-            .padding(20.dp)
+            .border(1.dp, KebabDivider, RoundedCornerShape(18.dp))
+            .padding(14.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = stringResource(R.string.checkout_order_summary), fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = KebabTextDark)
+                Text(text = stringResource(R.string.checkout_order_summary), fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = KebabTextDark)
                 Text(
                     text = pluralStringResource(
                         R.plurals.item_count,
@@ -718,9 +727,9 @@ private fun RingkasanOrderCard(cartItems: List<CartItem>, totalAmount: Long, pai
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(14.dp))
                     .background(KebabCyanBg)
-                    .padding(horizontal = 18.dp, vertical = 16.dp)
+                    .padding(horizontal = 14.dp, vertical = 11.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -728,7 +737,7 @@ private fun RingkasanOrderCard(cartItems: List<CartItem>, totalAmount: Long, pai
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(text = stringResource(R.string.checkout_change), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
-                    Text(text = MoneyUtils.formatRupiah(kembalian), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = KebabCyan)
+                    Text(text = MoneyUtils.formatRupiah(kembalian), fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = KebabCyan)
                 }
             }
         }

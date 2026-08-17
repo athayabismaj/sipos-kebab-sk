@@ -1,16 +1,13 @@
 package com.sipos.kebabsk.feature.menu.presentation
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Remove
@@ -54,13 +51,15 @@ fun CartTab(
         if (cartItems.isEmpty()) {
             // Empty State
             Column(
-                modifier = Modifier.padding(24.dp).fillMaxSize(),
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp, vertical = 16.dp)
+                        .fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         text = stringResource(R.string.cart_title),
-                        fontSize = 32.sp,
+                        fontSize = 24.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = KebabTextDark,
                         letterSpacing = (-1).sp
@@ -118,34 +117,27 @@ fun CartTab(
                 // Scrollable Items
                 LazyColumn(
                     modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(top = 24.dp, start = 16.dp, end = 16.dp, bottom = 28.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    contentPadding = PaddingValues(top = 12.dp, start = 12.dp, end = 12.dp, bottom = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     item {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 8.dp),
+                                .padding(horizontal = 2.dp, vertical = 2.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column {
-                                Text(
-                                    text = stringResource(R.string.cart_title),
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = KebabTextDark
-                                )
-                                Text(
-                                    text = pluralStringResource(
-                                        R.plurals.cart_order_count,
-                                        cartItems.sumOf { it.qty },
-                                        cartItems.sumOf { it.qty }
-                                    ),
-                                    fontSize = 14.sp,
-                                    color = KebabTextGray
-                                )
-                            }
+                            Text(
+                                text = pluralStringResource(
+                                    R.plurals.cart_order_count,
+                                    cartItems.sumOf { it.qty },
+                                    cartItems.sumOf { it.qty }
+                                ),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = KebabTextGray
+                            )
                         }
                     }
 
@@ -154,55 +146,66 @@ fun CartTab(
 
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(14.dp),
                             colors = CardDefaults.cardColors(containerColor = Color.White),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                            border = BorderStroke(1.dp, Color(0xFFF0E4DB))
                         ) {
-                            Row(
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                    .padding(start = 14.dp, top = 10.dp, end = 8.dp, bottom = 10.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                // Left Side: Info
-                                Column(modifier = Modifier.weight(1f)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
                                     Text(
                                         text = buildMenuVariantTitle(item.menuName, item.variantName),
-                                        fontSize = 16.sp,
+                                        fontSize = 15.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = KebabTextDark,
                                         maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f)
                                     )
-                                }
-
-                                Spacer(modifier = Modifier.width(16.dp))
-
-                                // Right Side: Controls
-                                Column(horizontalAlignment = Alignment.End) {
-                                    Text(
-                                        text = formatPrice(item.price * item.qty),
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = KebabPrimary,
-                                        textAlign = TextAlign.End,
-                                        maxLines = 1
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
                                     IconButton(
                                         onClick = { onDeleteVariant(item.variantId) },
                                         enabled = cartInteractionEnabled,
-                                        modifier = Modifier.size(48.dp)
+                                        modifier = Modifier.size(40.dp)
                                     ) {
                                         Icon(
                                             imageVector = Icons.Outlined.Delete,
                                             contentDescription = stringResource(R.string.cd_delete_cart_item),
-                                            tint = Color.LightGray,
-                                            modifier = Modifier.size(20.dp)
+                                            tint = KebabTextGray.copy(alpha = 0.55f),
+                                            modifier = Modifier.size(19.dp)
                                         )
                                     }
-                                    Spacer(modifier = Modifier.height(8.dp))
+                                }
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(end = 6.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text(
+                                            text = formatPrice(item.price * item.qty),
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = KebabPrimary,
+                                            maxLines = 1
+                                        )
+                                        Text(
+                                            text = "${formatPrice(item.price)} / item",
+                                            fontSize = 11.sp,
+                                            color = KebabTextGray.copy(alpha = 0.78f),
+                                            maxLines = 1
+                                        )
+                                    }
                                     CartQuantitySelector(
                                         qty = item.qty,
                                         enabled = cartInteractionEnabled,
@@ -221,16 +224,16 @@ fun CartTab(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .padding(bottom = 108.dp),
+                        .padding(horizontal = 12.dp)
+                        .padding(bottom = 100.dp),
                     color = Color.White,
-                    shadowElevation = 10.dp,
-                    shape = RoundedCornerShape(22.dp)
+                    shadowElevation = 5.dp,
+                    shape = RoundedCornerShape(18.dp)
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp)
+                            .padding(12.dp)
                     ) {
                         // Total Info
                         Row(
@@ -246,13 +249,13 @@ fun CartTab(
                             )
                             Text(
                                 text = formatPrice(totalAmount),
-                                fontSize = 18.sp,
+                                fontSize = 17.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = KebabTextDark
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(14.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
                         // Buttons Row
                         Row(
@@ -263,9 +266,9 @@ fun CartTab(
                                 onClick = onBackToMenu,
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(48.dp),
-                                shape = RoundedCornerShape(12.dp),
-                                border = BorderStroke(1.5.dp, KebabPrimary),
+                                    .height(46.dp),
+                                shape = RoundedCornerShape(11.dp),
+                                border = BorderStroke(1.dp, KebabPrimary),
                                 contentPadding = PaddingValues(horizontal = 4.dp)
                             ) {
                                 Text(
@@ -282,8 +285,8 @@ fun CartTab(
                                 onClick = onNavigateToPayment,
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(48.dp),
-                                shape = RoundedCornerShape(12.dp),
+                                    .height(46.dp),
+                                shape = RoundedCornerShape(11.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = KebabPrimary),
                                 contentPadding = PaddingValues(horizontal = 4.dp)
                             ) {
@@ -315,12 +318,12 @@ private fun CartQuantitySelector(
 
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(Color(0xFFF8F3EE))
             .semantics { stateDescription = quantityState }
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = 4.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         CartQuantityButton(
             onClick = onRemove,
@@ -333,10 +336,10 @@ private fun CartQuantitySelector(
 
         Text(
             text = "$qty",
-            style = MaterialTheme.typography.titleLarge,
+            fontSize = 16.sp,
             fontWeight = FontWeight.ExtraBold,
             color = KebabTextDark,
-            modifier = Modifier.widthIn(min = 32.dp),
+            modifier = Modifier.widthIn(min = 24.dp),
             textAlign = TextAlign.Center
         )
 
@@ -364,7 +367,7 @@ private fun CartQuantityButton(
         onClick = onClick,
         enabled = enabled,
         modifier = Modifier
-            .size(48.dp)
+            .size(36.dp)
             .clip(CircleShape)
             .background(containerColor)
     ) {
@@ -372,7 +375,7 @@ private fun CartQuantityButton(
             imageVector = icon,
             contentDescription = contentDescription,
             tint = contentColor,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(18.dp)
         )
     }
 }
