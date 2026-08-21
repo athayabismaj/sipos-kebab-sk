@@ -152,6 +152,8 @@ fun MenuScreen(
     onPaidAmountChanged: (String) -> Unit,
     onNoteChanged: (String) -> Unit,
     onSubmitCheckout: () -> Unit,
+    onRetryQris: () -> Unit,
+    onConfirmQrisPayment: () -> Unit,
     onDismissCheckoutPreview: () -> Unit,
     onClearCheckoutMessage: () -> Unit
 ) {
@@ -207,6 +209,9 @@ fun MenuScreen(
             MenuTopBar(
                 cashierPage = cashierPage,
                 itemCount = cartUiState.cartItems.sumOf { it.qty },
+                selectedPaymentMethodName = checkoutUiState.paymentMethods
+                    .firstOrNull { it.id == checkoutUiState.selectedPaymentMethodId }
+                    ?.name,
                 onBack = {
                     cashierPage = if (cashierPage == CashierPage.PAYMENT) {
                         CashierPage.CART
@@ -309,6 +314,8 @@ fun MenuScreen(
                             onPaidAmountChanged = onPaidAmountChanged,
                             onNoteChanged = onNoteChanged,
                             onSubmitCheckout = onSubmitCheckout,
+                            onRetryQris = onRetryQris,
+                            onConfirmQrisPayment = onConfirmQrisPayment,
                             onDismissCheckoutPreview = {
                                 onDismissCheckoutPreview()
                                 cashierPage = CashierPage.MENU
@@ -376,17 +383,28 @@ fun MenuScreen(
 private fun MenuTopBar(
     cashierPage: CashierPage,
     itemCount: Int,
+    selectedPaymentMethodName: String?,
     onBack: () -> Unit
 ) {
+    val isQrisSelected = selectedPaymentMethodName.equals("QRIS", ignoreCase = true)
+    val hasSelectedPaymentMethod = !selectedPaymentMethodName.isNullOrBlank()
     val title = when (cashierPage) {
         CashierPage.MENU -> stringResource(R.string.app_name)
         CashierPage.CART -> stringResource(R.string.menu_top_cart_title)
-        CashierPage.PAYMENT -> stringResource(R.string.menu_top_payment_title)
+        CashierPage.PAYMENT -> when {
+            isQrisSelected -> stringResource(R.string.menu_top_payment_qris_title)
+            hasSelectedPaymentMethod -> stringResource(R.string.menu_top_payment_cash_title)
+            else -> stringResource(R.string.menu_top_payment_title)
+        }
     }
     val subtitle = when (cashierPage) {
         CashierPage.MENU -> stringResource(R.string.menu_top_menu_subtitle)
         CashierPage.CART -> stringResource(R.string.menu_top_cart_subtitle)
-        CashierPage.PAYMENT -> stringResource(R.string.menu_top_payment_subtitle)
+        CashierPage.PAYMENT -> when {
+            isQrisSelected -> stringResource(R.string.menu_top_payment_qris_subtitle)
+            hasSelectedPaymentMethod -> stringResource(R.string.menu_top_payment_cash_subtitle)
+            else -> stringResource(R.string.menu_top_payment_subtitle)
+        }
     }
 
     Column(
@@ -465,7 +483,9 @@ private fun MenuTopBar(
                         stringResource(R.string.menu_badge_cashier)
                     }
                     CashierPage.CART -> pluralStringResource(R.plurals.item_count, itemCount, itemCount)
-                    CashierPage.PAYMENT -> stringResource(R.string.checkout_cash_label)
+                    CashierPage.PAYMENT -> selectedPaymentMethodName
+                        ?.takeIf { it.isNotBlank() }
+                        ?: stringResource(R.string.menu_top_payment_title)
                 }
                 Text(
                     text = badgeText,

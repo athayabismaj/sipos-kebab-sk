@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.items
 import com.sipos.kebabsk.feature.cart.domain.model.CartItem
 import com.sipos.kebabsk.feature.checkout.presentation.CheckoutUiState
+import com.sipos.kebabsk.feature.checkout.presentation.QrisPaymentDialog
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.horizontalScroll
@@ -33,6 +34,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -147,6 +149,8 @@ fun PaymentTab(
     onPaidAmountChanged: (String) -> Unit,
     onNoteChanged: (String) -> Unit,
     onSubmitCheckout: () -> Unit,
+    onRetryQris: () -> Unit,
+    onConfirmQrisPayment: () -> Unit,
     onDismissCheckoutPreview: () -> Unit,
     onBackToCart: () -> Unit
 ) {
@@ -157,11 +161,19 @@ fun PaymentTab(
     val receiptPrinter = remember { BluetoothReceiptPrinter() }
     val receiptKey = checkoutUiState.checkoutTransactionCode
         ?: changeAmount?.let { "${checkoutUiState.checkoutTotalAmount}-${checkoutUiState.checkoutPaidAmount}-$it" }
-    val receiptData = remember(receiptKey, cashierName, checkoutUiState.checkoutBranchAddress) {
-        if (changeAmount != null) checkoutUiState.toReceiptData(cashierName) else null
+    val receiptData = remember(
+        receiptKey,
+        cashierName,
+        checkoutUiState.checkoutBranchAddress,
+        checkoutUiState.isQrisAwaitingConfirmation,
+        checkoutUiState.checkoutPaymentMethodName
+    ) {
+        if (changeAmount != null && !checkoutUiState.isQrisAwaitingConfirmation) {
+            checkoutUiState.toReceiptData(cashierName)
+        } else null
     }
 
-    LaunchedEffect(receiptKey) {
+    LaunchedEffect(receiptKey, receiptData) {
         if (
             receiptKey != null &&
             receiptData != null &&
@@ -188,11 +200,27 @@ fun PaymentTab(
         )
     }
 
+    if (checkoutUiState.isQrisAwaitingConfirmation) {
+        QrisPaymentDialog(
+            state = checkoutUiState,
+            onRetry = onRetryQris,
+            onPaymentReceived = onConfirmQrisPayment
+        )
+    }
+
     val scrollState = rememberScrollState()
 
-    val paidLong = MoneyUtils.sanitizeMoneyInput(checkoutUiState.paidAmountInput).toLongOrNull() ?: 0L
-    val kembalian = if (paidLong > totalAmount) paidLong - totalAmount else 0L
-    val cashMethod = checkoutUiState.paymentMethods.firstOrNull()
+    val selectedMethod = checkoutUiState.paymentMethods
+        .firstOrNull { it.id == checkoutUiState.selectedPaymentMethodId }
+    val isQrisSelected = selectedMethod?.name.equals("QRIS", ignoreCase = true)
+    val paidLong = if (isQrisSelected) {
+        totalAmount
+    } else {
+        MoneyUtils.sanitizeMoneyInput(checkoutUiState.paidAmountInput).toLongOrNull() ?: 0L
+    }
+    val kembalian = if (!isQrisSelected && paidLong > totalAmount) paidLong - totalAmount else 0L
+    val cashMethod = checkoutUiState.paymentMethods.firstOrNull { it.name.isCashPaymentName() }
+    val qrisMethod = checkoutUiState.paymentMethods.firstOrNull { it.name.equals("QRIS", ignoreCase = true) }
 
     Column(
         modifier = Modifier
@@ -207,9 +235,13 @@ fun PaymentTab(
                 .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            TotalTagihanCard(totalAmount = totalAmount, itemsCount = cartItems.sumOf { it.qty })
+            TotalTagihanCard(
+                totalAmount = totalAmount,
+                itemsCount = cartItems.sumOf { it.qty },
+                isQrisSelected = isQrisSelected
+            )
 
-            if (cashMethod == null && (!checkoutUiState.paymentMethodsLoadCompleted || checkoutUiState.isLoading)) {
+            if (checkoutUiState.paymentMethods.isEmpty() && (!checkoutUiState.paymentMethodsLoadCompleted || checkoutUiState.isLoading)) {
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant,
@@ -232,7 +264,7 @@ fun PaymentTab(
                         )
                     }
                 }
-            } else if (cashMethod == null) {
+            } else if (checkoutUiState.paymentMethods.isEmpty()) {
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.errorContainer,
@@ -241,7 +273,7 @@ fun PaymentTab(
                         .semantics { liveRegion = LiveRegionMode.Assertive }
                 ) {
                     Text(
-                        text = stringResource(R.string.checkout_cash_unavailable),
+                        text = "Metode pembayaran Tunai atau QRIS belum tersedia.",
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
@@ -249,16 +281,28 @@ fun PaymentTab(
                     )
                 }
             } else {
-                CashPaymentCard(
-                    selected = checkoutUiState.selectedPaymentMethodId == cashMethod.id,
-                    value = checkoutUiState.paidAmountInput,
-                    quickAmounts = quickAmounts,
-                    exactAmount = exactAmount,
+                PaymentMethodSelector(
+                    cashMethodId = cashMethod?.id,
+                    qrisMethodId = qrisMethod?.id,
+                    selectedPaymentMethodId = checkoutUiState.selectedPaymentMethodId,
                     enabled = cartInteractionEnabled && !checkoutUiState.isSubmitting,
-                    onSelectCash = { onPaymentMethodSelected(cashMethod.id) },
-                    onPaidAmountChanged = onPaidAmountChanged,
-                    onQuickAmountSelected = onQuickAmountSelected
+                    onSelected = onPaymentMethodSelected
                 )
+
+                if (isQrisSelected && qrisMethod != null) {
+                    QrisPaymentCard()
+                } else if (cashMethod != null) {
+                    CashPaymentCard(
+                        selected = checkoutUiState.selectedPaymentMethodId == cashMethod.id,
+                        value = checkoutUiState.paidAmountInput,
+                        quickAmounts = quickAmounts,
+                        exactAmount = exactAmount,
+                        enabled = cartInteractionEnabled && !checkoutUiState.isSubmitting,
+                        onSelectCash = { onPaymentMethodSelected(cashMethod.id) },
+                        onPaidAmountChanged = onPaidAmountChanged,
+                        onQuickAmountSelected = onQuickAmountSelected
+                    )
+                }
             }
 
             if (!isDailySessionStatusKnown && !isLoading) {
@@ -327,7 +371,8 @@ fun PaymentTab(
                 cartItems = cartItems,
                 totalAmount = totalAmount,
                 paidAmount = paidLong,
-                kembalian = kembalian
+                kembalian = kembalian,
+                paymentMethodName = selectedMethod?.name.orEmpty()
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -383,14 +428,14 @@ fun PaymentTab(
                 verticalArrangement = Arrangement.spacedBy(1.dp)
             ) {
                 Text(
-                    text = stringResource(R.string.checkout_change),
+                    text = if (isQrisSelected) "Metode" else stringResource(R.string.checkout_change),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color = KebabTextGray,
                     maxLines = 1
                 )
                 Text(
-                    text = MoneyUtils.formatRupiah(kembalian),
+                    text = if (isQrisSelected) "QRIS" else MoneyUtils.formatRupiah(kembalian),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = KebabCyan,
@@ -429,7 +474,7 @@ fun PaymentTab(
                         overflow = TextOverflow.Ellipsis
                     )
                 } else {
-                    Text(text = stringResource(R.string.checkout_pay_cash), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text(text = if (isQrisSelected) "Buat QRIS" else stringResource(R.string.checkout_pay_cash), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     Spacer(modifier = Modifier.width(5.dp))
                     Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                 }
@@ -439,7 +484,7 @@ fun PaymentTab(
 }
 
 @Composable
-private fun TotalTagihanCard(totalAmount: Long, itemsCount: Int) {
+private fun TotalTagihanCard(totalAmount: Long, itemsCount: Int, isQrisSelected: Boolean) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -505,10 +550,118 @@ private fun TotalTagihanCard(totalAmount: Long, itemsCount: Int) {
             )
 
             Text(
-                text = stringResource(R.string.checkout_cash_direct),
+                text = if (isQrisSelected) "QRIS dinamis sesuai total transaksi" else stringResource(R.string.checkout_cash_direct),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color.White.copy(alpha = 0.82f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun PaymentMethodSelector(
+    cashMethodId: Long?,
+    qrisMethodId: Long?,
+    selectedPaymentMethodId: Long?,
+    enabled: Boolean,
+    onSelected: (Long) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color.White)
+            .border(1.dp, KebabDivider, RoundedCornerShape(18.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text("Metode Pembayaran", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = KebabTextDark)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            cashMethodId?.let { methodId ->
+                PaymentMethodOption(
+                    label = "Tunai",
+                    icon = TunaiIcon,
+                    selected = selectedPaymentMethodId == methodId,
+                    enabled = enabled,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onSelected(methodId) }
+                )
+            }
+            qrisMethodId?.let { methodId ->
+                PaymentMethodOption(
+                    label = "QRIS",
+                    icon = Icons.Default.QrCode2,
+                    selected = selectedPaymentMethodId == methodId,
+                    enabled = enabled,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onSelected(methodId) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PaymentMethodOption(
+    label: String,
+    icon: ImageVector,
+    selected: Boolean,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val activeColor = if (label == "QRIS") Color(0xFF087F5B) else KebabPrimary
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (selected) activeColor.copy(alpha = 0.10f) else KebabInputBg)
+            .border(
+                width = 1.dp,
+                color = if (selected) activeColor.copy(alpha = 0.45f) else KebabDivider,
+                shape = RoundedCornerShape(14.dp)
+            )
+            .minimumInteractiveComponentSize()
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(icon, contentDescription = null, tint = if (selected) activeColor else KebabTextGray, modifier = Modifier.size(19.dp))
+        Text(label, fontWeight = FontWeight.Bold, color = if (selected) activeColor else KebabTextGray, fontSize = 13.sp)
+        Spacer(Modifier.weight(1f))
+        if (selected) {
+            Icon(Icons.Default.Check, contentDescription = null, tint = activeColor, modifier = Modifier.size(17.dp))
+        }
+    }
+}
+
+@Composable
+private fun QrisPaymentCard() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color(0xFFF0FDF8))
+            .border(1.dp, Color(0xFFB7E4D3), RoundedCornerShape(18.dp))
+            .padding(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier.size(42.dp).background(Color(0xFF087F5B), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Default.QrCode2, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text("QRIS Dinamis", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0B5D46))
+            Text(
+                "QR dibuat otomatis sesuai total. Tidak perlu memasukkan nominal pembayaran.",
+                modifier = Modifier.padding(top = 2.dp),
+                fontSize = 12.sp,
+                lineHeight = 17.sp,
+                color = Color(0xFF477466)
             )
         }
     }
@@ -664,7 +817,14 @@ private fun QuickChip(label: String, enabled: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun RingkasanOrderCard(cartItems: List<CartItem>, totalAmount: Long, paidAmount: Long, kembalian: Long) {
+private fun RingkasanOrderCard(
+    cartItems: List<CartItem>,
+    totalAmount: Long,
+    paidAmount: Long,
+    kembalian: Long,
+    paymentMethodName: String
+) {
+    val isQris = paymentMethodName.equals("QRIS", ignoreCase = true)
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -722,7 +882,10 @@ private fun RingkasanOrderCard(cartItems: List<CartItem>, totalAmount: Long, pai
             }
 
             HorizontalDivider(color = Color(0xFFF3F4F6), thickness = 1.dp)
-            PaymentSummaryRow(label = stringResource(R.string.checkout_cash_label), value = MoneyUtils.formatRupiah(paidAmount))
+            PaymentSummaryRow(
+                label = if (isQris) "Metode pembayaran" else stringResource(R.string.checkout_cash_label),
+                value = if (isQris) "QRIS" else MoneyUtils.formatRupiah(paidAmount)
+            )
 
             Box(
                 modifier = Modifier
@@ -736,8 +899,8 @@ private fun RingkasanOrderCard(cartItems: List<CartItem>, totalAmount: Long, pai
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = stringResource(R.string.checkout_change), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
-                    Text(text = MoneyUtils.formatRupiah(kembalian), fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = KebabCyan)
+                    Text(text = if (isQris) "Nominal QRIS" else stringResource(R.string.checkout_change), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
+                    Text(text = MoneyUtils.formatRupiah(if (isQris) totalAmount else kembalian), fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = KebabCyan)
                 }
             }
         }
@@ -783,10 +946,14 @@ private fun CheckoutUiState.toReceiptData(cashierName: String): ReceiptData {
         totalAmount = totalAmount,
         paidAmount = checkoutPaidAmount ?: totalAmount,
         changeAmount = checkoutChangeAmount ?: 0L,
-        paymentMethodName = "Tunai",
+        paymentMethodName = checkoutPaymentMethodName?.takeIf(String::isNotBlank) ?: "Tunai",
         note = null,
         createdAt = AppTime.nowJakartaDateTime().format(
             DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm", Locale.forLanguageTag("id-ID"))
         )
     )
+}
+
+private fun String.isCashPaymentName(): Boolean {
+    return equals("Cash", ignoreCase = true) || equals("Tunai", ignoreCase = true)
 }

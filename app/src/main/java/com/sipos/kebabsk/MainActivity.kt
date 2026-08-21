@@ -104,6 +104,8 @@ class MainActivity : ComponentActivity() {
                             menuViewModel.loadMenus(token, forceRefresh = true)
                         }
                     },
+                    onRetryQris = checkoutViewModel::retryGenerateQris,
+                    onConfirmQrisPayment = checkoutViewModel::confirmQrisPayment,
                     onDismissCheckoutPreview = checkoutViewModel::dismissCheckoutPreview,
                     onClearCheckoutMessage = checkoutViewModel::clearCheckoutMessage
                 )

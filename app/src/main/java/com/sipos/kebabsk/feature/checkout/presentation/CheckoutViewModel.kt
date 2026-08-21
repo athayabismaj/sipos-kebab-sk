@@ -38,6 +38,15 @@ data class CheckoutUiState(
     val checkoutChangeAmount: Long? = null,
     val checkoutTotalAmount: Long? = null,
     val checkoutPaidAmount: Long? = null,
+    val checkoutPaymentMethodName: String? = null,
+    val qrisTransactionId: Long? = null,
+    val qrisPayload: String? = null,
+    val qrisMerchantName: String? = null,
+    val qrisBranchName: String? = null,
+    val qrisAmount: Long? = null,
+    val isGeneratingQris: Boolean = false,
+    val isQrisAwaitingConfirmation: Boolean = false,
+    val qrisErrorMessage: String? = null,
     val checkoutReceiptItems: List<CartItem> = emptyList()
 )
 
@@ -54,6 +63,7 @@ class CheckoutViewModel(
 
     private val checkoutMutex = Mutex()
     private var paymentMethodsLoaded = false
+    private var latestQrisToken: String? = null
 
     fun loadPaymentMethods(token: String) {
         if (paymentMethodsLoaded || _uiState.value.isLoading) return
@@ -63,15 +73,17 @@ class CheckoutViewModel(
                 val paymentResult = getPaymentMethodsUseCase(token)
                 paymentResult
                     .onSuccess { methods ->
-                        val cashMethods = methods.filter { it.isCashPaymentMethod() }
-                        paymentMethodsLoaded = cashMethods.isNotEmpty()
+                        val supportedMethods = methods
+                            .filter { it.isCashPaymentMethod() || it.isQrisPaymentMethod() }
+                            .sortedBy { if (it.isCashPaymentMethod()) 0 else 1 }
+                        paymentMethodsLoaded = supportedMethods.isNotEmpty()
                         _uiState.update {
                             it.copy(
-                                paymentMethods = cashMethods,
+                                paymentMethods = supportedMethods,
                                 paymentMethodsLoadCompleted = true,
-                                selectedPaymentMethodId = cashMethods.firstOrNull()?.id,
-                                errorMessage = if (cashMethods.isEmpty()) {
-                                    "Metode pembayaran tunai belum tersedia. Hubungi admin untuk pengecekan."
+                                selectedPaymentMethodId = supportedMethods.firstOrNull()?.id,
+                                errorMessage = if (supportedMethods.isEmpty()) {
+                                    "Metode pembayaran Tunai atau QRIS belum tersedia. Hubungi admin."
                                 } else null
                             )
                         }
@@ -98,7 +110,14 @@ class CheckoutViewModel(
     }
 
     fun onPaymentMethodSelected(paymentMethodId: Long) {
-        _uiState.update { it.copy(selectedPaymentMethodId = paymentMethodId) }
+        _uiState.update {
+            it.copy(
+                selectedPaymentMethodId = paymentMethodId,
+                paidAmountInput = "",
+                errorMessage = null,
+                qrisErrorMessage = null
+            )
+        }
     }
 
     fun onQuickAmountSelected(amount: Long) {
@@ -112,6 +131,15 @@ class CheckoutViewModel(
                 checkoutChangeAmount = null,
                 checkoutTotalAmount = null,
                 checkoutPaidAmount = null,
+                checkoutPaymentMethodName = null,
+                qrisTransactionId = null,
+                qrisPayload = null,
+                qrisMerchantName = null,
+                qrisBranchName = null,
+                qrisAmount = null,
+                isGeneratingQris = false,
+                isQrisAwaitingConfirmation = false,
+                qrisErrorMessage = null,
                 checkoutReceiptItems = emptyList()
             )
         }
@@ -128,6 +156,15 @@ class CheckoutViewModel(
                 checkoutChangeAmount = null,
                 checkoutTotalAmount = null,
                 checkoutPaidAmount = null,
+                checkoutPaymentMethodName = null,
+                qrisTransactionId = null,
+                qrisPayload = null,
+                qrisMerchantName = null,
+                qrisBranchName = null,
+                qrisAmount = null,
+                isGeneratingQris = false,
+                isQrisAwaitingConfirmation = false,
+                qrisErrorMessage = null,
                 checkoutReceiptItems = emptyList()
             )
         }
@@ -151,13 +188,17 @@ class CheckoutViewModel(
             try {
                 checkoutMutex.withLock {
                     val state = _uiState.value
+                    val selectedMethod = state.paymentMethods
+                        .firstOrNull { it.id == state.selectedPaymentMethodId }
+                    val isQrisPayment = selectedMethod?.isQrisPaymentMethod() == true
                     val validation = checkoutValidator.validate(
                         CheckoutValidationInput(
                             cartItems = cartSnapshot,
                             isDailySessionOpen = isDailySessionOpen,
                             isDailySessionStatusKnown = isDailySessionStatusKnown,
                             paymentMethodId = state.selectedPaymentMethodId,
-                            paidAmountInput = state.paidAmountInput
+                            paidAmountInput = state.paidAmountInput,
+                            requiresCashAmount = !isQrisPayment
                         )
                     )
                     if (validation is CheckoutValidationResult.Invalid) {
@@ -181,6 +222,15 @@ class CheckoutViewModel(
                             checkoutChangeAmount = null,
                             checkoutTotalAmount = null,
                             checkoutPaidAmount = null,
+                            checkoutPaymentMethodName = null,
+                            qrisTransactionId = null,
+                            qrisPayload = null,
+                            qrisMerchantName = null,
+                            qrisBranchName = null,
+                            qrisAmount = null,
+                            isGeneratingQris = false,
+                            isQrisAwaitingConfirmation = false,
+                            qrisErrorMessage = null,
                             checkoutReceiptItems = emptyList()
                         )
                     }
@@ -193,20 +243,16 @@ class CheckoutViewModel(
 
                     createTransactionUseCase(token, request)
                         .onSuccess { result ->
-                            _uiState.update {
-                                it.copy(
-                                    isLoading = false,
-                                    paidAmountInput = "",
-                                    noteInput = "",
-                                    checkoutMessage = "Pembayaran berhasil: ",
-                                    checkoutTransactionCode = result.transactionCode,
-                                    checkoutBranchAddress = result.branchAddress,
-                                    checkoutChangeAmount = result.changeAmount,
-                                    checkoutTotalAmount = result.totalAmount,
-                                    checkoutPaidAmount = result.paidAmount,
-                                    checkoutReceiptItems = cartSnapshot,
-                                    errorMessage = null
-                                )
+                            setCheckoutResult(
+                                result = result,
+                                paymentMethodName = selectedMethod?.name.orEmpty(),
+                                cartSnapshot = cartSnapshot,
+                                isQrisPayment = isQrisPayment
+                            )
+
+                            if (isQrisPayment) {
+                                latestQrisToken = token
+                                generateQrisForTransaction(token, result.transactionId)
                             }
                             onSuccess()
                         }
@@ -221,6 +267,15 @@ class CheckoutViewModel(
                                     checkoutChangeAmount = null,
                                     checkoutTotalAmount = null,
                                     checkoutPaidAmount = null,
+                                    checkoutPaymentMethodName = null,
+                                    qrisTransactionId = null,
+                                    qrisPayload = null,
+                                    qrisMerchantName = null,
+                                    qrisBranchName = null,
+                                    qrisAmount = null,
+                                    isGeneratingQris = false,
+                                    isQrisAwaitingConfirmation = false,
+                                    qrisErrorMessage = null,
                                     checkoutReceiptItems = emptyList()
                                 )
                             }
@@ -240,6 +295,15 @@ class CheckoutViewModel(
                 checkoutChangeAmount = null,
                 checkoutTotalAmount = null,
                 checkoutPaidAmount = null,
+                checkoutPaymentMethodName = null,
+                qrisTransactionId = null,
+                qrisPayload = null,
+                qrisMerchantName = null,
+                qrisBranchName = null,
+                qrisAmount = null,
+                isGeneratingQris = false,
+                isQrisAwaitingConfirmation = false,
+                qrisErrorMessage = null,
                 checkoutReceiptItems = emptyList()
             )
         }
@@ -251,7 +315,99 @@ class CheckoutViewModel(
 
     fun clear() {
         paymentMethodsLoaded = false
+        latestQrisToken = null
         _uiState.value = CheckoutUiState()
+    }
+
+    fun retryGenerateQris() {
+        val token = latestQrisToken ?: return
+        val transactionId = _uiState.value.qrisTransactionId ?: return
+        if (_uiState.value.isGeneratingQris) return
+
+        viewModelScope.launch {
+            generateQrisForTransaction(token, transactionId)
+        }
+    }
+
+    fun confirmQrisPayment() {
+        if (_uiState.value.qrisPayload.isNullOrBlank()) return
+        _uiState.update {
+            it.copy(
+                isQrisAwaitingConfirmation = false,
+                checkoutMessage = "Pembayaran QRIS diterima: "
+            )
+        }
+    }
+
+    private fun setCheckoutResult(
+        result: com.sipos.kebabsk.feature.checkout.domain.model.CheckoutResult,
+        paymentMethodName: String,
+        cartSnapshot: List<CartItem>,
+        isQrisPayment: Boolean
+    ) {
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                paidAmountInput = "",
+                noteInput = "",
+                checkoutMessage = if (isQrisPayment) null else "Pembayaran berhasil: ",
+                checkoutTransactionCode = result.transactionCode,
+                checkoutBranchAddress = result.branchAddress,
+                checkoutChangeAmount = result.changeAmount,
+                checkoutTotalAmount = result.totalAmount,
+                checkoutPaidAmount = result.paidAmount,
+                checkoutPaymentMethodName = paymentMethodName,
+                qrisTransactionId = if (isQrisPayment) result.transactionId else null,
+                qrisPayload = null,
+                qrisMerchantName = null,
+                qrisBranchName = null,
+                qrisAmount = if (isQrisPayment) result.totalAmount else null,
+                isGeneratingQris = isQrisPayment,
+                isQrisAwaitingConfirmation = isQrisPayment,
+                qrisErrorMessage = null,
+                checkoutReceiptItems = cartSnapshot,
+                errorMessage = null
+            )
+        }
+    }
+
+    private suspend fun generateQrisForTransaction(token: String, transactionId: Long) {
+        _uiState.update {
+            it.copy(isGeneratingQris = true, qrisErrorMessage = null)
+        }
+
+        checkoutRepository.generateQris(token, transactionId)
+            .onSuccess { qris ->
+                _uiState.update {
+                    it.copy(
+                        qrisPayload = qris.payload,
+                        qrisMerchantName = qris.merchantName,
+                        qrisBranchName = qris.branchName,
+                        qrisAmount = qris.amount,
+                        isGeneratingQris = false,
+                        qrisErrorMessage = null
+                    )
+                }
+            }
+            .onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        isGeneratingQris = false,
+                        qrisErrorMessage = normalizeQrisError(error.message)
+                    )
+                }
+            }
+    }
+
+    private fun normalizeQrisError(rawMessage: String?): String {
+        val message = sanitizeUserMessage(rawMessage, "QRIS belum dapat dibuat. Silakan coba lagi.")
+        return when {
+            message.contains("belum dikonfigurasi", ignoreCase = true) ->
+                "QRIS belum dikonfigurasi untuk cabang ini. Hubungi admin."
+            message.contains("tidak valid", ignoreCase = true) ->
+                "Konfigurasi QRIS cabang tidak valid. Hubungi admin."
+            else -> message
+        }
     }
 
     private fun normalizeCheckoutError(rawMessage: String?): String {
@@ -281,5 +437,9 @@ class CheckoutViewModel(
     private fun PaymentMethod.isCashPaymentMethod(): Boolean {
         return name.equals("Cash", ignoreCase = true) ||
             name.equals("Tunai", ignoreCase = true)
+    }
+
+    private fun PaymentMethod.isQrisPaymentMethod(): Boolean {
+        return name.equals("QRIS", ignoreCase = true)
     }
 }

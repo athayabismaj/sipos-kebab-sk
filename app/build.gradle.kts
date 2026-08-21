@@ -35,8 +35,8 @@ android {
         applicationId = "com.sipos.kebabsk"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -120,6 +120,7 @@ dependencies {
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp.logging.interceptor)
     implementation(libs.coil.compose)
+    implementation(libs.zxing.core)
 
     // Local catalog cache (stale-while-revalidate)
     implementation(libs.androidx.room.runtime)

@@ -56,6 +56,25 @@ data class CreateTransactionBranchData(
     @SerializedName("address") val address: String?
 )
 
+data class GenerateQrisRequest(
+    @SerializedName("transaction_id") val transactionId: Long
+)
+
+data class GenerateQrisResponse(
+    @SerializedName("success") val success: Boolean?,
+    @SerializedName("message") val message: String?,
+    @SerializedName("data") val data: GenerateQrisData?
+)
+
+data class GenerateQrisData(
+    @SerializedName("transaction_id") val transactionId: Long?,
+    @SerializedName("branch_id") val branchId: Long?,
+    @SerializedName("branch_name") val branchName: String?,
+    @SerializedName("merchant_name") val merchantName: String?,
+    @SerializedName("amount") val amount: Long?,
+    @SerializedName("qris_payload") val qrisPayload: String?
+)
+
 interface CheckoutApiService {
     @GET("payment-methods")
     suspend fun getPaymentMethods(
@@ -67,4 +86,10 @@ interface CheckoutApiService {
         @Header("Authorization") authorization: String,
         @Body request: CreateTransactionRequest
     ): Response<CreateTransactionResponse>
+
+    @POST("payments/qris/generate")
+    suspend fun generateQris(
+        @Header("Authorization") authorization: String,
+        @Body request: GenerateQrisRequest
+    ): Response<GenerateQrisResponse>
 }

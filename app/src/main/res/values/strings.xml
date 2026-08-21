@@ -96,10 +96,14 @@
     <string name="menu_stock_low">Stok Bahan Kurang</string>
     <string name="menu_inactive">Nonaktif</string>
     <string name="menu_top_cart_title">Keranjang</string>
-    <string name="menu_top_payment_title">Pembayaran Tunai</string>
+    <string name="menu_top_payment_title">Pembayaran</string>
+    <string name="menu_top_payment_cash_title">Pembayaran Tunai</string>
+    <string name="menu_top_payment_qris_title">Pembayaran QRIS</string>
     <string name="menu_top_menu_subtitle">Pilih menu untuk pelanggan</string>
     <string name="menu_top_cart_subtitle">Cek pesanan sebelum bayar</string>
-    <string name="menu_top_payment_subtitle">Masukkan uang diterima</string>
+    <string name="menu_top_payment_subtitle">Pilih metode pembayaran</string>
+    <string name="menu_top_payment_cash_subtitle">Masukkan uang diterima</string>
+    <string name="menu_top_payment_qris_subtitle">Tampilkan QRIS untuk dipindai pelanggan</string>
     <string name="menu_badge_cashier">Kasir</string>
     <string name="menu_category_selected">Kategori dipilih</string>
     <string name="menu_category_not_selected">Kategori tidak dipilih</string>

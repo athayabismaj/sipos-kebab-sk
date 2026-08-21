@@ -4,6 +4,7 @@ import com.sipos.kebabsk.feature.cart.domain.model.CartItem
 import com.sipos.kebabsk.feature.checkout.domain.model.CheckoutRequestData
 import com.sipos.kebabsk.feature.checkout.domain.model.CheckoutResult
 import com.sipos.kebabsk.feature.checkout.domain.model.PaymentMethod
+import com.sipos.kebabsk.feature.checkout.domain.model.QrisPayment
 import com.sipos.kebabsk.feature.checkout.domain.repository.CheckoutRepository
 import com.sipos.kebabsk.testutil.MainDispatcherRule
 import kotlinx.coroutines.CancellationException
@@ -41,7 +42,10 @@ class CheckoutViewModelTest {
         viewModel.loadPaymentMethods("token")
         advanceUntilIdle()
 
-        assertEquals(listOf(PaymentMethod(id = 2L, name = "Cash")), viewModel.uiState.value.paymentMethods)
+        assertEquals(
+            listOf(PaymentMethod(id = 2L, name = "Cash"), PaymentMethod(id = 1L, name = "QRIS")),
+            viewModel.uiState.value.paymentMethods
+        )
         assertEquals(2L, viewModel.uiState.value.selectedPaymentMethodId)
         assertFalse(viewModel.uiState.value.isLoading)
     }
@@ -66,7 +70,7 @@ class CheckoutViewModelTest {
     }
 
     @Test
-    fun loadPaymentMethods_filtersOnlyCashAndTunai() = runTest {
+    fun loadPaymentMethods_keepsCashTunaiAndQrisButFiltersUnsupportedMethods() = runTest {
         val fakeCheckoutRepo = FakeCheckoutRepository(
             paymentMethodsResult = Result.success(
                 listOf(
@@ -82,7 +86,7 @@ class CheckoutViewModelTest {
         viewModel.loadPaymentMethods("token")
         advanceUntilIdle()
 
-        assertEquals(listOf(2L, 4L), viewModel.uiState.value.paymentMethods.map { it.id })
+        assertEquals(listOf(2L, 4L, 1L), viewModel.uiState.value.paymentMethods.map { it.id })
         assertEquals(2L, viewModel.uiState.value.selectedPaymentMethodId)
     }
 
@@ -158,7 +162,7 @@ class CheckoutViewModelTest {
         viewModel.submitCheckout("token", sampleCart(), isDailySessionOpen = true)
         advanceUntilIdle()
 
-        assertEquals("Metode pembayaran tunai belum tersedia", viewModel.uiState.value.errorMessage)
+        assertEquals("Metode pembayaran belum tersedia", viewModel.uiState.value.errorMessage)
         assertEquals(0, fakeCheckoutRepo.createCalls)
         assertFalse(viewModel.uiState.value.isSubmitting)
         assertFalse(viewModel.uiState.value.isLoading)
@@ -267,6 +271,68 @@ class CheckoutViewModelTest {
         assertEquals(3_000L, viewModel.uiState.value.checkoutChangeAmount)
         assertFalse(viewModel.uiState.value.isSubmitting)
         assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun submitCheckout_withQris_usesExactTotalAndLoadsDynamicPayload() = runTest {
+        val fakeCheckoutRepo = FakeCheckoutRepository(
+            paymentMethodsResult = Result.success(
+                listOf(PaymentMethod(id = 1L, name = "Cash"), PaymentMethod(id = 2L, name = "QRIS"))
+            )
+        )
+        val viewModel = CheckoutViewModel(fakeCheckoutRepo)
+        var successCalls = 0
+
+        viewModel.loadPaymentMethods("token")
+        advanceUntilIdle()
+        viewModel.onPaymentMethodSelected(2L)
+        viewModel.submitCheckout("token", sampleCart(), isDailySessionOpen = true) { successCalls += 1 }
+        advanceUntilIdle()
+
+        assertEquals(12_000L, fakeCheckoutRepo.lastRequest?.paidAmount)
+        assertEquals(1, fakeCheckoutRepo.qrisCalls)
+        assertEquals(1, successCalls)
+        assertTrue(viewModel.uiState.value.isQrisAwaitingConfirmation)
+        assertEquals("DYNAMIC-QRIS-PAYLOAD", viewModel.uiState.value.qrisPayload)
+        assertEquals("SK Kebab Pekeng", viewModel.uiState.value.qrisMerchantName)
+
+        viewModel.confirmQrisPayment()
+        assertFalse(viewModel.uiState.value.isQrisAwaitingConfirmation)
+        assertEquals("QRIS", viewModel.uiState.value.checkoutPaymentMethodName)
+    }
+
+    @Test
+    fun qrisGenerationFailure_canRetryWithoutCreatingDuplicateTransaction() = runTest {
+        val fakeCheckoutRepo = FakeCheckoutRepository(
+            paymentMethodsResult = Result.success(
+                listOf(PaymentMethod(id = 1L, name = "Cash"), PaymentMethod(id = 2L, name = "QRIS"))
+            ),
+            qrisResult = Result.failure(IllegalStateException("QRIS belum dikonfigurasi untuk cabang ini."))
+        )
+        val viewModel = CheckoutViewModel(fakeCheckoutRepo)
+
+        viewModel.loadPaymentMethods("token")
+        advanceUntilIdle()
+        viewModel.onPaymentMethodSelected(2L)
+        viewModel.submitCheckout("token", sampleCart(), isDailySessionOpen = true)
+        advanceUntilIdle()
+
+        assertEquals(1, fakeCheckoutRepo.createCalls)
+        assertEquals(1, fakeCheckoutRepo.qrisCalls)
+        assertEquals(
+            "QRIS belum dikonfigurasi untuk cabang ini. Hubungi admin.",
+            viewModel.uiState.value.qrisErrorMessage
+        )
+
+        fakeCheckoutRepo.qrisResult = Result.success(
+            QrisPayment(1001L, "Pekeng", "SK Kebab Pekeng", 12_000L, "RETRIED-PAYLOAD")
+        )
+        viewModel.retryGenerateQris()
+        advanceUntilIdle()
+
+        assertEquals(1, fakeCheckoutRepo.createCalls)
+        assertEquals(2, fakeCheckoutRepo.qrisCalls)
+        assertEquals("RETRIED-PAYLOAD", viewModel.uiState.value.qrisPayload)
     }
 
     @Test
@@ -408,9 +474,19 @@ private class FakeCheckoutRepository(
     ),
     private val createDelayMs: Long = 0L,
     private val createCancellation: CancellationException? = null,
-    private val createResult: Result<CheckoutResult>? = null
+    private val createResult: Result<CheckoutResult>? = null,
+    var qrisResult: Result<QrisPayment> = Result.success(
+        QrisPayment(
+            transactionId = 1001L,
+            branchName = "Pekeng",
+            merchantName = "SK Kebab Pekeng",
+            amount = 12_000L,
+            payload = "DYNAMIC-QRIS-PAYLOAD"
+        )
+    )
 ) : CheckoutRepository {
     var createCalls: Int = 0
+    var qrisCalls: Int = 0
     var lastRequest: CheckoutRequestData? = null
 
     override suspend fun getPaymentMethods(token: String): Result<List<PaymentMethod>> {
@@ -441,5 +517,10 @@ private class FakeCheckoutRepository(
                 }
             )
         )
+    }
+
+    override suspend fun generateQris(token: String, transactionId: Long): Result<QrisPayment> {
+        qrisCalls += 1
+        return qrisResult
     }
 }

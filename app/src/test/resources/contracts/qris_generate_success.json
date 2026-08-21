@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "message": "QRIS transaksi berhasil dibuat.",
+  "data": {
+    "transaction_id": 1001,
+    "branch_id": 7,
+    "branch_name": "Pekeng",
+    "merchant_name": "SK Kebab Pekeng",
+    "amount": 10000,
+    "qris_payload": "00020101021226580014ID.CO.QRIS.WWW01189360000000000000000215204000053033605405100005802ID5915SK KEBAB PEKENG6005KUDUS6304ABCD"
+  }
+}

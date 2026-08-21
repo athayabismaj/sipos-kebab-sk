@@ -58,6 +58,18 @@ class CheckoutValidatorTest {
     }
 
     @Test
+    fun qrisUsesExactCartTotalWithoutCashInput() {
+        val result = validator.validate(
+            input(paidAmountInput = "", requiresCashAmount = false)
+        )
+
+        assertTrue(result is CheckoutValidationResult.Valid)
+        val value = (result as CheckoutValidationResult.Valid).value
+        assertEquals(12_000L, value.paidAmount)
+        assertEquals(12_000L, value.totalAmount)
+    }
+
+    @Test
     fun totalOverflowIsInvalid() {
         val result = validator.validate(
             input(
@@ -79,13 +91,15 @@ class CheckoutValidatorTest {
         cartItems: List<CartItem> = listOf(cartItem()),
         isDailySessionOpen: Boolean = true,
         paymentMethodId: Long? = 1L,
-        paidAmountInput: String = "12000"
+        paidAmountInput: String = "12000",
+        requiresCashAmount: Boolean = true
     ): CheckoutValidationInput {
         return CheckoutValidationInput(
             cartItems = cartItems,
             isDailySessionOpen = isDailySessionOpen,
             paymentMethodId = paymentMethodId,
-            paidAmountInput = paidAmountInput
+            paidAmountInput = paidAmountInput,
+            requiresCashAmount = requiresCashAmount
         )
     }
 

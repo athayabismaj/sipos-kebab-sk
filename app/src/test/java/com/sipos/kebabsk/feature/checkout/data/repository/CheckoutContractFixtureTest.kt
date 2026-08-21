@@ -4,6 +4,8 @@ import com.google.gson.Gson
 import com.sipos.kebabsk.feature.checkout.data.remote.CheckoutApiService
 import com.sipos.kebabsk.feature.checkout.data.remote.CreateTransactionRequest
 import com.sipos.kebabsk.feature.checkout.data.remote.CreateTransactionResponse
+import com.sipos.kebabsk.feature.checkout.data.remote.GenerateQrisRequest
+import com.sipos.kebabsk.feature.checkout.data.remote.GenerateQrisResponse
 import com.sipos.kebabsk.feature.checkout.data.remote.PaymentMethodsResponse
 import com.sipos.kebabsk.feature.checkout.domain.model.CheckoutRequestData
 import com.sipos.kebabsk.feature.checkout.domain.model.CheckoutItemInput
@@ -80,7 +82,7 @@ class CheckoutContractFixtureTest {
     }
 
     @Test
-    fun paymentMethodFixtureMapsCashWithLongId() = runTest {
+    fun paymentMethodFixtureMapsCashAndQrisWithLongIds() = runTest {
         val paymentBody = gson.fromJson(
             ContractFixtureLoader.jsonObject("payment_methods_success.json"),
             PaymentMethodsResponse::class.java
@@ -90,9 +92,25 @@ class CheckoutContractFixtureTest {
         val methods = CheckoutRepositoryImpl(api).getPaymentMethods("fixture-token").getOrThrow()
 
         assertEquals("Bearer fixture-token", api.paymentAuthorization)
-        assertEquals(1, methods.size)
-        assertEquals(1L, methods.single().id)
-        assertEquals("Cash", methods.single().name)
+        assertEquals(listOf(1L, 2L), methods.map { it.id })
+        assertEquals(listOf("Cash", "QRIS"), methods.map { it.name })
+    }
+
+    @Test
+    fun qrisGenerateFixtureMapsDynamicPayloadAndAmount() = runTest {
+        val qrisBody = gson.fromJson(
+            ContractFixtureLoader.jsonObject("qris_generate_success.json"),
+            GenerateQrisResponse::class.java
+        )
+        val api = FixtureCheckoutApiService(qrisBody = qrisBody)
+
+        val qris = CheckoutRepositoryImpl(api).generateQris("fixture-token", 1001L).getOrThrow()
+
+        assertEquals("Bearer fixture-token", api.qrisAuthorization)
+        assertEquals(1001L, api.qrisRequest?.transactionId)
+        assertEquals("SK Kebab Pekeng", qris.merchantName)
+        assertEquals(10_000L, qris.amount)
+        assertTrue(qris.payload.startsWith("000201010212"))
     }
 
     private fun fixtureResponse(name: String): CreateTransactionResponse {
@@ -111,11 +129,14 @@ private class FixtureCheckoutApiService(
     private val successBody: CreateTransactionResponse? = null,
     private val errorFixture: String? = null,
     private val errorCode: Int = 422,
-    private val paymentMethodsBody: PaymentMethodsResponse? = null
+    private val paymentMethodsBody: PaymentMethodsResponse? = null,
+    private val qrisBody: GenerateQrisResponse? = null
 ) : CheckoutApiService {
     var authorization: String? = null
     var paymentAuthorization: String? = null
     var request: CreateTransactionRequest? = null
+    var qrisAuthorization: String? = null
+    var qrisRequest: GenerateQrisRequest? = null
 
     override suspend fun createTransaction(
         authorization: String,
@@ -131,5 +152,14 @@ private class FixtureCheckoutApiService(
     override suspend fun getPaymentMethods(authorization: String): Response<PaymentMethodsResponse> {
         paymentAuthorization = authorization
         return Response.success(requireNotNull(paymentMethodsBody))
+    }
+
+    override suspend fun generateQris(
+        authorization: String,
+        request: GenerateQrisRequest
+    ): Response<GenerateQrisResponse> {
+        qrisAuthorization = authorization
+        qrisRequest = request
+        return Response.success(requireNotNull(qrisBody))
     }
 }

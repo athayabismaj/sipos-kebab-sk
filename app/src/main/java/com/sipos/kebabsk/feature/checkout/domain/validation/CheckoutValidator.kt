@@ -10,7 +10,8 @@ data class CheckoutValidationInput(
     val isDailySessionOpen: Boolean,
     val isDailySessionStatusKnown: Boolean = true,
     val paymentMethodId: Long?,
-    val paidAmountInput: String
+    val paidAmountInput: String,
+    val requiresCashAmount: Boolean = true
 )
 
 data class CheckoutValidationSuccess(
@@ -44,17 +45,21 @@ class CheckoutValidator(
         }
 
         val paymentMethodId = input.paymentMethodId
-            ?: return CheckoutValidationResult.Invalid("Metode pembayaran tunai belum tersedia")
+            ?: return CheckoutValidationResult.Invalid("Metode pembayaran belum tersedia")
 
-        val paidAmount = MoneyUtils.parseRupiahInput(input.paidAmountInput)
-            ?: return CheckoutValidationResult.Invalid("Nominal pembayaran tidak valid.")
+        val totalAmount = cartValidator.calculateTotal(input.cartItems)
+            ?: return CheckoutValidationResult.Invalid("Total keranjang terlalu besar. Silakan periksa kembali.")
+
+        val paidAmount = if (input.requiresCashAmount) {
+            MoneyUtils.parseRupiahInput(input.paidAmountInput)
+                ?: return CheckoutValidationResult.Invalid("Nominal pembayaran tidak valid.")
+        } else {
+            totalAmount
+        }
 
         if (paidAmount <= 0L) {
             return CheckoutValidationResult.Invalid("Nominal pembayaran tidak valid.")
         }
-
-        val totalAmount = cartValidator.calculateTotal(input.cartItems)
-            ?: return CheckoutValidationResult.Invalid("Total keranjang terlalu besar. Silakan periksa kembali.")
 
         if (paidAmount < totalAmount) {
             return CheckoutValidationResult.Invalid("Nominal pembayaran kurang. Silakan periksa kembali.")

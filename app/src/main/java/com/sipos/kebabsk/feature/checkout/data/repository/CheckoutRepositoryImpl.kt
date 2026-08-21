@@ -6,9 +6,11 @@ import com.sipos.kebabsk.common.suspendRunCatching
 import com.sipos.kebabsk.feature.checkout.data.remote.CheckoutApiService
 import com.sipos.kebabsk.feature.checkout.data.remote.CreateTransactionItemRequest
 import com.sipos.kebabsk.feature.checkout.data.remote.CreateTransactionRequest
+import com.sipos.kebabsk.feature.checkout.data.remote.GenerateQrisRequest
 import com.sipos.kebabsk.feature.checkout.domain.model.CheckoutRequestData
 import com.sipos.kebabsk.feature.checkout.domain.model.CheckoutResult
 import com.sipos.kebabsk.feature.checkout.domain.model.PaymentMethod
+import com.sipos.kebabsk.feature.checkout.domain.model.QrisPayment
 import com.sipos.kebabsk.feature.checkout.domain.repository.CheckoutRepository
 import java.net.ConnectException
 import java.net.SocketTimeoutException
@@ -70,6 +72,43 @@ class CheckoutRepositoryImpl(
                 totalAmount = data.totalAmount ?: 0L,
                 paidAmount = data.paidAmount ?: 0L,
                 changeAmount = data.changeAmount ?: 0L
+            )
+        }.recoverCatching { throwable ->
+            throw IllegalStateException(mapNetworkError(throwable))
+        }
+    }
+
+    override suspend fun generateQris(token: String, transactionId: Long): Result<QrisPayment> {
+        return suspendRunCatching {
+            val response = retryNetworkRequest {
+                checkoutApiService.generateQris(
+                    authorization = "Bearer $token",
+                    request = GenerateQrisRequest(transactionId)
+                )
+            }
+            val body = response.body()
+            val data = body?.data
+
+            if (!response.isSuccessful || body?.success != true || data == null) {
+                val rawError = response.errorBody()?.string()
+                throw IllegalStateException(
+                    extractErrorMessage(rawError)
+                        ?: body?.message
+                        ?: "QRIS transaksi belum dapat dibuat. Silakan coba lagi."
+                )
+            }
+
+            val payload = data.qrisPayload?.trim().orEmpty()
+            if (payload.isBlank()) {
+                throw IllegalStateException("Payload QRIS dari server kosong.")
+            }
+
+            QrisPayment(
+                transactionId = data.transactionId ?: transactionId,
+                branchName = data.branchName?.trim().orEmpty(),
+                merchantName = data.merchantName?.trim().orEmpty(),
+                amount = data.amount ?: 0L,
+                payload = payload
             )
         }.recoverCatching { throwable ->
             throw IllegalStateException(mapNetworkError(throwable))

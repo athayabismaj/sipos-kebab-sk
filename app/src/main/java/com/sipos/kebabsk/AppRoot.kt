@@ -114,6 +114,8 @@ fun AuthRoot(
     onPaidAmountChanged: (String) -> Unit,
     onNoteChanged: (String) -> Unit,
     onSubmitCheckout: (token: String, cartItems: List<CartItem>, isDailySessionOpen: Boolean, isDailySessionStatusKnown: Boolean) -> Unit,
+    onRetryQris: () -> Unit,
+    onConfirmQrisPayment: () -> Unit,
     onDismissCheckoutPreview: () -> Unit,
     onClearCheckoutMessage: () -> Unit
 ) {
@@ -204,6 +206,8 @@ fun AuthRoot(
             onPaidAmountChanged = onPaidAmountChanged,
             onNoteChanged = onNoteChanged,
             onSubmitCheckout = onSubmitCheckout,
+            onRetryQris = onRetryQris,
+            onConfirmQrisPayment = onConfirmQrisPayment,
             onDismissCheckoutPreview = onDismissCheckoutPreview,
             onClearCheckoutMessage = onClearCheckoutMessage
         )
@@ -234,6 +238,8 @@ private fun AppScaffold(
     onPaidAmountChanged: (String) -> Unit,
     onNoteChanged: (String) -> Unit,
     onSubmitCheckout: (token: String, cartItems: List<CartItem>, isDailySessionOpen: Boolean, isDailySessionStatusKnown: Boolean) -> Unit,
+    onRetryQris: () -> Unit,
+    onConfirmQrisPayment: () -> Unit,
     onDismissCheckoutPreview: () -> Unit,
     onClearCheckoutMessage: () -> Unit
 ) {
@@ -338,6 +344,8 @@ private fun AppScaffold(
                                     isDashboardDailySessionStatusKnown
                                 )
                             },
+                            onRetryQris = onRetryQris,
+                            onConfirmQrisPayment = onConfirmQrisPayment,
                             onDismissCheckoutPreview = onDismissCheckoutPreview,
                             onClearCheckoutMessage = onClearCheckoutMessage
                         )
