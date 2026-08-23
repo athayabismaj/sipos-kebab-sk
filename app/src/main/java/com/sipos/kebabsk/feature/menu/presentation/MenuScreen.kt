@@ -444,13 +444,7 @@ private fun MenuTopBar(
                             )
                         }
                     } else {
-                        IconButton(
-                            onClick = onBack,
-                            modifier = Modifier
-                                .size(38.dp)
-                                .clip(CircleShape)
-                                .background(KebabPrimary.copy(alpha = 0.10f))
-                        ) {
+                        IconButton(onClick = onBack) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = stringResource(R.string.action_back),

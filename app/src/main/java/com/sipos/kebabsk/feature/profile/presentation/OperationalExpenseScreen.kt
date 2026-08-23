@@ -22,9 +22,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Card
@@ -48,8 +46,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -59,12 +55,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sipos.kebabsk.feature.expense.presentation.OperationalExpenseUiState
 import com.sipos.kebabsk.ui.theme.KebabBg
-import com.sipos.kebabsk.ui.theme.KebabCardBg
 import com.sipos.kebabsk.ui.theme.KebabDivider
 import com.sipos.kebabsk.ui.theme.KebabErrorText
 import com.sipos.kebabsk.ui.theme.KebabInputBg
 import com.sipos.kebabsk.ui.theme.KebabPrimary
-import com.sipos.kebabsk.ui.theme.KebabPrimaryContainer
 import com.sipos.kebabsk.ui.theme.KebabSuccessBannerBg
 import com.sipos.kebabsk.ui.theme.KebabSuccessBannerBorder
 import com.sipos.kebabsk.ui.theme.KebabSuccessBannerIcon
@@ -101,8 +95,8 @@ fun OperationalExpenseScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             // --- SUCCESS BANNER ---
             if (!uiState.successMessage.isNullOrBlank()) {
@@ -112,7 +106,7 @@ fun OperationalExpenseScreen(
                         .clip(RoundedCornerShape(12.dp))
                         .background(KebabSuccessBannerBg)
                         .border(1.dp, KebabSuccessBannerBorder, RoundedCornerShape(12.dp))
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -122,7 +116,7 @@ fun OperationalExpenseScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(28.dp)
+                                .size(24.dp)
                                 .clip(CircleShape)
                                 .background(KebabSuccessBannerBorder.copy(alpha = 0.5f)),
                             contentAlignment = Alignment.Center
@@ -131,13 +125,13 @@ fun OperationalExpenseScreen(
                                 Icons.Default.CheckCircle,
                                 contentDescription = null,
                                 tint = KebabSuccessBannerIcon,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = uiState.successMessage.orEmpty(),
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = KebabSuccessBannerText
                         )
@@ -153,19 +147,19 @@ fun OperationalExpenseScreen(
                         .clip(RoundedCornerShape(12.dp))
                         .background(KebabErrorText.copy(alpha = 0.05f))
                         .border(1.dp, KebabErrorText.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         Icons.Default.Info,
                         contentDescription = null,
                         tint = KebabErrorText,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = uiState.errorMessage.orEmpty(),
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                         color = KebabErrorText
                     )
@@ -176,26 +170,25 @@ fun OperationalExpenseScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(4.dp, RoundedCornerShape(26.dp), spotColor = Color.Black.copy(alpha = 0.04f))
-                    .border(1.dp, KebabDivider.copy(alpha = 0.18f), RoundedCornerShape(26.dp)),
-                shape = RoundedCornerShape(26.dp),
+                    .border(1.dp, KebabDivider, RoundedCornerShape(18.dp)),
+                shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
                             text = "Catat Pengeluaran",
-                            fontSize = 20.sp,
+                            fontSize = 17.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = KebabTextDark
                         )
                         Text(
                             text = "Masukkan biaya operasional outlet hari ini.",
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             color = KebabTextGray,
                             lineHeight = 18.sp
@@ -205,11 +198,11 @@ fun OperationalExpenseScreen(
                     // Nominal
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            text = "NOMINAL (RP)",
+                            text = "Nominal",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = KebabTextGray,
-                            letterSpacing = 1.sp
+                            letterSpacing = 0.sp
                         )
                         NominalCustomInput(
                             value = uiState.amountInput,
@@ -221,11 +214,11 @@ fun OperationalExpenseScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "KATEGORI / SUMBER",
+                                text = "Kategori",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = KebabTextGray,
-                                letterSpacing = 1.sp
+                                letterSpacing = 0.sp
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Icon(
@@ -253,13 +246,13 @@ fun OperationalExpenseScreen(
                                 colors = TextFieldDefaults.colors(
                                     unfocusedContainerColor = KebabInputBg,
                                     focusedContainerColor = KebabInputBg,
-                                    unfocusedIndicatorColor = KebabDivider.copy(alpha = 0.55f),
+                                    unfocusedIndicatorColor = KebabDivider,
                                     focusedIndicatorColor = KebabPrimary,
                                     focusedTextColor = KebabTextDark,
                                     unfocusedTextColor = KebabTextDark,
                                     cursorColor = KebabPrimary
                                 ),
-                                shape = RoundedCornerShape(18.dp)
+                                shape = RoundedCornerShape(14.dp)
                             )
                             ExposedDropdownMenu(
                                 expanded = expandedDropdown,
@@ -282,11 +275,11 @@ fun OperationalExpenseScreen(
                     // Catatan
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            text = "CATATAN (OPSIONAL)",
+                            text = "Catatan (opsional)",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = KebabTextGray,
-                            letterSpacing = 1.sp
+                            letterSpacing = 0.sp
                         )
                         OutlinedTextField(
                             value = uiState.noteInput,
@@ -304,13 +297,13 @@ fun OperationalExpenseScreen(
                             colors = TextFieldDefaults.colors(
                                 unfocusedContainerColor = KebabInputBg,
                                 focusedContainerColor = KebabInputBg,
-                                unfocusedIndicatorColor = KebabDivider.copy(alpha = 0.55f),
+                                unfocusedIndicatorColor = KebabDivider,
                                 focusedIndicatorColor = KebabPrimary,
                                 focusedTextColor = KebabTextDark,
                                 unfocusedTextColor = KebabTextDark,
                                 cursorColor = KebabPrimary
                             ),
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(14.dp),
                             maxLines = 4
                         )
                     }
@@ -321,17 +314,11 @@ fun OperationalExpenseScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(58.dp)
-                            .shadow(
-                                8.dp,
-                                RoundedCornerShape(18.dp),
-                                spotColor = KebabPrimaryContainer
-                            )
-                            .clip(RoundedCornerShape(18.dp))
+                            .height(50.dp)
+                            .clip(RoundedCornerShape(14.dp))
                             .background(
-                                Brush.horizontalGradient(
-                                    listOf(KebabPrimary, KebabPrimaryContainer)
-                                )
+                                if (uiState.isSaving) KebabPrimary.copy(alpha = 0.58f)
+                                else KebabPrimary
                             )
                             .then(
                                 if (uiState.isSaving) Modifier
@@ -358,7 +345,7 @@ fun OperationalExpenseScreen(
                                     text = "Simpan Pengeluaran",
                                     color = Color.White,
                                     fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 16.sp
+                                    fontSize = 14.sp
                                 )
                             }
                         }
@@ -378,17 +365,11 @@ private fun ExpensesTopBar(onBack: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .background(KebabBg)
-            .padding(horizontal = 20.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier
-                .clip(RoundedCornerShape(16.dp))
-                .background(Color.White)
-                .border(1.dp, KebabPrimary.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
-        ) {
+        IconButton(onClick = onBack) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Kembali",
@@ -399,13 +380,13 @@ private fun ExpensesTopBar(onBack: () -> Unit) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "Pengeluaran",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.ExtraBold,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
                 color = KebabTextDark
             )
             Text(
                 text = "Biaya operasional",
-                fontSize = 12.sp,
+                fontSize = 10.sp,
                 fontWeight = FontWeight.Medium,
                 color = KebabTextGray
             )
@@ -421,10 +402,10 @@ private fun NominalCustomInput(value: String, onValueChange: (String) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(64.dp)
-            .clip(RoundedCornerShape(18.dp))
+            .height(58.dp)
+            .clip(RoundedCornerShape(14.dp))
             .background(KebabInputBg)
-            .border(1.dp, KebabDivider.copy(alpha = 0.55f), RoundedCornerShape(18.dp))
+            .border(1.dp, KebabDivider, RoundedCornerShape(14.dp))
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

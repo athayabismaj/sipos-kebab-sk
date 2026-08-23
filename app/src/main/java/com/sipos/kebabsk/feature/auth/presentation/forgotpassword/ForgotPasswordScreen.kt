@@ -25,7 +25,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -37,11 +36,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import com.sipos.kebabsk.R
 import com.sipos.kebabsk.ui.theme.*
-
-// Tambahan warna lokal yang dibutuhkan desain baru
-val KebabStepInactiveBg = Color(0xFFE7E1DD)
-val KebabYellowActive = Color(0xFFFFBF00)
-val KebabInputActiveBg = Color(0xFFFFFFFF)
 
 @Composable
 fun ForgotPasswordScreen(
@@ -59,7 +53,7 @@ fun ForgotPasswordScreen(
     val scrollState = rememberScrollState()
 
     Scaffold(
-        containerColor = Color(0xFFFFF9F4),
+        containerColor = KebabBg,
         modifier = modifier
             .fillMaxSize()
             .systemBarsPadding()
@@ -70,7 +64,7 @@ fun ForgotPasswordScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = 20.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -219,7 +213,7 @@ fun ForgotPasswordScreen(
                                     .fillMaxWidth()
                                     .padding(top = 18.dp)
                                     .clip(RoundedCornerShape(14.dp))
-                                    .background(Color(0xFFF6F0EA))
+                                    .background(KebabInputBg)
                                     .padding(horizontal = 14.dp, vertical = 12.dp),
                                 verticalAlignment = Alignment.Top
                             ) {
@@ -258,8 +252,8 @@ fun ForgotPasswordScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     StatusMessageBox(
                         text = uiState.errorMessage,
-                        containerColor = Color(0xFFFFEDEA),
-                        textColor = MaterialTheme.colorScheme.error
+                        containerColor = KebabErrorBg,
+                        textColor = KebabErrorText
                     )
                 }
 
@@ -278,25 +272,19 @@ fun ForgotPasswordScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color.Transparent, KebabBg, KebabBg)
-                        )
-                    )
+                    .background(KebabBg)
                     .padding(top = 10.dp, bottom = 18.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
-                        .shadow(
-                            6.dp,
-                            RoundedCornerShape(16.dp),
-                            spotColor = KebabPrimaryContainer.copy(alpha = 0.45f)
+                        .height(52.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            if (uiState.isLoading) KebabPrimary.copy(alpha = 0.58f)
+                            else KebabPrimary
                         )
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(if (uiState.isLoading) Brush.horizontalGradient(listOf(KebabPrimary.copy(alpha=0.6f), KebabPrimaryContainer.copy(alpha=0.6f))) else Brush.horizontalGradient(listOf(KebabPrimary, KebabPrimaryContainer)))
                         .clickable(enabled = !uiState.isLoading) {
                             when (uiState.step) {
                                 ForgotPasswordStep.REQUEST -> onRequestReset()
@@ -368,18 +356,12 @@ fun TopBarSecurityCheck(onBack: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFFFFF9F4))
+            .background(KebabBg)
             .padding(horizontal = 16.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier
-                .clip(RoundedCornerShape(16.dp))
-                .background(Color.White)
-                .border(1.dp, KebabPrimary.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
-        ) {
+        IconButton(onClick = onBack) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = stringResource(R.string.action_back),
@@ -417,8 +399,8 @@ private fun ForgotStepHeader(
     ) {
         Box(
             modifier = Modifier
-                .size(54.dp)
-                .clip(RoundedCornerShape(18.dp))
+                .size(48.dp)
+                .clip(RoundedCornerShape(14.dp))
                 .background(
                     if (success) KebabSuccessBg else KebabPrimary.copy(alpha = 0.10f)
                 ),
@@ -428,7 +410,7 @@ private fun ForgotStepHeader(
                 icon,
                 contentDescription = null,
                 tint = if (success) KebabSuccess else KebabPrimary,
-                modifier = Modifier.size(27.dp)
+                modifier = Modifier.size(24.dp)
             )
         }
         Spacer(modifier = Modifier.width(14.dp))
@@ -459,19 +441,19 @@ private fun RecoveryContentCard(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 6.dp,
-                shape = RoundedCornerShape(24.dp),
-                ambientColor = KebabPrimary.copy(alpha = 0.06f),
-                spotColor = KebabPrimary.copy(alpha = 0.10f)
+                elevation = 3.dp,
+                shape = RoundedCornerShape(20.dp),
+                ambientColor = Color.Black.copy(alpha = 0.04f),
+                spotColor = Color.Black.copy(alpha = 0.06f)
             )
-            .clip(RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(Color.White)
             .border(
                 width = 1.dp,
-                color = Color(0xFFF1E5DA),
-                shape = RoundedCornerShape(24.dp)
+                color = KebabDivider,
+                shape = RoundedCornerShape(20.dp)
             )
-            .padding(horizontal = 20.dp, vertical = 22.dp),
+            .padding(horizontal = 18.dp, vertical = 20.dp),
         content = content
     )
 }
@@ -541,10 +523,10 @@ private fun ForgotPasswordInput(
 @Composable
 private fun recoveryFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedContainerColor = Color.White,
-    unfocusedContainerColor = Color(0xFFFAF6F2),
-    disabledContainerColor = Color(0xFFF5F0EC),
+    unfocusedContainerColor = KebabInputBg,
+    disabledContainerColor = KebabInputBg.copy(alpha = 0.65f),
     focusedBorderColor = KebabPrimary,
-    unfocusedBorderColor = Color(0xFFE8D8CB),
+    unfocusedBorderColor = KebabDivider,
     cursorColor = KebabPrimary
 )
 
@@ -584,9 +566,9 @@ fun StepperSecurityCheck(currentStep: ForgotPasswordStep) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(Color.White.copy(alpha = 0.72f))
-            .border(1.dp, Color(0xFFF1E5DA), RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.White)
+            .border(1.dp, KebabDivider, RoundedCornerShape(16.dp))
             .padding(horizontal = 14.dp, vertical = 14.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -627,13 +609,13 @@ enum class StepStatus { INACTIVE, ACTIVE, COMPLETED }
 fun StepIconIndicator(number: String, label: String, status: StepStatus) {
     val boxBg = when (status) {
         StepStatus.COMPLETED -> KebabPrimary
-        StepStatus.ACTIVE -> if (number == "1") KebabPrimary else KebabYellowActive
-        StepStatus.INACTIVE -> KebabBg
+        StepStatus.ACTIVE -> KebabPrimary
+        StepStatus.INACTIVE -> KebabInputBg
     }
     
     val textColor = when (status) {
         StepStatus.COMPLETED -> Color.White
-        StepStatus.ACTIVE -> if (number == "1") Color.White else KebabTextDark
+        StepStatus.ACTIVE -> Color.White
         StepStatus.INACTIVE -> KebabTextGray.copy(alpha = 0.6f)
     }
 
@@ -647,25 +629,20 @@ fun StepIconIndicator(number: String, label: String, status: StepStatus) {
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.background(Color(0xFFFFFCFA))
+        modifier = Modifier.background(Color.White)
     ) {
         Box(
             modifier = Modifier
                 .size(32.dp)
                 .clip(CircleShape)
                 .background(boxBg)
-                .border(4.dp, Color(0xFFFFFCFA), CircleShape),
+                .border(3.dp, Color.White, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             if (status == StepStatus.COMPLETED) {
                 Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
             } else {
-                if (status == StepStatus.INACTIVE) {
-                    Box(modifier = Modifier.matchParentSize().background(KebabDivider))
-                    Text(text = number, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = textColor)
-                } else {
-                    Text(text = number, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = textColor)
-                }
+                Text(text = number, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = textColor)
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
@@ -711,7 +688,7 @@ fun OtpBox(
     isFocused: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val bgColor = if (isFocused) KebabInputActiveBg else KebabInputBg
+    val bgColor = if (isFocused) Color.White else KebabInputBg
     val borderColor = if (isFocused) KebabPrimary else KebabDivider.copy(alpha = 0.35f)
 
     Box(

@@ -15,46 +15,40 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Inventory
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockReset
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.outlined.AccountCircle
-import androidx.compose.material.icons.outlined.Logout
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sipos.kebabsk.ui.theme.KebabBg
-import com.sipos.kebabsk.ui.theme.KebabCardBg
+import com.sipos.kebabsk.ui.theme.KebabDivider
 import com.sipos.kebabsk.ui.theme.KebabErrorBg
 import com.sipos.kebabsk.ui.theme.KebabErrorIconBg
 import com.sipos.kebabsk.ui.theme.KebabErrorText
 import com.sipos.kebabsk.ui.theme.KebabIconBg
+import com.sipos.kebabsk.ui.theme.KebabInputBg
 import com.sipos.kebabsk.ui.theme.KebabItemBg
 import com.sipos.kebabsk.ui.theme.KebabPrimary
-import com.sipos.kebabsk.ui.theme.KebabPrimaryContainer
 import com.sipos.kebabsk.ui.theme.KebabTextDark
 import com.sipos.kebabsk.ui.theme.KebabTextGray
 
@@ -91,33 +85,27 @@ fun ProfileScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(72.dp)
-                    .padding(horizontal = 20.dp),
+                    .height(64.dp)
+                    .padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
                     Text(
                         text = "Profil",
-                        fontSize = 24.sp,
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = KebabTextDark
                     )
                     Text(
                         text = "Akun dan operasional kasir",
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                         color = KebabTextGray
                     )
                 }
 
-                IconButton(
-                    onClick = onEditProfile,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White)
-                        .border(1.dp, KebabPrimary.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
-                ) {
+                IconButton(onClick = onEditProfile) {
                     Icon(
                         Icons.Outlined.AccountCircle,
                         contentDescription = "Edit profil",
@@ -131,22 +119,17 @@ fun ProfileScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(scrollState)
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
             // === KARTU PROFIL ===
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(
-                        elevation = 8.dp,
-                        shape = RoundedCornerShape(24.dp),
-                        spotColor = Color.Black.copy(alpha = 0.06f)
-                    )
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(Brush.linearGradient(listOf(Color.White, Color(0xFFFFF8F2))))
-                    .border(1.dp, Color.White, RoundedCornerShape(28.dp))
-                    .padding(22.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color.White)
+                    .border(1.dp, KebabDivider, RoundedCornerShape(18.dp))
+                    .padding(16.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -154,18 +137,16 @@ fun ProfileScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(82.dp)
-                            .background(Color.White, CircleShape)
-                            .padding(4.dp)
-                            .clip(CircleShape)
-                            .background(Brush.linearGradient(listOf(KebabPrimary, KebabPrimaryContainer))),
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(KebabInputBg),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Default.Person,
                             contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(42.dp)
+                            tint = KebabPrimary,
+                            modifier = Modifier.size(28.dp)
                         )
                     }
 
@@ -174,12 +155,12 @@ fun ProfileScreen(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = displayName,
-                            fontSize = 22.sp,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = KebabTextDark,
                             lineHeight = 26.sp
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -187,21 +168,21 @@ fun ProfileScreen(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(50))
-                                    .background(KebabPrimary.copy(alpha = 0.1f))
-                                    .padding(horizontal = 10.dp, vertical = 5.dp)
+                                    .background(KebabInputBg)
+                                    .padding(horizontal = 9.dp, vertical = 4.dp)
                             ) {
                                 Text(
                                     text = role?.uppercase() ?: "KASIR",
-                                    fontSize = 11.sp,
+                                    fontSize = 10.sp,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = KebabPrimary
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = username.ifBlank { email },
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             color = KebabTextGray
                         )
@@ -264,13 +245,14 @@ fun ProfileScreen(
 
 @Composable
 private fun MenuSection(title: String, content: @Composable () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = title,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.ExtraBold,
             color = KebabTextGray,
-            modifier = Modifier.padding(horizontal = 8.dp)
+            letterSpacing = 0.4.sp,
+            modifier = Modifier.padding(horizontal = 2.dp)
         )
         content()
     }
@@ -291,22 +273,26 @@ private fun ProfilMenuItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(
-                elevation = if (containerColor == KebabItemBg) 1.dp else 0.dp,
-                shape = RoundedCornerShape(18.dp),
-                spotColor = Color.Black.copy(alpha = 0.04f)
-            )
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(14.dp))
             .background(containerColor)
+            .border(
+                width = 1.dp,
+                color = if (textColor == KebabErrorText) {
+                    KebabErrorText.copy(alpha = 0.16f)
+                } else {
+                    KebabDivider
+                },
+                shape = RoundedCornerShape(14.dp)
+            )
             .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 12.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Ikon dalam lingkaran
         Box(
             modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
+                .size(36.dp)
+                .clip(RoundedCornerShape(10.dp))
                 .background(iconBgColor),
             contentAlignment = Alignment.Center
         ) {
@@ -314,16 +300,16 @@ private fun ProfilMenuItem(
                 imageVector = icon,
                 contentDescription = null,
                 tint = iconTint,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(18.dp)
             )
         }
 
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                fontSize = 16.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 color = textColor
             )
@@ -331,7 +317,7 @@ private fun ProfilMenuItem(
                 Spacer(modifier = Modifier.height(3.dp))
                 Text(
                     text = subtitle,
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
                     color = if (textColor == KebabErrorText) KebabErrorText.copy(alpha = 0.72f) else KebabTextGray,
                     lineHeight = 16.sp
@@ -343,7 +329,7 @@ private fun ProfilMenuItem(
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = Color(0xFFDDC1AE)
+                tint = KebabTextGray.copy(alpha = 0.55f)
             )
         }
     }

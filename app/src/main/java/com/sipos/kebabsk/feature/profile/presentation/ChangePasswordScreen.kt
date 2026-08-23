@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -44,8 +43,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -54,12 +51,12 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sipos.kebabsk.ui.theme.KebabBg
-import com.sipos.kebabsk.ui.theme.KebabCardBg
 import com.sipos.kebabsk.ui.theme.KebabDivider
 import com.sipos.kebabsk.ui.theme.KebabErrorText
 import com.sipos.kebabsk.ui.theme.KebabInputBg
 import com.sipos.kebabsk.ui.theme.KebabPrimary
-import com.sipos.kebabsk.ui.theme.KebabPrimaryContainer
+import com.sipos.kebabsk.ui.theme.KebabSuccess
+import com.sipos.kebabsk.ui.theme.KebabSuccessBg
 import com.sipos.kebabsk.ui.theme.KebabTextDark
 import com.sipos.kebabsk.ui.theme.KebabTextGray
 
@@ -95,8 +92,8 @@ fun ChangePasswordScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             // --- HEADER & BANNERS ---
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -106,21 +103,21 @@ fun ChangePasswordScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(KebabPrimary.copy(alpha = 0.05f))
-                            .border(1.dp, KebabPrimary.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
-                            .padding(16.dp),
+                            .background(KebabSuccessBg)
+                            .border(1.dp, KebabSuccess.copy(alpha = 0.22f), RoundedCornerShape(12.dp))
+                            .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
                             Icons.Default.CheckCircle,
                             contentDescription = null,
-                            tint = KebabPrimary,
-                            modifier = Modifier.size(24.dp)
+                            tint = KebabSuccess,
+                            modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = successMessage,
-                            fontSize = 14.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = KebabTextDark
                         )
@@ -157,26 +154,22 @@ fun ChangePasswordScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .shadow(4.dp, RoundedCornerShape(26.dp), spotColor = Color.Black.copy(alpha = 0.04f))
-                        .clip(RoundedCornerShape(26.dp))
-                        .background(Color.White)
-                        .border(1.dp, KebabDivider.copy(alpha = 0.18f), RoundedCornerShape(26.dp))
-                        .padding(20.dp)
+                        .padding(horizontal = 2.dp, vertical = 4.dp)
                 ) {
                     Column {
                         Text(
                             text = "Perbarui Akses Akun",
-                            fontSize = 22.sp,
+                            fontSize = 17.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = KebabTextDark
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = "Gunakan kata sandi yang mudah Anda ingat, tetapi sulit ditebak orang lain.",
-                            fontSize = 14.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             color = KebabTextGray,
-                            lineHeight = 20.sp
+                            lineHeight = 17.sp
                         )
                     }
                 }
@@ -186,19 +179,18 @@ fun ChangePasswordScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(4.dp, RoundedCornerShape(26.dp), spotColor = Color.Black.copy(alpha = 0.04f))
-                    .border(1.dp, KebabDivider.copy(alpha = 0.18f), RoundedCornerShape(26.dp)),
-                shape = RoundedCornerShape(26.dp),
+                    .border(1.dp, KebabDivider, RoundedCornerShape(18.dp)),
+                shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(18.dp)
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     // Current Password
                     PasswordInputField(
-                        label = "KATA SANDI SAAT INI",
+                        label = "Kata sandi saat ini",
                         value = currentPassword,
                         onValueChange = { currentPassword = it },
                         placeholder = "Masukkan sandi saat ini",
@@ -214,7 +206,7 @@ fun ChangePasswordScreen(
 
                     // New Password
                     PasswordInputField(
-                        label = "KATA SANDI BARU",
+                        label = "Kata sandi baru",
                         value = newPassword,
                         onValueChange = { newPassword = it },
                         placeholder = "Masukkan sandi baru",
@@ -224,7 +216,7 @@ fun ChangePasswordScreen(
 
                     // Confirm Password
                     PasswordInputField(
-                        label = "KONFIRMASI KATA SANDI BARU",
+                        label = "Konfirmasi kata sandi baru",
                         value = confirmPassword,
                         onValueChange = { confirmPassword = it },
                         placeholder = "Ketik ulang sandi baru",
@@ -236,23 +228,23 @@ fun ChangePasswordScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(KebabPrimary.copy(alpha = 0.08f))
-                            .padding(16.dp),
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(KebabInputBg)
+                            .padding(12.dp),
                         verticalAlignment = Alignment.Top
                     ) {
                         Icon(
                             Icons.Default.Info,
                             contentDescription = null,
                             tint = KebabPrimary,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "Kata sandi baru harus terdiri dari minimal 8 karakter, mengandung setidaknya satu huruf besar, satu huruf kecil, dan satu angka.",
-                            fontSize = 12.sp,
+                            text = "Minimal 8 karakter dengan huruf besar, huruf kecil, dan angka.",
+                            fontSize = 11.sp,
                             color = KebabTextGray,
-                            lineHeight = 18.sp
+                            lineHeight = 16.sp
                         )
                     }
 
@@ -262,18 +254,9 @@ fun ChangePasswordScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(58.dp)
-                            .shadow(
-                                8.dp,
-                                RoundedCornerShape(18.dp),
-                                spotColor = Color.Black.copy(alpha = 0.06f)
-                            )
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(
-                                Brush.horizontalGradient(
-                                    listOf(KebabPrimary, KebabPrimaryContainer)
-                                )
-                            )
+                            .height(50.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(if (isSaving) KebabPrimary.copy(alpha = 0.58f) else KebabPrimary)
                             .then(
                                 if (isSaving) Modifier
                                 else Modifier.clickable {
@@ -301,7 +284,7 @@ fun ChangePasswordScreen(
                                     text = "Simpan Perubahan",
                                     color = Color.White,
                                     fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 16.sp
+                                    fontSize = 14.sp
                                 )
                             }
                         }
@@ -321,17 +304,11 @@ private fun SecurityTopBar(onBack: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .background(KebabBg)
-            .padding(horizontal = 20.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier
-                .clip(RoundedCornerShape(16.dp))
-                .background(Color.White)
-                .border(1.dp, KebabPrimary.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
-        ) {
+        IconButton(onClick = onBack) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Kembali",
@@ -342,13 +319,13 @@ private fun SecurityTopBar(onBack: () -> Unit) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "Ubah Sandi",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.ExtraBold,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
                 color = KebabTextDark
             )
             Text(
                 text = "Perbarui akses akun",
-                fontSize = 12.sp,
+                fontSize = 10.sp,
                 fontWeight = FontWeight.Medium,
                 color = KebabTextGray
             )
@@ -370,26 +347,13 @@ private fun PasswordInputField(
     onVisibilityChange: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        // Label with help icon
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
-        ) {
-            Text(
-                text = label,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = KebabTextDark,
-                letterSpacing = 0.5.sp
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Icon(
-                Icons.AutoMirrored.Outlined.HelpOutline,
-                contentDescription = "Info",
-                tint = KebabPrimary.copy(alpha = 0.6f),
-                modifier = Modifier.size(14.dp)
-            )
-        }
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = KebabTextDark,
+            modifier = Modifier.padding(start = 2.dp, bottom = 7.dp)
+        )
 
         // Input Field
         OutlinedTextField(
@@ -397,7 +361,7 @@ private fun PasswordInputField(
             onValueChange = onValueChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(62.dp),
+                .height(56.dp),
             placeholder = {
                 Text(
                     placeholder,
@@ -416,11 +380,11 @@ private fun PasswordInputField(
                     )
                 }
             },
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(14.dp),
             colors = TextFieldDefaults.colors(
                 unfocusedContainerColor = KebabInputBg,
                 focusedContainerColor = KebabInputBg,
-                unfocusedIndicatorColor = KebabDivider.copy(alpha = 0.55f),
+                unfocusedIndicatorColor = KebabDivider,
                 focusedIndicatorColor = KebabPrimary,
                 errorIndicatorColor = KebabErrorText,
                 errorContainerColor = KebabInputBg,

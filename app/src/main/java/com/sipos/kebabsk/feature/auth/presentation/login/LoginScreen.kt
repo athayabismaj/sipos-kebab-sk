@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -45,7 +44,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -82,43 +80,12 @@ fun LoginScreen(
             .background(KebabBg)
             .systemBarsPadding()
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            Color(0xFFFFFCF9),
-                            Color(0xFFFFF5EA),
-                            Color(0xFFFFE7C7)
-                        )
-                    )
-                )
-        )
-
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .offset(x = 74.dp, y = (-64).dp)
-                .size(210.dp)
-                .clip(CircleShape)
-                .background(KebabPrimaryContainer.copy(alpha = 0.10f))
-        )
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .offset(x = (-88).dp, y = 82.dp)
-                .size(230.dp)
-                .clip(CircleShape)
-                .background(KebabPrimary.copy(alpha = 0.06f))
-        )
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .imePadding()
                 .verticalScroll(scrollState)
-                .padding(horizontal = 20.dp, vertical = 28.dp),
+                .padding(horizontal = 18.dp, vertical = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -127,22 +94,22 @@ fun LoginScreen(
                     .fillMaxWidth()
                     .widthIn(max = 420.dp)
                     .shadow(
-                        elevation = 14.dp,
-                        shape = RoundedCornerShape(30.dp),
-                        ambientColor = KebabPrimary.copy(alpha = 0.10f),
-                        spotColor = KebabPrimary.copy(alpha = 0.16f)
+                        elevation = 8.dp,
+                        shape = RoundedCornerShape(24.dp),
+                        ambientColor = Color.Black.copy(alpha = 0.05f),
+                        spotColor = Color.Black.copy(alpha = 0.08f)
                     )
                     .border(
                         width = 1.dp,
-                        color = Color.White.copy(alpha = 0.92f),
-                        shape = RoundedCornerShape(30.dp)
+                        color = KebabDivider,
+                        shape = RoundedCornerShape(24.dp)
                     ),
-                shape = RoundedCornerShape(30.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFDFC)),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 26.dp)
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 22.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -150,8 +117,8 @@ fun LoginScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(54.dp)
-                                .clip(RoundedCornerShape(18.dp))
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(14.dp))
                                 .background(Color.Black),
                             contentAlignment = Alignment.Center
                         ) {
@@ -181,8 +148,8 @@ fun LoginScreen(
                         Box(
                             modifier = Modifier
                                 .clip(CircleShape)
-                                .background(KebabPrimaryContainer.copy(alpha = 0.12f))
-                                .padding(horizontal = 12.dp, vertical = 7.dp)
+                                .background(KebabInputBg)
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
                         ) {
                             Text(
                                 text = stringResource(R.string.login_role_cashier),
@@ -194,11 +161,11 @@ fun LoginScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(30.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
                     Text(
                         text = stringResource(R.string.login_title),
-                        fontSize = 28.sp,
+                        fontSize = 26.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = KebabTextDark,
                         textAlign = TextAlign.Start,
@@ -213,7 +180,7 @@ fun LoginScreen(
                         modifier = Modifier.padding(top = 6.dp)
                     )
 
-                    Spacer(modifier = Modifier.height(26.dp))
+                    Spacer(modifier = Modifier.height(22.dp))
 
                     LoginInputField(
                         value = uiState.identifier,
@@ -264,14 +231,14 @@ fun LoginScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(Color(0xFFFFEDEA))
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(KebabErrorBg)
                                 .padding(horizontal = 14.dp, vertical = 10.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = uiState.errorMessage,
-                                color = Color(0xFFB3261E),
+                                color = KebabErrorText,
                                 fontSize = 13.sp,
                                 textAlign = TextAlign.Center,
                                 lineHeight = 18.sp
@@ -285,11 +252,10 @@ fun LoginScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
-                            .clip(RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(14.dp))
                             .background(
-                                Brush.horizontalGradient(
-                                    listOf(Color(0xFF9C5200), KebabPrimaryContainer)
-                                )
+                                if (uiState.isLoading) KebabPrimary.copy(alpha = 0.58f)
+                                else KebabPrimary
                             )
                             .clickable(enabled = !uiState.isLoading, onClick = onLogin),
                         contentAlignment = Alignment.Center
@@ -409,13 +375,13 @@ private fun LoginInputField(
                 keyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Text
             ),
             textStyle = androidx.compose.ui.text.TextStyle(color = KebabTextDark, fontSize = 16.sp, fontWeight = FontWeight.Medium),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(14.dp),
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color(0xFFFAF6F2),
-                disabledContainerColor = KebabItemBg.copy(alpha = 0.5f),
+                unfocusedContainerColor = KebabInputBg,
+                disabledContainerColor = KebabInputBg.copy(alpha = 0.65f),
                 focusedIndicatorColor = KebabPrimary,
-                unfocusedIndicatorColor = Color(0xFFE8D8CB),
+                unfocusedIndicatorColor = KebabDivider,
                 disabledIndicatorColor = Color.Transparent,
                 focusedTextColor = KebabTextDark,
                 unfocusedTextColor = KebabTextDark,

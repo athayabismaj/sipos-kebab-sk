@@ -319,7 +319,7 @@ private fun CartQuantitySelector(
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFFF8F3EE))
+            .background(KebabInputBg)
             .semantics { stateDescription = quantityState }
             .padding(horizontal = 4.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,

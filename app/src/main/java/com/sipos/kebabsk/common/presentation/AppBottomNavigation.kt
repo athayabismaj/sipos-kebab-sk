@@ -1,6 +1,7 @@
 package com.sipos.kebabsk.common.presentation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import com.sipos.kebabsk.AppTab
 import com.sipos.kebabsk.R
 import com.sipos.kebabsk.ui.theme.KebabNavInactiveText
+import com.sipos.kebabsk.ui.theme.KebabDivider
 import com.sipos.kebabsk.ui.theme.KebabPrimary
 
 @Composable
@@ -47,26 +49,27 @@ fun AppBottomNavigation(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 18.dp, vertical = 10.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .shadow(6.dp, RoundedCornerShape(28.dp))
-                .clip(RoundedCornerShape(28.dp))
+                .shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color.Black.copy(alpha = 0.10f))
+                .clip(RoundedCornerShape(24.dp))
                 .background(Color.White)
+                .border(1.dp, KebabDivider, RoundedCornerShape(24.dp))
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    .padding(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 AppTab.entries.forEach { tab ->
                     val isSelected = selectedDestination == tab
-                    val itemColor = if (isSelected) Color.White else KebabNavInactiveText
-                    val itemBg = if (isSelected) KebabPrimary else Color.Transparent
+                    val itemColor = if (isSelected) KebabPrimary else KebabNavInactiveText
+                    val itemBg = if (isSelected) KebabPrimary.copy(alpha = 0.09f) else Color.Transparent
                     val label = stringResource(tab.labelRes)
                     val selectedState = stringResource(R.string.nav_state_selected)
                     val notSelectedState = stringResource(R.string.nav_state_not_selected)
@@ -75,8 +78,8 @@ fun AppBottomNavigation(
                         modifier = Modifier
                             .weight(1f)
                             .minimumInteractiveComponentSize()
-                            .height(58.dp)
-                            .clip(RoundedCornerShape(22.dp))
+                            .height(52.dp)
+                            .clip(RoundedCornerShape(17.dp))
                             .background(itemBg)
                             .semantics(mergeDescendants = true) {
                                 contentDescription = label
@@ -92,14 +95,14 @@ fun AppBottomNavigation(
                             imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
                             contentDescription = null,
                             tint = itemColor,
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(20.dp)
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(3.dp))
                         Text(
                             text = label,
                             color = itemColor,
-                            fontSize = 11.sp,
-                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium
+                            fontSize = 10.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                         )
                     }
                 }

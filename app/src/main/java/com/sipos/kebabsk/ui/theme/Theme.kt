@@ -31,11 +31,11 @@ private val LightColorScheme = lightColorScheme(
 
     surface = CreamSurface,
     onSurface = BrownDark,
-    surfaceVariant = Color(0xFFF5E6DC),
+    surfaceVariant = Color(0xFFF2F4F7),
     onSurfaceVariant = GreyVariant,
 
-    outline = Color(0xFFBCAAA4),
-    outlineVariant = Color(0xFFEDD5C8),
+    outline = Color(0xFFD0D5DD),
+    outlineVariant = Color(0xFFEAECF0),
 
     error = ErrorRed,
     onError = Color.White,

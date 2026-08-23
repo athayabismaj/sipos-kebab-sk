@@ -460,7 +460,7 @@ private fun QuantitySelector(qty: Int, enabled: Boolean, onAdd: () -> Unit, onRe
                 .minimumInteractiveComponentSize()
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(Color(0xFFF3E8DD))
+                .background(KebabInputBg)
                 .semantics { contentDescription = reduceDescription }
                 .clickable(enabled = enabled, onClick = onRemove),
             contentAlignment = Alignment.Center
