@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -31,7 +32,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Print
-import androidx.compose.material.icons.filled.RestaurantMenu
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -95,17 +95,18 @@ import com.sipos.kebabsk.common.AppTime
 import com.sipos.kebabsk.feature.profile.presentation.BluetoothPrinterConnection
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionHistoryItem
 import com.sipos.kebabsk.common.MoneyUtils
+import com.sipos.kebabsk.common.ThermalTextFormatter
+import com.sipos.kebabsk.common.ThermalPrinterPreferences
 import com.sipos.kebabsk.common.TransactionCodeFormatter
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionReceipt
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionReceiptItem
 import com.sipos.kebabsk.ui.theme.KebabBg
-import com.sipos.kebabsk.ui.theme.KebabCardBg
 import com.sipos.kebabsk.ui.theme.KebabDateInactiveBg
 import com.sipos.kebabsk.ui.theme.KebabDivider
 import com.sipos.kebabsk.ui.theme.KebabErrorBg
 import com.sipos.kebabsk.ui.theme.KebabErrorText
-import com.sipos.kebabsk.ui.theme.KebabIconHighlight
 import com.sipos.kebabsk.ui.theme.KebabItemBg
+import com.sipos.kebabsk.ui.theme.KebabInputBg
 import com.sipos.kebabsk.ui.theme.KebabPrimary
 import com.sipos.kebabsk.ui.theme.KebabPrimaryContainer
 import com.sipos.kebabsk.ui.theme.KebabSuccess
@@ -183,7 +184,10 @@ fun TransactionsScreen(
                 } else {
                     coroutineScope.launch {
                         isPrintingReceipt = true
-                        val result = BluetoothPrinterConnection.print(buildReceiptEscPosBytes(receipt))
+                        val paperSize = ThermalPrinterPreferences.loadPaperSize(context)
+                        val result = BluetoothPrinterConnection.print(
+                            buildReceiptEscPosBytes(receipt, paperSize.charactersPerLine)
+                        )
                         isPrintingReceipt = false
                         Toast.makeText(
                             context,
@@ -198,163 +202,16 @@ fun TransactionsScreen(
     }
 
     if (transactionToVoid != null && isSelectedDateToday) {
-        Dialog(
-            onDismissRequest = { if (!uiState.isVoiding) transactionToVoid = null },
-            properties = DialogProperties(dismissOnBackPress = !uiState.isVoiding, dismissOnClickOutside = !uiState.isVoiding)
-        ) {
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = KebabCardBg,
-                tonalElevation = 2.dp,
-                shadowElevation = 8.dp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .widthIn(max = 320.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp)
-                ) {
-                    Text(
-                        text = "Alasan Pembatalan",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = KebabTextDark
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Tentukan perlakuan bahan baku dari transaksi ini.",
-                        fontSize = 13.sp,
-                        lineHeight = 18.sp,
-                        color = KebabTextGray
-                    )
-                    
-                    Spacer(modifier = Modifier.height(24.dp))
-                    
-                    if (uiState.isVoiding) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 16.dp)
-                        ) {
-                            CircularProgressIndicator(
-                                color = KebabPrimary,
-                                strokeWidth = 2.dp,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = "Memproses...",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = KebabTextDark
-                            )
-                        }
-                    } else {
-                        // Kembalikan ke Stok
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = KebabSuccess.copy(alpha = 0.08f),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, KebabSuccess.copy(alpha = 0.25f)),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    if (sessionId != null) {
-                                        viewModel.voidTransaction(transactionToVoid!!, VoidReason.RESTOCK, sessionId)
-                                    }
-                                }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Recycling,
-                                    contentDescription = null,
-                                    tint = KebabSuccess,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Text(
-                                        text = "Kembalikan ke Stok",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = KebabSuccess
-                                    )
-                                    Text(
-                                        text = "Bahan masih layak pakai",
-                                        fontSize = 12.sp,
-                                        color = KebabTextGray
-                                    )
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Buang sebagai Sampah
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = KebabErrorBg.copy(alpha = 0.15f),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, KebabErrorText.copy(alpha = 0.2f)),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    if (sessionId != null) {
-                                        viewModel.voidTransaction(transactionToVoid!!, VoidReason.WASTE, sessionId)
-                                    }
-                                }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.DeleteForever,
-                                    contentDescription = null,
-                                    tint = KebabErrorText,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Text(
-                                        text = "Buang sebagai Sampah",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = KebabErrorText
-                                    )
-                                    Text(
-                                        text = "Bahan rusak / tak layak",
-                                        fontSize = 12.sp,
-                                        color = KebabTextGray
-                                    )
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            TextButton(
-                                onClick = { transactionToVoid = null },
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Text(
-                                    text = "Batal",
-                                    color = KebabTextGray,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
-                }
+        VoidTransactionDialog(
+            isLoading = uiState.isVoiding,
+            onDismiss = { transactionToVoid = null },
+            onRestock = {
+                sessionId?.let { viewModel.voidTransaction(transactionToVoid!!, VoidReason.RESTOCK, it) }
+            },
+            onWaste = {
+                sessionId?.let { viewModel.voidTransaction(transactionToVoid!!, VoidReason.WASTE, it) }
             }
-        }
+        )
     }
 
     PullToRefreshBox(
@@ -537,6 +394,199 @@ fun TransactionsScreen(
 
 }
 
+@Composable
+private fun VoidTransactionDialog(
+    isLoading: Boolean,
+    onDismiss: () -> Unit,
+    onRestock: () -> Unit,
+    onWaste: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = { if (!isLoading) onDismiss() },
+        properties = DialogProperties(
+            dismissOnBackPress = !isLoading,
+            dismissOnClickOutside = !isLoading,
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        Surface(
+            shape = RoundedCornerShape(22.dp),
+            color = Color.White,
+            tonalElevation = 0.dp,
+            shadowElevation = 18.dp,
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
+                .fillMaxWidth()
+                .widthIn(max = 400.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = KebabErrorBg,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteForever,
+                                contentDescription = null,
+                                tint = KebabErrorText,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(
+                            text = "Batalkan transaksi",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = KebabTextDark
+                        )
+                        Text(
+                            text = "Pilih perlakuan stok untuk transaksi ini.",
+                            fontSize = 11.sp,
+                            lineHeight = 15.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = KebabTextGray
+                        )
+                    }
+                }
+
+                if (isLoading) {
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = KebabInputBg,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                color = KebabPrimary,
+                                strokeWidth = 2.5.dp,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    text = "Memproses pembatalan",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = KebabTextDark
+                                )
+                                Text(
+                                    text = "Mohon tunggu sebentar",
+                                    fontSize = 11.sp,
+                                    color = KebabTextGray
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    VoidActionOption(
+                        icon = Icons.Default.Recycling,
+                        title = "Kembalikan ke stok",
+                        subtitle = "Bahan masih tersedia dan dapat digunakan kembali.",
+                        accentColor = KebabSuccess,
+                        accentBackground = KebabSuccessBg,
+                        onClick = onRestock
+                    )
+                    VoidActionOption(
+                        icon = Icons.Default.DeleteForever,
+                        title = "Catat sebagai waste",
+                        subtitle = "Bahan sudah terpakai, rusak, atau tidak layak.",
+                        accentColor = KebabErrorText,
+                        accentBackground = KebabErrorBg,
+                        onClick = onWaste
+                    )
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(13.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, KebabDivider)
+                    ) {
+                        Text(
+                            text = "Tutup",
+                            color = KebabTextDark,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun VoidActionOption(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    accentColor: Color,
+    accentBackground: Color,
+    onClick: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = Color.White,
+        border = androidx.compose.foundation.BorderStroke(1.dp, KebabDivider),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(11.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = accentBackground,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = title,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = KebabTextDark
+                )
+                Text(
+                    text = subtitle,
+                    fontSize = 10.sp,
+                    lineHeight = 14.sp,
+                    color = KebabTextGray
+                )
+            }
+        }
+    }
+}
+
 // === TOP APP BAR ===
 @Composable
 private fun TransactionTopAppBar(onCalendarClick: () -> Unit) {
@@ -703,168 +753,157 @@ private fun TransactionItemCard(
     trx: TransactionHistoryItem,
     isVoidable: Boolean,
     onVoidClicked: () -> Unit,
-        onReceiptClicked: () -> Unit
+    onReceiptClicked: () -> Unit
 ) {
-    val context = LocalContext.current
-    val previousSessionMessage = stringResource(R.string.transactions_previous_session_not_voidable)
     val printReceiptDescription = stringResource(R.string.cd_print_receipt)
-        val isSuccess = trx.status.equals("Sukses", ignoreCase = true) ||
+    val isSuccess = trx.status.equals("Sukses", ignoreCase = true) ||
         trx.status.equals("Success", ignoreCase = true) ||
         trx.status.equals("Lunas", ignoreCase = true) ||
         trx.status.equals("Paid", ignoreCase = true)
     val isCancelled = !isSuccess
-    val opacity = if (isCancelled) 0.6f else 1f
+    val opacity = if (isCancelled) 0.62f else 1f
     val textDecoration = if (isCancelled) TextDecoration.LineThrough else null
     val badgeBg = if (isSuccess) KebabSuccessBg else KebabErrorBg
     val badgeText = if (isSuccess) KebabSuccess else KebabErrorText
-    val iconBgColor = if (isCancelled) Color(0xFFDED9D4) else KebabIconHighlight.copy(alpha = 0.2f)
-    val iconTint = if (isCancelled) KebabTextGray else KebabPrimaryContainer
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(2.dp, RoundedCornerShape(22.dp), spotColor = Color.Black.copy(alpha = 0.04f))
-            .clip(RoundedCornerShape(22.dp))
-            .background(Color.White.copy(alpha = opacity))
-            .border(1.dp, KebabDivider.copy(alpha = 0.22f * opacity), RoundedCornerShape(22.dp))
-            .clickable {
-                if (isSuccess) {
-                    if (isVoidable) {
-                        onVoidClicked()
-                    } else {
-                        Toast.makeText(
-                            context,
-                            previousSessionMessage,
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
-            }
-            .padding(18.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color.White)
+            .border(1.dp, KebabDivider, RoundedCornerShape(18.dp))
+            .padding(15.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Top: icon + info + badge
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
-        ) {
-            Row(
-                modifier = Modifier.weight(1f).padding(end = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(iconBgColor),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.RestaurantMenu,
-                        contentDescription = null,
-                        tint = iconTint,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = stringResource(R.string.transactions_time, trx.time),
-                        fontSize = 12.sp,
-                        color = KebabTextGray.copy(alpha = opacity)
-                    )
-                    Text(
-                        text = TransactionCodeFormatter.formatForDisplay(trx.code),
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = KebabTextDark.copy(alpha = opacity),
-                        textDecoration = textDecoration,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                    )
-                }
-            }
-
-            // Status badge and optional void button
-            Column(horizontalAlignment = Alignment.End) {
-                Surface(
-                    color = badgeBg.copy(alpha = opacity),
-                    shape = RoundedCornerShape(50)
-                ) {
-                    Text(
-                        text = receiptStatusDisplay(trx.status),
-                        color = badgeText.copy(alpha = opacity),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                        maxLines = 1
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-        HorizontalDivider(color = KebabDivider.copy(alpha = 0.3f * opacity))
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Bottom: item count + amount
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.Payments,
-                    contentDescription = null,
-                    tint = KebabTextGray.copy(alpha = opacity),
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
+            Column(
+                modifier = Modifier.weight(1f).padding(end = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
                 Text(
-                    text = pluralStringResource(R.plurals.item_count, trx.itemCount, trx.itemCount),
-                    fontSize = 12.sp,
+                    text = TransactionCodeFormatter.formatForDisplay(trx.code),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = KebabTextDark.copy(alpha = opacity),
+                    textDecoration = textDecoration,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = stringResource(R.string.transactions_time, trx.time),
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Medium,
                     color = KebabTextGray.copy(alpha = opacity)
                 )
             }
-            Text(
-                text = MoneyUtils.formatRupiah(trx.total),
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (isCancelled) KebabTextGray.copy(alpha = opacity) else KebabTextDark,
-                textDecoration = textDecoration
-            )
+            Surface(
+                color = badgeBg.copy(alpha = opacity),
+                shape = RoundedCornerShape(50)
+            ) {
+                Text(
+                    text = receiptStatusDisplay(trx.status),
+                    color = badgeText.copy(alpha = opacity),
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+                    maxLines = 1
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "Total pembayaran",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = KebabTextGray.copy(alpha = opacity)
+                )
+                Text(
+                    text = MoneyUtils.formatRupiah(trx.total),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (isCancelled) KebabTextGray.copy(alpha = opacity) else KebabTextDark,
+                    textDecoration = textDecoration
+                )
+            }
+            Surface(
+                color = KebabInputBg,
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Outlined.ReceiptLong,
+                        contentDescription = null,
+                        tint = KebabTextGray.copy(alpha = opacity),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = pluralStringResource(R.plurals.item_count, trx.itemCount, trx.itemCount),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = KebabTextGray.copy(alpha = opacity)
+                    )
+                }
+            }
+        }
+
+        HorizontalDivider(color = KebabDivider)
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = when {
-                    !isSuccess -> stringResource(R.string.transactions_cancelled_receipt_available)
-                    isVoidable -> stringResource(R.string.transactions_today_void_hint)
-                    else -> stringResource(R.string.transactions_today_only_void_hint)
-                },
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-                color = KebabTextGray.copy(alpha = 0.72f),
-                modifier = Modifier.weight(1f)
-            )
+            if (isSuccess && isVoidable) {
+                Row(
+                    modifier = Modifier
+                        .minimumInteractiveComponentSize()
+                        .clip(RoundedCornerShape(11.dp))
+                        .background(KebabErrorBg)
+                        .clickable { onVoidClicked() }
+                        .padding(horizontal = 11.dp, vertical = 7.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteForever,
+                        contentDescription = null,
+                        tint = KebabErrorText,
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Text(
+                        text = "Batalkan",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = KebabErrorText
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+            }
 
             Row(
                 modifier = Modifier
                     .minimumInteractiveComponentSize()
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(11.dp))
                     .background(KebabPrimary.copy(alpha = 0.1f))
                     .semantics { contentDescription = printReceiptDescription }
                     .clickable { onReceiptClicked() }
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 11.dp, vertical = 7.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Print,
@@ -874,8 +913,8 @@ private fun TransactionItemCard(
                 )
                 Text(
                     text = stringResource(R.string.transactions_print_short),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
                     color = KebabPrimary
                 )
             }
@@ -897,223 +936,214 @@ private fun ReceiptReprintDialog(
 
     Dialog(
         onDismissRequest = { if (!isPrinting) onDismiss() },
-        properties = DialogProperties(dismissOnBackPress = !isPrinting, dismissOnClickOutside = !isPrinting)
+        properties = DialogProperties(
+            dismissOnBackPress = !isPrinting,
+            dismissOnClickOutside = !isPrinting,
+            usePlatformDefaultWidth = false
+        )
     ) {
         Surface(
-            shape = RoundedCornerShape(32.dp),
+            shape = RoundedCornerShape(22.dp),
             color = Color.White,
-            tonalElevation = 10.dp,
-            shadowElevation = 24.dp,
+            tonalElevation = 0.dp,
+            shadowElevation = 18.dp,
             modifier = Modifier
+                .padding(horizontal = 16.dp)
                 .fillMaxWidth()
-                .widthIn(max = 398.dp)
+                .widthIn(max = 410.dp)
         ) {
             Column(
-                modifier = Modifier
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(0.dp)
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color(0xFFFFF7F1),
-                                    Color.White
-                                )
-                            )
-                        )
-                        .padding(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 18.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = KebabInputBg,
+                        modifier = Modifier.size(40.dp)
                     ) {
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(50),
-                                color = KebabPrimary.copy(alpha = 0.10f)
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.transactions_reprint),
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                    color = KebabPrimary,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.ExtraBold
-                                )
-                            }
-                            Text(
-                                text = stringResource(R.string.transactions_receipt_detail),
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = KebabTextDark
-                            )
-                            Text(
-                                text = stringResource(R.string.transactions_receipt_detail_help),
-                                fontSize = 12.sp,
-                                color = KebabTextGray,
-                                fontWeight = FontWeight.Medium,
-                                lineHeight = 17.sp
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Print,
+                                contentDescription = null,
+                                tint = KebabPrimary,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
-                        Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = KebabPrimary,
-                            shadowElevation = 8.dp,
-                            modifier = Modifier.size(56.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Print,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(25.dp)
-                                )
-                            }
-                        }
+                    }
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(
+                            text = "Cetak ulang struk",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = KebabTextDark
+                        )
+                        Text(
+                            text = receipt?.let(::receiptDisplayCode) ?: "Memuat detail transaksi",
+                            fontSize = 10.sp,
+                            color = KebabTextGray,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    receipt?.let {
+                        Text(
+                            text = MoneyUtils.formatRupiah(it.totalAmount),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = KebabTextDark
+                        )
                     }
                 }
 
-                Column(
-                    modifier = Modifier.padding(start = 18.dp, top = 10.dp, end = 18.dp, bottom = 18.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    when {
-                        isLoading -> {
-                            Surface(
-                                shape = RoundedCornerShape(24.dp),
-                                color = Color(0xFFFFF7F1),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .semantics {
-                                        stateDescription = receiptLoadingState
-                                        liveRegion = LiveRegionMode.Polite
-                                    }
+                when {
+                    isLoading -> {
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = KebabInputBg,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .semantics {
+                                    stateDescription = receiptLoadingState
+                                    liveRegion = LiveRegionMode.Polite
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(vertical = 30.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    CircularProgressIndicator(color = KebabPrimary, strokeWidth = 3.dp)
-                                    Spacer(modifier = Modifier.height(14.dp))
+                                CircularProgressIndicator(
+                                    color = KebabPrimary,
+                                    strokeWidth = 2.5.dp,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                     Text(
                                         text = stringResource(R.string.transactions_loading_receipt),
                                         color = KebabTextDark,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.ExtraBold
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold
                                     )
                                     Text(
                                         text = stringResource(R.string.transactions_loading_wait),
                                         color = KebabTextGray,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Medium
+                                        fontSize = 11.sp
                                     )
                                 }
                             }
                         }
+                    }
 
-                        !errorMessage.isNullOrBlank() -> {
-                            Surface(
-                                shape = RoundedCornerShape(22.dp),
-                                color = KebabErrorBg,
-                                border = androidx.compose.foundation.BorderStroke(1.dp, KebabErrorText.copy(alpha = 0.16f)),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .semantics { liveRegion = LiveRegionMode.Assertive }
+                    !errorMessage.isNullOrBlank() -> {
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = KebabErrorBg,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, KebabErrorText.copy(alpha = 0.16f)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .semantics { liveRegion = LiveRegionMode.Assertive }
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(18.dp),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Text(
-                                        text = stringResource(R.string.transactions_receipt_unavailable),
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = KebabErrorText
-                                    )
-                                    Text(
-                                        text = errorMessage,
-                                        fontSize = 12.sp,
-                                        color = KebabErrorText.copy(alpha = 0.78f),
-                                        lineHeight = 18.sp
-                                    )
-                                }
-                            }
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                OutlinedButton(
-                                    onClick = onDismiss,
-                                    modifier = Modifier.weight(1f).height(52.dp),
-                                    shape = RoundedCornerShape(18.dp)
-                                ) {
-                                    Text(stringResource(R.string.action_close), fontWeight = FontWeight.Bold)
-                                }
-                                Button(
-                                    onClick = onRetry,
-                                    modifier = Modifier.weight(1f).height(52.dp),
-                                    shape = RoundedCornerShape(18.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = KebabPrimary)
-                                ) {
-                                    Text(stringResource(R.string.action_retry), color = Color.White, fontWeight = FontWeight.Bold)
-                                }
+                                Text(
+                                    text = stringResource(R.string.transactions_receipt_unavailable),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = KebabErrorText
+                                )
+                                Text(
+                                    text = errorMessage,
+                                    fontSize = 11.sp,
+                                    color = KebabErrorText.copy(alpha = 0.78f),
+                                    lineHeight = 16.sp
+                                )
                             }
                         }
-
-                        receipt != null -> {
-                            Box(
-                                modifier = Modifier.fillMaxWidth(),
-                                contentAlignment = Alignment.Center
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            OutlinedButton(
+                                onClick = onDismiss,
+                                modifier = Modifier.weight(1f).height(48.dp),
+                                shape = RoundedCornerShape(13.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, KebabDivider)
                             ) {
-                                ReceiptPreviewCard(receipt = receipt)
+                                Text(stringResource(R.string.action_close), fontWeight = FontWeight.Bold)
                             }
+                            Button(
+                                onClick = onRetry,
+                                modifier = Modifier.weight(1f).height(48.dp),
+                                shape = RoundedCornerShape(13.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = KebabPrimary)
+                            ) {
+                                Text(stringResource(R.string.action_retry), color = Color.White, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
 
-                            ReceiptPrinterInfo(receipt = receipt)
+                    receipt != null -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 440.dp)
+                                .verticalScroll(rememberScrollState()),
+                            contentAlignment = Alignment.TopCenter
+                        ) {
+                            ReceiptPreviewCard(receipt = receipt)
+                        }
 
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                OutlinedButton(
-                                    onClick = onDismiss,
-                                    enabled = !isPrinting,
-                                    modifier = Modifier.weight(1f).height(54.dp),
-                                    shape = RoundedCornerShape(18.dp)
-                                ) {
-                                    Text(stringResource(R.string.action_close), fontWeight = FontWeight.Bold)
-                                }
-                                Button(
-                                    onClick = { onPrint(receipt) },
-                                    enabled = !isPrinting && receipt.isDetailed,
-                                    modifier = Modifier.weight(1.35f).height(54.dp),
-                                    shape = RoundedCornerShape(18.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = KebabPrimary)
-                                ) {
-                                    if (isPrinting) {
-                                        CircularProgressIndicator(
-                                            color = Color.White,
-                                            strokeWidth = 2.dp,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    } else {
-                                        Icon(
-                                            imageVector = Icons.Default.Print,
-                                            contentDescription = null,
-                                            tint = Color.White,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = if (isPrinting) {
-                                            stringResource(R.string.action_printing)
-                                        } else {
-                                            stringResource(R.string.action_print_receipt)
-                                        },
+                        ReceiptPrinterInfo(receipt = receipt)
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            OutlinedButton(
+                                onClick = onDismiss,
+                                enabled = !isPrinting,
+                                modifier = Modifier.weight(1f).height(48.dp),
+                                shape = RoundedCornerShape(13.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, KebabDivider)
+                            ) {
+                                Text(stringResource(R.string.action_close), fontWeight = FontWeight.Bold)
+                            }
+                            Button(
+                                onClick = { onPrint(receipt) },
+                                enabled = !isPrinting && receipt.isDetailed,
+                                modifier = Modifier.weight(1.35f).height(48.dp),
+                                shape = RoundedCornerShape(13.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = KebabPrimary)
+                            ) {
+                                if (isPrinting) {
+                                    CircularProgressIndicator(
                                         color = Color.White,
-                                        fontWeight = FontWeight.ExtraBold
+                                        strokeWidth = 2.dp,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.Print,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(18.dp)
                                     )
                                 }
+                                Spacer(modifier = Modifier.width(7.dp))
+                                Text(
+                                    text = if (isPrinting) {
+                                        stringResource(R.string.action_printing)
+                                    } else {
+                                        stringResource(R.string.action_print_receipt)
+                                    },
+                                    color = Color.White,
+                                    fontWeight = FontWeight.ExtraBold
+                                )
                             }
                         }
                     }
@@ -1129,25 +1159,25 @@ private fun ReceiptPreviewCard(receipt: TransactionReceipt) {
         modifier = Modifier
             .fillMaxWidth()
             .widthIn(max = 352.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(ReceiptDarkBg)
-            .border(1.dp, ReceiptDarkBorder, RoundedCornerShape(12.dp))
-            .padding(horizontal = 22.dp, vertical = 26.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .border(1.dp, KebabDivider, RoundedCornerShape(16.dp))
+            .padding(horizontal = 17.dp, vertical = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
             Image(
                 painter = painterResource(id = R.drawable.sk_receipt_logo),
                 contentDescription = "Logo Kebab SK",
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.size(46.dp)
+                modifier = Modifier.size(40.dp)
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = "KEBAB SK",
                 color = ReceiptDarkText,
                 fontFamily = FontFamily.Monospace,
-                fontSize = 20.sp,
+                fontSize = 18.sp,
                 letterSpacing = 2.sp,
                 fontWeight = FontWeight.ExtraBold
             )
@@ -1170,13 +1200,6 @@ private fun ReceiptPreviewCard(receipt: TransactionReceipt) {
             ReceiptPreviewRow(label = "No.", value = receiptDisplayCode(receipt))
             ReceiptPreviewRow(label = "Kasir", value = receipt.cashierName)
         }
-
-        ReceiptPreviewTopBadges(
-            status = receiptStatusDisplay(receipt.status),
-            paymentMethod = receiptPaymentDisplay(receipt.paymentMethod)
-        )
-
-        DashedReceiptDivider()
 
         if (receipt.items.isEmpty()) {
             MissingReceiptItemsNotice()
@@ -1237,32 +1260,6 @@ private fun ReceiptPreviewCard(receipt: TransactionReceipt) {
 }
 
 @Composable
-private fun ReceiptPreviewTopBadges(status: String, paymentMethod: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, ReceiptDarkDash, RoundedCornerShape(4.dp))
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        ReceiptPreviewBadge(text = status)
-        ReceiptPreviewBadge(text = paymentMethod)
-    }
-}
-
-@Composable
-private fun ReceiptPreviewBadge(text: String) {
-    Text(
-        text = text,
-        color = ReceiptDarkText,
-        fontFamily = FontFamily.Monospace,
-        fontSize = 12.sp,
-        fontWeight = FontWeight.ExtraBold
-    )
-}
-
-@Composable
 private fun DashedReceiptDivider() {
     Row(
         modifier = Modifier
@@ -1314,11 +1311,11 @@ private fun MissingReceiptItemsNotice() {
 @Composable
 private fun ReceiptPrinterInfo(receipt: TransactionReceipt) {
     Surface(
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(12.dp),
         color = if (BluetoothPrinterConnection.isConnected) {
-            KebabSuccessBg.copy(alpha = 0.9f)
+            KebabSuccessBg
         } else {
-            Color.White.copy(alpha = 0.72f)
+            KebabInputBg
         },
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -1328,29 +1325,29 @@ private fun ReceiptPrinterInfo(receipt: TransactionReceipt) {
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Surface(
-                shape = CircleShape,
+                shape = RoundedCornerShape(9.dp),
                 color = if (BluetoothPrinterConnection.isConnected) {
                     KebabSuccess.copy(alpha = 0.14f)
                 } else {
                     KebabPrimary.copy(alpha = 0.10f)
                 },
-                modifier = Modifier.size(34.dp)
+                modifier = Modifier.size(32.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Default.Print,
                         contentDescription = null,
                         tint = if (BluetoothPrinterConnection.isConnected) KebabSuccess else KebabPrimary,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
             Text(
                 text = receiptPrintHelperText(receipt),
-                fontSize = 12.sp,
+                fontSize = 11.sp,
                 color = if (BluetoothPrinterConnection.isConnected) KebabSuccess else KebabTextGray,
                 fontWeight = FontWeight.SemiBold,
-                lineHeight = 17.sp,
+                lineHeight = 15.sp,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -1529,7 +1526,11 @@ private fun PaginationControls(
 }
 
 // === HELPER FUNCTIONS ===
-private fun buildReceiptEscPosBytes(receipt: TransactionReceipt): ByteArray {
+private fun buildReceiptEscPosBytes(
+    receipt: TransactionReceipt,
+    charactersPerLine: Int
+): ByteArray {
+    val printerWidth = charactersPerLine.coerceAtLeast(16)
     val charset = Charset.forName("CP437")
     val buffer = ByteArrayOutputStream()
 
@@ -1545,7 +1546,7 @@ private fun buildReceiptEscPosBytes(receipt: TransactionReceipt): ByteArray {
     fun align(mode: Int) = command(0x1B, 0x61, mode)
     fun bold(enabled: Boolean) = command(0x1B, 0x45, if (enabled) 1 else 0)
     fun size(mode: Int) = command(0x1D, 0x21, mode)
-    fun line() = text("-".repeat(PRINTER_RECEIPT_WIDTH))
+    fun line() = text("-".repeat(printerWidth))
 
     command(0x1B, 0x40)
     align(1)
@@ -1554,12 +1555,16 @@ private fun buildReceiptEscPosBytes(receipt: TransactionReceipt): ByteArray {
     text("KEBAB SK")
     size(0x00)
     bold(false)
-    receipt.branchAddress?.trim()?.takeIf { it.isNotEmpty() }?.let { text(it.take(PRINTER_RECEIPT_WIDTH)) }
+    receipt.branchAddress
+        ?.trim()
+        ?.takeIf(String::isNotEmpty)
+        ?.let { address ->
+            ThermalTextFormatter.wrap(address, printerWidth).forEach(::text)
+        }
     line()
-    text(receiptColumns("No.", receiptDisplayCode(receipt).take(20)))
+    text(receiptColumns("No.", receiptDisplayCode(receipt).take(20), printerWidth))
     text("Kasir")
-    text(receipt.cashierName.take(PRINTER_RECEIPT_WIDTH))
-    text("${receiptStatusDisplay(receipt.status).take(12)} | ${receiptPaymentDisplay(receipt.paymentMethod).take(14)}".take(PRINTER_RECEIPT_WIDTH))
+    text(receipt.cashierName.take(printerWidth))
     align(0)
     line()
 
@@ -1568,27 +1573,27 @@ private fun buildReceiptEscPosBytes(receipt: TransactionReceipt): ByteArray {
             ?.takeIf { it.isNotBlank() && !it.equals("Default", ignoreCase = true) }
 
         bold(true)
-        text("${index + 1}. ${item.name}".take(PRINTER_RECEIPT_WIDTH))
+        text("${index + 1}. ${item.name}".take(printerWidth))
         bold(false)
-        variantName?.let { text("   ${it}".take(PRINTER_RECEIPT_WIDTH)) }
-        text(receiptColumns("   ${item.qty} x ${MoneyUtils.formatRupiah(item.price)}", MoneyUtils.formatRupiah(item.subtotal)))
+        variantName?.let { text("   ${it}".take(printerWidth)) }
+        text(receiptColumns("   ${item.qty} x ${MoneyUtils.formatRupiah(item.price)}", MoneyUtils.formatRupiah(item.subtotal), printerWidth))
     }
 
     line()
-    text(receiptColumns("Total QTY", receipt.items.sumOf { it.qty }.toString()))
+    text(receiptColumns("Total QTY", receipt.items.sumOf { it.qty }.toString(), printerWidth))
     line()
-    text(receiptColumns("Sub Total", MoneyUtils.formatRupiah(receipt.totalAmount)))
+    text(receiptColumns("Sub Total", MoneyUtils.formatRupiah(receipt.totalAmount), printerWidth))
     bold(true)
-    text(receiptColumns("Total", MoneyUtils.formatRupiah(receipt.totalAmount)))
+    text(receiptColumns("Total", MoneyUtils.formatRupiah(receipt.totalAmount), printerWidth))
     bold(false)
-    text(receiptColumns("Bayar", MoneyUtils.formatRupiah(receipt.paidAmount)))
-    text(receiptColumns("Kembali", MoneyUtils.formatRupiah(receipt.changeAmount)))
+    text(receiptColumns("Bayar", MoneyUtils.formatRupiah(receipt.paidAmount), printerWidth))
+    text(receiptColumns("Kembali", MoneyUtils.formatRupiah(receipt.changeAmount), printerWidth))
     align(1)
     line()
     bold(true)
     text("Terimakasih Telah Berbelanja")
     bold(false)
-    text(receipt.createdAtLabel.take(PRINTER_RECEIPT_WIDTH))
+    text(receipt.createdAtLabel.take(printerWidth))
     text()
     text()
     command(0x1D, 0x56, 0x42, 0x00)
@@ -1596,10 +1601,10 @@ private fun buildReceiptEscPosBytes(receipt: TransactionReceipt): ByteArray {
     return buffer.toByteArray()
 }
 
-private fun receiptColumns(left: String, right: String): String {
-    val safeLeft = left.take(PRINTER_RECEIPT_WIDTH)
-    val safeRight = right.take(PRINTER_RECEIPT_WIDTH)
-    val spaces = (PRINTER_RECEIPT_WIDTH - safeLeft.length - safeRight.length).coerceAtLeast(1)
+private fun receiptColumns(left: String, right: String, printerWidth: Int): String {
+    val safeLeft = left.take(printerWidth)
+    val safeRight = right.take(printerWidth)
+    val spaces = (printerWidth - safeLeft.length - safeRight.length).coerceAtLeast(1)
     return safeLeft + " ".repeat(spaces) + safeRight
 }
 
@@ -1611,13 +1616,6 @@ private fun receiptStatusDisplay(status: String): String {
         "waste", "hangus" -> "HANGUS"
         "return", "returned", "retur" -> "RETUR"
         else -> status.uppercase(Locale.US)
-    }
-}
-
-private fun receiptPaymentDisplay(paymentMethod: String): String {
-    return when (paymentMethod.lowercase(Locale.US)) {
-        "cash", "tunai" -> "Tunai"
-        else -> paymentMethod
     }
 }
 
@@ -1650,9 +1648,7 @@ private fun formatShortRupiah(amount: Long): String {
     }
 }
 
-private const val PRINTER_RECEIPT_WIDTH = 32
 private val ReceiptDarkBg = Color.White
-private val ReceiptDarkBorder = Color(0xFFD8D0C6)
-private val ReceiptDarkDash = Color(0xFFB8AEA3)
-private val ReceiptDarkText = Color(0xFF1F1F1F)
-private val ReceiptDarkMuted = Color(0xFF6B625A)
+private val ReceiptDarkDash = Color(0xFFD0D5DD)
+private val ReceiptDarkText = Color(0xFF18212F)
+private val ReceiptDarkMuted = Color(0xFF667085)

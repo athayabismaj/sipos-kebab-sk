@@ -81,6 +81,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sipos.kebabsk.common.AppTime
 import com.sipos.kebabsk.common.MoneyUtils
+import com.sipos.kebabsk.common.ThermalPrinterPreferences
 import com.sipos.kebabsk.common.VariantDisplayUtils
 import com.sipos.kebabsk.R
 import com.sipos.kebabsk.feature.checkout.data.BluetoothReceiptPrinter
@@ -88,6 +89,13 @@ import com.sipos.kebabsk.feature.checkout.domain.ReceiptBuilder
 import com.sipos.kebabsk.feature.checkout.domain.model.ReceiptData
 import com.sipos.kebabsk.feature.checkout.domain.model.ReceiptItem
 import com.sipos.kebabsk.feature.checkout.presentation.ReceiptSuccessDialog
+import com.sipos.kebabsk.ui.theme.KebabBg
+import com.sipos.kebabsk.ui.theme.KebabDivider
+import com.sipos.kebabsk.ui.theme.KebabInputBg
+import com.sipos.kebabsk.ui.theme.KebabPrimary
+import com.sipos.kebabsk.ui.theme.KebabPrimaryContainer
+import com.sipos.kebabsk.ui.theme.KebabTextDark
+import com.sipos.kebabsk.ui.theme.KebabTextGray
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -119,16 +127,7 @@ private val TunaiIcon: ImageVector
         }
     }.build()
 
-// --- Palette Warna ---
-private val KebabBg = Color(0xFFFEF8F3)
-private val KebabPrimary = Color(0xFF904D00)
-private val KebabPrimaryContainer = Color(0xFFFF8C00)
-private val KebabTextDark = Color(0xFF1D1B19)
-private val KebabTextGray = Color(0xFF564334)
-private val KebabCardBg = Color(0xFFEDE7E2)
-private val KebabInputBg = Color(0xFFF8F3EE)
 private val KebabSummaryBg = Color(0xFFFFFFFF)
-private val KebabDivider = Color(0xFFDDC1AE).copy(alpha = 0.5f)
 private val KebabCyan = Color(0xFF0EA5E9)
 private val KebabCyanBg = Color(0xFFE0F2FE)
 
@@ -181,7 +180,10 @@ fun PaymentTab(
             receiptPrinter.isConnected
         ) {
             printedReceiptKey.value = receiptKey
-            receiptPrinter.print(receiptBuilder.buildEscPos(receiptData))
+            val paperSize = ThermalPrinterPreferences.loadPaperSize(context)
+            receiptPrinter.print(
+                receiptBuilder.buildEscPos(receiptData, paperSize.charactersPerLine)
+            )
         }
     }
 

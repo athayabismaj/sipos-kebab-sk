@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -49,12 +50,12 @@ import com.sipos.kebabsk.feature.checkout.domain.model.ReceiptData
 import com.sipos.kebabsk.feature.checkout.domain.model.ReceiptItem
 import com.sipos.kebabsk.ui.theme.KebabSuccess
 import com.sipos.kebabsk.ui.theme.KebabSuccessBg
+import com.sipos.kebabsk.ui.theme.KebabDivider
+import com.sipos.kebabsk.ui.theme.KebabPrimary
+import com.sipos.kebabsk.ui.theme.KebabTextDark
+import com.sipos.kebabsk.ui.theme.KebabTextGray
 
-private val KebabPrimary = Color(0xFF904D00)
-private val KebabTextDark = Color(0xFF1F1F1F)
-private val KebabTextGray = Color(0xFF6B625A)
-private val ReceiptBorder = Color(0xFFD8D0C6)
-private val ReceiptDash = Color(0xFFB8AEA3)
+private val ReceiptDash = Color(0xFFD0D5DD)
 
 @Composable
 fun ReceiptSuccessDialog(
@@ -66,79 +67,59 @@ fun ReceiptSuccessDialog(
         onDismissRequest = {},
         properties = DialogProperties(
             dismissOnBackPress = false,
-            dismissOnClickOutside = false
+            dismissOnClickOutside = false,
+            usePlatformDefaultWidth = false
         )
     ) {
         Surface(
             modifier = Modifier
+                .padding(horizontal = 16.dp)
                 .fillMaxWidth()
-                .widthIn(max = 398.dp),
-            shape = RoundedCornerShape(32.dp),
-            color = Color(0xFFFFF0EA),
-            tonalElevation = 10.dp,
-            shadowElevation = 24.dp
+                .widthIn(max = 410.dp),
+            shape = RoundedCornerShape(22.dp),
+            color = Color.White,
+            shadowElevation = 18.dp
         ) {
             Column(
-                modifier = Modifier
-                    .verticalScroll(rememberScrollState())
-                    .padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                SuccessHeader()
+                SuccessHeader(receiptData)
 
                 Box(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 470.dp)
+                        .verticalScroll(rememberScrollState()),
                     contentAlignment = Alignment.Center
                 ) {
                     CheckoutReceiptPreview(receiptData)
                 }
 
-                Button(
-                    onClick = onClose,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = KebabPrimary)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(9.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Transaksi Selesai",
-                        color = Color.White,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 15.sp
-                    )
-                }
-
-                OutlinedButton(
-                    onClick = onShare,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(18.dp),
-                    border = androidx.compose.foundation.BorderStroke(
-                        width = 1.dp,
-                        color = KebabPrimary.copy(alpha = 0.45f)
-                    ),
-                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White.copy(alpha = 0.72f))
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Share,
-                        contentDescription = null,
-                        tint = KebabPrimary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Bagikan Struk",
-                        color = KebabPrimary,
-                        fontWeight = FontWeight.ExtraBold
-                    )
+                    OutlinedButton(
+                        onClick = onShare,
+                        modifier = Modifier.weight(0.9f).height(48.dp),
+                        shape = RoundedCornerShape(13.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, KebabDivider)
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = null, tint = KebabPrimary, modifier = Modifier.size(17.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Bagikan", color = KebabPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                    Button(
+                        onClick = onClose,
+                        modifier = Modifier.weight(1.1f).height(48.dp),
+                        shape = RoundedCornerShape(13.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = KebabPrimary)
+                    ) {
+                        Text("Selesai", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(17.dp))
+                    }
                 }
             }
         }
@@ -146,17 +127,17 @@ fun ReceiptSuccessDialog(
 }
 
 @Composable
-private fun SuccessHeader() {
+private fun SuccessHeader(receipt: ReceiptData) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 2.dp, vertical = 2.dp),
+            .padding(horizontal = 2.dp, vertical = 1.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Surface(
-            modifier = Modifier.size(48.dp),
-            shape = CircleShape,
+            modifier = Modifier.size(40.dp),
+            shape = RoundedCornerShape(12.dp),
             color = KebabSuccessBg
         ) {
             Box(contentAlignment = Alignment.Center) {
@@ -164,22 +145,34 @@ private fun SuccessHeader() {
                     imageVector = Icons.Default.Check,
                     contentDescription = null,
                     tint = KebabSuccess,
-                    modifier = Modifier.size(26.dp)
+                    modifier = Modifier.size(21.dp)
                 )
             }
         }
-        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
-                text = "Pembayaran Berhasil",
+                text = "Transaksi berhasil",
                 color = KebabTextDark,
-                fontSize = 22.sp,
+                fontSize = 17.sp,
                 fontWeight = FontWeight.ExtraBold
             )
             Text(
-                text = "Periksa detail transaksi sebelum selesai.",
+                text = TransactionCodeFormatter.formatForDisplay(receipt.transactionCode).ifBlank { "Struk transaksi" },
                 color = KebabTextGray,
-                fontSize = 12.sp,
-                lineHeight = 17.sp
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            Text("Total", color = KebabTextGray, fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+            Text(
+                MoneyUtils.formatRupiah(receipt.totalAmount),
+                color = KebabTextDark,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.ExtraBold,
+                maxLines = 1
             )
         }
     }
@@ -191,11 +184,11 @@ private fun CheckoutReceiptPreview(receipt: ReceiptData) {
         modifier = Modifier
             .fillMaxWidth()
             .widthIn(max = 352.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(Color.White)
-            .border(1.dp, ReceiptBorder, RoundedCornerShape(12.dp))
-            .padding(horizontal = 22.dp, vertical = 26.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .border(1.dp, KebabDivider, RoundedCornerShape(16.dp))
+            .padding(horizontal = 17.dp, vertical = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -205,14 +198,14 @@ private fun CheckoutReceiptPreview(receipt: ReceiptData) {
                 painter = painterResource(id = R.drawable.sk_receipt_logo),
                 contentDescription = "Logo Kebab SK",
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.size(46.dp)
+                modifier = Modifier.size(40.dp)
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = "KEBAB SK",
                 color = KebabTextDark,
                 fontFamily = FontFamily.Monospace,
-                fontSize = 20.sp,
+                fontSize = 18.sp,
                 letterSpacing = 2.sp,
                 fontWeight = FontWeight.ExtraBold
             )
@@ -241,20 +234,6 @@ private fun CheckoutReceiptPreview(receipt: ReceiptData) {
                 value = receipt.cashierName.ifBlank { "Kasir" }
             )
         }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(1.dp, ReceiptDash, RoundedCornerShape(4.dp))
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            ReceiptBadge("LUNAS")
-            ReceiptBadge(receipt.paymentMethodName?.takeIf(String::isNotBlank) ?: "Tunai")
-        }
-
-        ReceiptDashedDivider()
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             receipt.items.forEachIndexed { index, item ->
@@ -389,17 +368,6 @@ private fun CheckoutReceiptRow(
             textAlign = TextAlign.End
         )
     }
-}
-
-@Composable
-private fun ReceiptBadge(text: String) {
-    Text(
-        text = text,
-        color = KebabTextDark,
-        fontFamily = FontFamily.Monospace,
-        fontSize = 12.sp,
-        fontWeight = FontWeight.ExtraBold
-    )
 }
 
 @Composable

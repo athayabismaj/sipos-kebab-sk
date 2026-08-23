@@ -56,6 +56,30 @@ class ReceiptBuilderTest {
     }
 
     @Test
+    fun buildEscPos_wrapsLongBranchAddressWithoutDiscardingText() {
+        val address = "Jl. Raya Gulang Cilik, Pekeng, Kecamatan Mejobo, Kabupaten Kudus"
+        val printerText = builder.buildEscPos(
+            sampleReceipt().copy(branchAddress = address)
+        ).toString(Charsets.ISO_8859_1)
+
+        assertTrue(printerText.contains("Jl. Raya Gulang Cilik, Pekeng,"))
+        assertTrue(printerText.contains("Kecamatan Mejobo, Kabupaten"))
+        assertTrue(printerText.contains("Kudus"))
+    }
+
+    @Test
+    fun buildEscPos_usesFortyEightColumnsForEightyMillimeterPaper() {
+        val address = "Jl. Raya Gulang Cilik, Pekeng, Kecamatan Mejobo"
+        val printerText = builder.buildEscPos(
+            sampleReceipt().copy(branchAddress = address),
+            charactersPerLine = 48
+        ).toString(Charsets.ISO_8859_1)
+
+        assertTrue(printerText.contains(address))
+        assertTrue(printerText.contains("-".repeat(48)))
+    }
+
+    @Test
     fun receiptData_keepsPaymentMethodAndNoteForCallers() {
         val receipt = sampleReceipt()
 

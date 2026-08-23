@@ -1,6 +1,7 @@
 package com.sipos.kebabsk.feature.checkout.domain
 
 import com.sipos.kebabsk.common.MoneyUtils
+import com.sipos.kebabsk.common.ThermalTextFormatter
 import com.sipos.kebabsk.common.TransactionCodeFormatter
 import com.sipos.kebabsk.common.VariantDisplayUtils
 import com.sipos.kebabsk.feature.checkout.domain.model.ReceiptData
@@ -45,7 +46,11 @@ class ReceiptBuilder {
         return sb.toString()
     }
 
-    fun buildEscPos(receipt: ReceiptData): ByteArray {
+    fun buildEscPos(
+        receipt: ReceiptData,
+        charactersPerLine: Int = DEFAULT_CHARACTERS_PER_LINE
+    ): ByteArray {
+        val printerWidth = charactersPerLine.coerceAtLeast(MIN_CHARACTERS_PER_LINE)
         val charset = Charset.forName("CP437")
         val buffer = ByteArrayOutputStream()
 
@@ -61,7 +66,7 @@ class ReceiptBuilder {
         fun align(mode: Int) = command(0x1B, 0x61, mode)
         fun bold(enabled: Boolean) = command(0x1B, 0x45, if (enabled) 1 else 0)
         fun size(mode: Int) = command(0x1D, 0x21, mode)
-        fun line() = text("-".repeat(PRINTER_RECEIPT_WIDTH))
+        fun line() = text("-".repeat(printerWidth))
 
         command(0x1B, 0x40)
         align(1)
@@ -70,11 +75,16 @@ class ReceiptBuilder {
         text("KEBAB SK")
         size(0x00)
         bold(false)
-        receipt.branchAddress?.trim()?.takeIf { it.isNotEmpty() }?.let { text(it.take(PRINTER_RECEIPT_WIDTH)) }
+        receipt.branchAddress
+            ?.trim()
+            ?.takeIf(String::isNotEmpty)
+            ?.let { address ->
+                ThermalTextFormatter.wrap(address, printerWidth).forEach(::text)
+            }
         align(0)
         line()
-        text(receiptColumns("No.", TransactionCodeFormatter.formatForDisplay(receipt.transactionCode)))
-        text(receiptColumns("Kasir", receipt.cashierName))
+        text(receiptColumns("No.", TransactionCodeFormatter.formatForDisplay(receipt.transactionCode), printerWidth))
+        text(receiptColumns("Kasir", receipt.cashierName, printerWidth))
         line()
 
         receipt.items.forEach { item ->
@@ -83,19 +93,19 @@ class ReceiptBuilder {
             val displayVariant = VariantDisplayUtils.formatVariantName(item.menuName, item.variantName)
 
             bold(true)
-            text(item.menuName.take(PRINTER_RECEIPT_WIDTH))
+            text(item.menuName.take(printerWidth))
             bold(false)
             if (hasVariant) {
-                text(displayVariant.take(PRINTER_RECEIPT_WIDTH))
+                text(displayVariant.take(printerWidth))
             }
-            text(receiptColumns("${item.quantity}x ${MoneyUtils.formatRupiah(item.unitPrice)}", MoneyUtils.formatRupiah(item.subtotal)))
+            text(receiptColumns("${item.quantity}x ${MoneyUtils.formatRupiah(item.unitPrice)}", MoneyUtils.formatRupiah(item.subtotal), printerWidth))
         }
 
         line()
         bold(true)
-        text(receiptColumns("Total Belanja", MoneyUtils.formatRupiah(receipt.totalAmount)))
+        text(receiptColumns("Total Belanja", MoneyUtils.formatRupiah(receipt.totalAmount), printerWidth))
         bold(false)
-        text(receiptColumns("Tunai/Dibayar", MoneyUtils.formatRupiah(receipt.paidAmount)))
+        text(receiptColumns("Tunai/Dibayar", MoneyUtils.formatRupiah(receipt.paidAmount), printerWidth))
         line()
         align(1)
         text("Kembalian")
@@ -105,7 +115,7 @@ class ReceiptBuilder {
         size(0x00)
         bold(false)
         text("Terima kasih")
-        text(receipt.createdAt.take(PRINTER_RECEIPT_WIDTH))
+        text(receipt.createdAt.take(printerWidth))
         text()
         text()
         command(0x1D, 0x56, 0x42, 0x00)
@@ -113,14 +123,15 @@ class ReceiptBuilder {
         return buffer.toByteArray()
     }
 
-    private fun receiptColumns(left: String, right: String): String {
-        val safeLeft = left.take(PRINTER_RECEIPT_WIDTH)
-        val safeRight = right.take(PRINTER_RECEIPT_WIDTH)
-        val spaces = (PRINTER_RECEIPT_WIDTH - safeLeft.length - safeRight.length).coerceAtLeast(1)
+    private fun receiptColumns(left: String, right: String, printerWidth: Int): String {
+        val safeLeft = left.take(printerWidth)
+        val safeRight = right.take(printerWidth)
+        val spaces = (printerWidth - safeLeft.length - safeRight.length).coerceAtLeast(1)
         return safeLeft + " ".repeat(spaces) + safeRight
     }
 
     private companion object {
-        const val PRINTER_RECEIPT_WIDTH = 32
+        const val DEFAULT_CHARACTERS_PER_LINE = 32
+        const val MIN_CHARACTERS_PER_LINE = 16
     }
 }
