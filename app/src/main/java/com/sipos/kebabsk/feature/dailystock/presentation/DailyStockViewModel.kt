@@ -7,6 +7,10 @@ import com.sipos.kebabsk.common.sanitizeUserMessage
 import com.sipos.kebabsk.feature.auth.data.remote.AuthApiService
 import com.sipos.kebabsk.feature.dailystock.domain.repository.DailyStockRepository
 import com.sipos.kebabsk.feature.dailystock.domain.model.DailyStockResult
+import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipeAnchorInput
+import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipeGroup
+import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipePreset
+import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipePreview
 import com.sipos.kebabsk.feature.dailystock.domain.validation.DailyStockValidator
 import com.sipos.kebabsk.feature.menu.domain.model.DailyStockItem
 import com.sipos.kebabsk.common.validation.ValidationResult
@@ -16,6 +20,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import java.util.UUID
 
 data class DailyStockUiState(
     val isLoading: Boolean = false,
@@ -25,6 +31,11 @@ data class DailyStockUiState(
     val sessionStatusLabel: String? = null,
     val errorMessage: String? = null,
     val isCashReconciliationPending: Boolean = false,
+    val closingPresets: List<ClosingRecipePreset> = emptyList(),
+    val closingGroups: List<ClosingRecipeGroup> = emptyList(),
+    val isPreviewingClosing: Boolean = false,
+    val closingPreview: ClosingRecipePreview? = null,
+    val closingPreviewError: String? = null,
 
     // Close session state
     val isClosing: Boolean = false,
@@ -38,6 +49,9 @@ class DailyStockViewModel(
     private val authApiService: AuthApiService,
     private val validator: DailyStockValidator = DailyStockValidator()
 ) : ViewModel() {
+    private var closingIdempotencyKey: String = UUID.randomUUID().toString()
+    private var closingPreviewJob: Job? = null
+    private var closingPreviewVersion: Long = 0
     private val _uiState = MutableStateFlow(DailyStockUiState())
     val uiState: StateFlow<DailyStockUiState> = _uiState.asStateFlow()
 
@@ -99,6 +113,8 @@ class DailyStockViewModel(
                             it.copy(
                                 items = result.items,
                                 sessionId = result.sessionId,
+                                closingPresets = result.closingPresets,
+                                closingGroups = result.closingGroups,
                                 isSessionOpen = isSessionOpen,
                                 sessionStatusLabel = sessionStatusLabel,
                                 isCashReconciliationPending = isPending,
@@ -182,12 +198,108 @@ class DailyStockViewModel(
         }
     }
 
+    fun previewClosing(anchors: List<ClosingRecipeAnchorInput>) {
+        if (anchors.isEmpty()) return
+        val requestVersion = ++closingPreviewVersion
+        closingPreviewJob?.cancel()
+        _uiState.update {
+            it.copy(isPreviewingClosing = true, closingPreview = null, closingPreviewError = null)
+        }
+        val token = AppSessionStore.loadSession()?.token ?: ""
+        closingPreviewJob = viewModelScope.launch {
+            try {
+                repository.previewClosing(token, anchors)
+                    .onSuccess { preview ->
+                        if (requestVersion == closingPreviewVersion) {
+                            _uiState.update { it.copy(closingPreview = preview, closingPreviewError = null) }
+                        }
+                    }
+                    .onFailure { error ->
+                        if (requestVersion == closingPreviewVersion) {
+                            _uiState.update {
+                                it.copy(closingPreviewError = sanitizeUserMessage(error.message, "Perhitungan resep gagal."))
+                            }
+                        }
+                    }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } finally {
+                if (requestVersion == closingPreviewVersion) {
+                    _uiState.update { it.copy(isPreviewingClosing = false) }
+                }
+            }
+        }
+    }
+
+    fun clearClosingPreview() {
+        closingPreviewVersion++
+        closingPreviewJob?.cancel()
+        closingPreviewJob = null
+        _uiState.update {
+            it.copy(isPreviewingClosing = false, closingPreview = null, closingPreviewError = null)
+        }
+    }
+
+    fun closeSessionWithRecipe(
+        remainingOverrides: Map<Long, Double>,
+        anchors: List<ClosingRecipeAnchorInput>,
+        notes: String?
+    ) {
+        if (_uiState.value.isClosing) return
+        if (_uiState.value.closingPreview == null) {
+            _uiState.update { it.copy(closeErrorMessage = "Hitung sisa otomatis terlebih dahulu.") }
+            return
+        }
+        val validation = validator.validateCloseSession(
+            sessionId = _uiState.value.sessionId,
+            items = _uiState.value.items,
+            remaining = remainingOverrides
+        )
+        if (validation is ValidationResult.Invalid) {
+            _uiState.update { it.copy(closeErrorMessage = validation.message) }
+            return
+        }
+        _uiState.update { it.copy(isClosing = true, closeErrorMessage = null, closeSuccess = false) }
+        val token = AppSessionStore.loadSession()?.token ?: ""
+        viewModelScope.launch {
+            try {
+                repository.closeSessionWithRecipe(
+                    token,
+                    remainingOverrides,
+                    anchors,
+                    notes?.trim()?.takeIf { it.isNotBlank() },
+                    closingIdempotencyKey
+                ).onSuccess { message ->
+                    closingIdempotencyKey = UUID.randomUUID().toString()
+                    _uiState.update {
+                        it.copy(
+                            closeSuccess = true,
+                            closeSuccessMessage = message,
+                            closeErrorMessage = null,
+                            sessionId = null,
+                            isSessionOpen = false,
+                            sessionStatusLabel = "Sesi Harian Ditutup"
+                        )
+                    }
+                }.onFailure { error ->
+                    _uiState.update {
+                        it.copy(closeErrorMessage = sanitizeUserMessage(error.message, "Gagal menutup sesi stok harian."))
+                    }
+                }
+            } finally {
+                _uiState.update { it.copy(isClosing = false) }
+            }
+        }
+    }
+
     fun clearCloseState() {
         _uiState.update {
             it.copy(
                 closeSuccess = false,
                 closeSuccessMessage = null,
-                closeErrorMessage = null
+                closeErrorMessage = null,
+                closingPreview = null,
+                closingPreviewError = null
             )
         }
     }

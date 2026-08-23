@@ -472,12 +472,23 @@ private fun AppScaffold(
                             items = dailyStockUiState.items,
                             isClosing = dailyStockUiState.isClosing,
                             closeErrorMessage = dailyStockUiState.closeErrorMessage,
+                            closingPresets = dailyStockUiState.closingPresets,
+                            closingGroups = dailyStockUiState.closingGroups,
+                            isPreviewingClosing = dailyStockUiState.isPreviewingClosing,
+                            closingPreview = dailyStockUiState.closingPreview,
+                            closingPreviewError = dailyStockUiState.closingPreviewError,
                             onBack = {
                                 dailyStockViewModel.clearCloseState()
                                 profilePage = ProfilePage.DAILY_STOCK
                             },
-                            onSubmit = { remaining, notes ->
-                                dailyStockViewModel.closeSession(remaining, notes)
+                            onPreview = dailyStockViewModel::previewClosing,
+                            onClearPreview = dailyStockViewModel::clearClosingPreview,
+                            onSubmit = { remaining, anchors, notes ->
+                                if (anchors.isEmpty()) {
+                                    dailyStockViewModel.closeSession(remaining, notes)
+                                } else {
+                                    dailyStockViewModel.closeSessionWithRecipe(remaining, anchors, notes)
+                                }
                             }
                         )
                     }

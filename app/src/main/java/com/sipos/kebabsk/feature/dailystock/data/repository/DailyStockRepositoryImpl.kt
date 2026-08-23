@@ -1,6 +1,13 @@
 package com.sipos.kebabsk.feature.dailystock.data.repository
 
 import com.sipos.kebabsk.feature.dailystock.domain.model.DailyStockResult
+import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipeAnchorInput
+import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipeGroup
+import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipeGroupVariant
+import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipePreset
+import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipePreview
+import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipePreviewItem
+import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipeSummary
 import com.sipos.kebabsk.feature.dailystock.domain.repository.DailyStockRepository
 
 import com.google.gson.JsonArray
@@ -37,7 +44,14 @@ class DailyStockRepositoryImpl(
                     return Result.failure(IllegalStateException("Sesi stok harian belum dibuka oleh admin."))
                 }
 
-                Result.success(DailyStockResult(sessionId, extracted))
+                Result.success(
+                    DailyStockResult(
+                        sessionId = sessionId,
+                        items = extracted,
+                        closingPresets = extractClosingPresets(body),
+                        closingGroups = extractClosingGroups(body)
+                    )
+                )
             },
             onFailure = { error ->
                 Result.failure(error)
@@ -80,6 +94,143 @@ class DailyStockRepositoryImpl(
             val responseBody = response.body()
             responseBody?.get("message")?.asString ?: "Sesi stok harian berhasil ditutup."
         }
+    }
+
+    override suspend fun previewClosing(
+        token: String,
+        anchors: List<ClosingRecipeAnchorInput>
+    ): Result<ClosingRecipePreview> = suspendRunCatching {
+        val response = retryNetworkRequest {
+            apiService.previewClosing("Bearer $token", JsonObject().apply {
+                add("closing_anchors", anchorsJson(anchors))
+            })
+        }
+        if (!response.isSuccessful) {
+            throw IllegalStateException(extractErrorMessage(response, "Perhitungan resep gagal."))
+        }
+        parseClosingPreview(response.body() ?: throw IllegalStateException("Respons preview kosong."))
+    }
+
+    override suspend fun closeSessionWithRecipe(
+        token: String,
+        remainingOverrides: Map<Long, Double>,
+        anchors: List<ClosingRecipeAnchorInput>,
+        notes: String?,
+        idempotencyKey: String
+    ): Result<String> = suspendRunCatching {
+        val body = JsonObject().apply {
+            add("closing_anchors", anchorsJson(anchors))
+            add("remaining_overrides", JsonObject().also { overrides ->
+                remainingOverrides.forEach { (id, value) -> overrides.addProperty(id.toString(), value) }
+            })
+            addProperty("idempotency_key", idempotencyKey)
+            if (!notes.isNullOrBlank()) addProperty("notes", notes)
+        }
+        val response = retryNetworkRequest { apiService.closeSession("Bearer $token", body) }
+        if (!response.isSuccessful) {
+            throw IllegalStateException(extractErrorMessage(response, "Gagal menutup sesi stok harian."))
+        }
+        response.body()?.get("message")?.asString ?: "Sesi stok harian berhasil ditutup."
+    }
+
+    private fun anchorsJson(anchors: List<ClosingRecipeAnchorInput>) = JsonArray().apply {
+        anchors.forEach { anchor ->
+            add(JsonObject().apply {
+                addProperty("menu_variant_id", anchor.menuVariantId)
+                addProperty("actual_remaining", anchor.actualRemaining)
+            })
+        }
+    }
+
+    private fun extractErrorMessage(response: retrofit2.Response<JsonObject>, fallback: String): String {
+        val raw = runCatching { response.errorBody()?.string() }.getOrNull()
+        return runCatching {
+            com.google.gson.JsonParser.parseString(raw).asJsonObject.get("message")?.asString
+        }.getOrNull()?.let { sanitizeUserMessage(it, fallback) } ?: fallback
+    }
+
+    private fun extractClosingPresets(body: JsonObject): List<ClosingRecipePreset> {
+        val rows = body.getAsJsonObject("data")?.getAsJsonArray("closing_presets") ?: return emptyList()
+        return rows.mapNotNull { element ->
+            val obj = element.takeIf { it.isJsonObject }?.asJsonObject ?: return@mapNotNull null
+            val variantId = obj.firstLong("menu_variant_id") ?: return@mapNotNull null
+            val missing = obj.getAsJsonArray("missing_ingredients")?.mapNotNull {
+                runCatching { it.asString }.getOrNull()
+            }.orEmpty()
+            ClosingRecipePreset(
+                menuVariantId = variantId,
+                label = obj.firstString("label") ?: "Menu",
+                anchorIngredientId = obj.firstLong("anchor_ingredient_id") ?: 0L,
+                anchorName = obj.firstString("anchor_name") ?: "Bahan acuan",
+                anchorUnit = obj.firstString("anchor_unit") ?: "pcs",
+                systemRemaining = firstDouble(obj, "system_remaining") ?: 0.0,
+                quantityPerServing = firstDouble(obj, "quantity_per_serving") ?: 1.0,
+                ready = runCatching { obj.get("ready")?.asBoolean }.getOrNull() ?: false,
+                missingIngredients = missing
+            )
+        }
+    }
+
+    private fun extractClosingGroups(body: JsonObject): List<ClosingRecipeGroup> {
+        val rows = body.getAsJsonObject("data")?.getAsJsonArray("closing_groups") ?: return emptyList()
+        return rows.mapNotNull { element ->
+            val obj = element.takeIf { it.isJsonObject }?.asJsonObject ?: return@mapNotNull null
+            val groupId = obj.firstLong("group_id") ?: return@mapNotNull null
+            val anchorIngredientId = obj.firstLong("anchor_ingredient_id") ?: return@mapNotNull null
+            val variants = obj.getAsJsonArray("variants")?.mapNotNull variantMap@{ variantElement ->
+                val variant = variantElement.takeIf { it.isJsonObject }?.asJsonObject
+                    ?: return@variantMap null
+                ClosingRecipeGroupVariant(
+                    menuVariantId = variant.firstLong("menu_variant_id") ?: return@variantMap null,
+                    label = variant.firstString("label") ?: "Varian menu",
+                    anchorQuantity = firstDouble(variant, "anchor_quantity") ?: 1.0,
+                    isDefault = runCatching { variant.get("is_default")?.asBoolean }.getOrNull() ?: false
+                )
+            }.orEmpty()
+            if (variants.isEmpty()) return@mapNotNull null
+
+            val configuredDefault = obj.firstLong("default_menu_variant_id") ?: 0L
+            val defaultVariantId = configuredDefault.takeIf { id -> variants.any { it.menuVariantId == id } }
+                ?: variants.firstOrNull { it.isDefault }?.menuVariantId
+                ?: variants.first().menuVariantId
+
+            ClosingRecipeGroup(
+                groupId = groupId,
+                label = obj.firstString("label") ?: obj.firstString("anchor_name") ?: "Bahan pemicu",
+                anchorIngredientId = anchorIngredientId,
+                anchorName = obj.firstString("anchor_name") ?: "Bahan pemicu",
+                anchorUnit = obj.firstString("anchor_unit") ?: "pcs",
+                systemRemaining = firstDouble(obj, "system_remaining") ?: 0.0,
+                defaultMenuVariantId = defaultVariantId,
+                requiresAllocation = runCatching { obj.get("requires_allocation")?.asBoolean }.getOrNull()
+                    ?: (variants.size > 1),
+                ready = runCatching { obj.get("ready")?.asBoolean }.getOrNull() ?: false,
+                variants = variants
+            )
+        }
+    }
+
+    private fun parseClosingPreview(body: JsonObject): ClosingRecipePreview {
+        val data = body.getAsJsonObject("data") ?: JsonObject()
+        val items = data.getAsJsonArray("remaining_items")?.mapNotNull { element ->
+            val obj = element.takeIf { it.isJsonObject }?.asJsonObject ?: return@mapNotNull null
+            ClosingRecipePreviewItem(
+                ingredientId = obj.firstLong("ingredient_id") ?: return@mapNotNull null,
+                name = obj.firstString("name") ?: "Bahan",
+                remainingQty = firstDouble(obj, "remaining_qty") ?: 0.0,
+                autoUsedQty = firstDouble(obj, "auto_used_qty") ?: 0.0,
+                unit = obj.firstString("unit") ?: "unit"
+            )
+        }.orEmpty()
+        val summaries = data.getAsJsonArray("summaries")?.mapNotNull { element ->
+            val obj = element.takeIf { it.isJsonObject }?.asJsonObject ?: return@mapNotNull null
+            ClosingRecipeSummary(
+                menuVariantId = obj.firstLong("menu_variant_id") ?: return@mapNotNull null,
+                label = obj.firstString("label") ?: "Menu",
+                inferredServings = firstDouble(obj, "inferred_servings")?.toInt() ?: 0
+            )
+        }.orEmpty()
+        return ClosingRecipePreview(items, summaries)
     }
 
     private fun extractSessionId(body: JsonObject): Long? {

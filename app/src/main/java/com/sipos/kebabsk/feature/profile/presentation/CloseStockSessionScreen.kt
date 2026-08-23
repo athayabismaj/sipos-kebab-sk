@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -29,14 +30,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.LocalCafe
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material.icons.filled.WaterDrop
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -45,16 +43,18 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -74,6 +74,11 @@ import androidx.compose.ui.unit.sp
 import com.sipos.kebabsk.common.AppTime
 import com.sipos.kebabsk.common.validation.ValidationResult
 import com.sipos.kebabsk.feature.dailystock.domain.validation.DailyStockValidator
+import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipeAnchorInput
+import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipeGroup
+import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipeGroupVariant
+import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipePreset
+import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipePreview
 import com.sipos.kebabsk.feature.menu.domain.model.DailyStockItem
 import com.sipos.kebabsk.ui.theme.KebabBg
 import com.sipos.kebabsk.ui.theme.KebabCardBg
@@ -97,7 +102,7 @@ val KebabError = Color(0xFFBA1A1A)
 
 private val LocalKebabSecondary = Color(0xFF795900)
 private val LocalKebabTertiary = Color(0xFF00658F)
-private val LocalKebabInfoBg = Color(0xFFF3EDE8)
+private val LocalKebabInfoBg = KebabInputBg
 
 @Composable
 fun CloseStockSessionScreen(
@@ -105,8 +110,15 @@ fun CloseStockSessionScreen(
     items: List<DailyStockItem>,
     isClosing: Boolean,
     closeErrorMessage: String?,
+    closingPresets: List<ClosingRecipePreset> = emptyList(),
+    closingGroups: List<ClosingRecipeGroup> = emptyList(),
+    isPreviewingClosing: Boolean = false,
+    closingPreview: ClosingRecipePreview? = null,
+    closingPreviewError: String? = null,
     onBack: () -> Unit,
-    onSubmit: (remaining: Map<Long, Double>, notes: String?) -> Unit
+    onPreview: (List<ClosingRecipeAnchorInput>) -> Unit = {},
+    onClearPreview: () -> Unit = {},
+    onSubmit: (remaining: Map<Long, Double>, anchors: List<ClosingRecipeAnchorInput>, notes: String?) -> Unit
 ) {
     val remainingInputs = remember(items) {
         mutableStateMapOf<Long, String>().apply {
@@ -119,12 +131,82 @@ fun CloseStockSessionScreen(
         }
     }
     val notesInput = remember { mutableStateOf("") }
+    var recipeAnchorEdited by remember { mutableStateOf(false) }
+    val effectiveClosingGroups = remember(closingGroups, closingPresets) {
+        if (closingGroups.isNotEmpty()) {
+            closingGroups
+        } else {
+            closingPresets.mapIndexed { index, preset ->
+                ClosingRecipeGroup(
+                    groupId = -(index + 1L),
+                    label = preset.anchorName,
+                    anchorIngredientId = preset.anchorIngredientId,
+                    anchorName = preset.anchorName,
+                    anchorUnit = preset.anchorUnit,
+                    systemRemaining = preset.systemRemaining,
+                    defaultMenuVariantId = preset.menuVariantId,
+                    requiresAllocation = false,
+                    ready = preset.ready,
+                    variants = listOf(
+                        ClosingRecipeGroupVariant(
+                            menuVariantId = preset.menuVariantId,
+                            label = preset.label,
+                            anchorQuantity = preset.quantityPerServing,
+                            isDefault = true
+                        )
+                    )
+                )
+            }
+        }
+    }
+    val anchorInputs = remember(effectiveClosingGroups) {
+        mutableStateMapOf<Long, String>().apply {
+            effectiveClosingGroups.forEach {
+                put(it.anchorIngredientId, formatInitialQty(it.systemRemaining))
+            }
+        }
+    }
+    val selectedVariants = remember(effectiveClosingGroups) {
+        mutableStateMapOf<Long, Long>().apply {
+            effectiveClosingGroups.forEach { group ->
+                if (!group.requiresAllocation || group.variants.size == 1) {
+                    put(group.anchorIngredientId, group.defaultMenuVariantId)
+                }
+            }
+        }
+    }
+    var variantPickerGroup by remember { mutableStateOf<ClosingRecipeGroup?>(null) }
     var step by remember { mutableIntStateOf(1) } // 1: input, 2: review
     val dailyStockValidator = remember { DailyStockValidator() }
 
     val hasInvalidInput = items.any { item ->
         val value = remainingInputs[item.ingredientId]?.toDoubleOrNull()
         dailyStockValidator.validateRemainingQuantity(value) is ValidationResult.Invalid
+    }
+    val anchors = effectiveClosingGroups.mapNotNull { group ->
+        val selectedVariantId = selectedVariants[group.anchorIngredientId]
+            ?: return@mapNotNull null
+        anchorInputs[group.anchorIngredientId]?.toDoubleOrNull()?.let {
+            ClosingRecipeAnchorInput(selectedVariantId, it)
+        }
+    }
+    val recipeModeReady = !recipeAnchorEdited ||
+        (closingPreview != null && anchors.size == effectiveClosingGroups.size)
+
+    LaunchedEffect(anchors, effectiveClosingGroups, recipeAnchorEdited) {
+        if (recipeAnchorEdited && effectiveClosingGroups.isNotEmpty() &&
+            anchors.size == effectiveClosingGroups.size &&
+            effectiveClosingGroups.all { it.ready }
+        ) {
+            delay(450)
+            onPreview(anchors)
+        }
+    }
+
+    LaunchedEffect(closingPreview) {
+        closingPreview?.remainingItems?.forEach { result ->
+            remainingInputs[result.ingredientId] = formatInitialQty(result.remainingQty)
+        }
     }
 
     Box(
@@ -176,7 +258,8 @@ fun CloseStockSessionScreen(
                     StepperSection(step = step)
                         Spacer(modifier = Modifier.height(16.dp))
 
-                    if (!closeErrorMessage.isNullOrBlank()) {
+                    val displayedError = closeErrorMessage ?: closingPreviewError
+                    if (!displayedError.isNullOrBlank()) {
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -185,7 +268,7 @@ fun CloseStockSessionScreen(
                             colors = CardDefaults.cardColors(containerColor = KebabErrorText.copy(alpha = 0.05f))
                         ) {
                             Text(
-                                text = closeErrorMessage,
+                                text = displayedError,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = KebabErrorText,
                                 modifier = Modifier.padding(12.dp)
@@ -197,16 +280,82 @@ fun CloseStockSessionScreen(
                 if (step == 1) {
                     // --- STEP 1: INPUT SISA ---
                     item {
-                        Text(text = "Bahan", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Stok fisik akhir",
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = KebabTextDark
+                                )
+                                Text(
+                                    text = "Isi jumlah yang benar-benar tersisa.",
+                                    fontSize = 12.sp,
+                                    color = KebabTextGray
+                                )
+                            }
+                            Text(
+                                text = "${items.size} bahan",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = KebabPrimary,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(KebabPrimary.copy(alpha = 0.08f))
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(KebabPrimary.copy(alpha = 0.06f))
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (isPreviewingClosing) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    color = KebabPrimary,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = if (recipeAnchorEdited && closingPreview != null) Icons.Default.Check else Icons.Default.Info,
+                                    contentDescription = null,
+                                    tint = KebabPrimary,
+                                    modifier = Modifier.size(17.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(9.dp))
+                            Text(
+                                text = when {
+                                    isPreviewingClosing -> "Menyesuaikan sisa bahan terkait..."
+                                    recipeAnchorEdited && closingPreview != null -> "Bahan terkait sudah disesuaikan dari resep."
+                                    else -> "Masukkan sisa fisik seperti biasa. Perhitungan resep berjalan otomatis saat diperlukan."
+                                },
+                                fontSize = 11.sp,
+                                lineHeight = 15.sp,
+                                color = KebabTextGray
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
                     }
 
                     items(items.size, key = { index -> items[index].ingredientId }) { index ->
                         val item = items[index]
-                        val iconList = listOf(Icons.Default.LocalCafe, Icons.Default.WaterDrop, Icons.Default.Spa)
-                        val colorList = listOf(KebabPrimary, LocalKebabTertiary, LocalKebabSecondary)
-                        val assignedIcon = iconList[index % iconList.size]
-                        val assignedColor = colorList[index % colorList.size]
+                        val closingGroup = effectiveClosingGroups.firstOrNull {
+                            it.anchorIngredientId == item.ingredientId
+                        }
+                        val selectedVariant = closingGroup?.variants?.firstOrNull {
+                            it.menuVariantId == selectedVariants[closingGroup.anchorIngredientId]
+                        }
                         
                         val sisa = remainingInputs[item.ingredientId]?.toDoubleOrNull() ?: 0.0
                         val terpakaiVal = (item.qty - sisa).coerceAtLeast(0.0)
@@ -225,12 +374,23 @@ fun CloseStockSessionScreen(
                             onSisaChange = { newValue ->
                                 if (newValue.isEmpty() || newValue.matches(Regex("^\\d*\\.?\\d*$"))) {
                                     remainingInputs[item.ingredientId] = newValue
+                                    if (closingGroup != null) {
+                                        recipeAnchorEdited = true
+                                        anchorInputs[closingGroup.anchorIngredientId] = newValue
+                                        onClearPreview()
+                                        if (selectedVariants[closingGroup.anchorIngredientId] == null) {
+                                            variantPickerGroup = closingGroup
+                                        }
+                                    }
                                 }
                             },
                             satuan = (item.unit ?: "unit").uppercase(Locale.ROOT),
                             terpakai = terpakaiFormat,
-                            icon = assignedIcon,
-                            accentColor = assignedColor
+                            recipeVariantLabel = selectedVariant?.label
+                                ?: closingGroup?.takeIf { it.requiresAllocation }?.let { "Pilih varian resep" },
+                            onRecipeVariantClick = if (closingGroup != null && closingGroup.variants.size > 1) {
+                                { variantPickerGroup = closingGroup }
+                            } else null
                         )
                     }
                     
@@ -346,18 +506,18 @@ fun CloseStockSessionScreen(
                             .padding(start = 16.dp)
                             .height(56.dp)
                             .shadow(
-                                elevation = if (!isClosing && items.isNotEmpty() && !hasInvalidInput) 8.dp else 0.dp,
+                                elevation = if (!isClosing && items.isNotEmpty() && !hasInvalidInput && recipeModeReady) 8.dp else 0.dp,
                                 shape = RoundedCornerShape(12.dp),
                                 spotColor = KebabPrimaryContainer
                             )
                             .clip(RoundedCornerShape(12.dp))
                             .background(
-                                if (!isClosing && items.isNotEmpty() && !hasInvalidInput) 
+                                if (!isClosing && items.isNotEmpty() && !hasInvalidInput && recipeModeReady)
                                     Brush.horizontalGradient(listOf(KebabPrimary, KebabPrimaryContainer))
                                 else
                                     Brush.horizontalGradient(listOf(Color.Gray.copy(alpha = 0.5f), Color.Gray.copy(alpha = 0.5f)))
                             )
-                            .clickable(enabled = !isClosing && items.isNotEmpty() && !hasInvalidInput) { step = 2 },
+                            .clickable(enabled = !isClosing && items.isNotEmpty() && !hasInvalidInput && recipeModeReady) { step = 2 },
                         contentAlignment = Alignment.Center
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -412,7 +572,7 @@ fun CloseStockSessionScreen(
                                     remaining[item.ingredientId] = value ?: return@clickable
                                 }
                                 val notes = notesInput.value.trim().takeIf { it.isNotBlank() }
-                                onSubmit(remaining, notes)
+                                onSubmit(remaining, if (recipeAnchorEdited) anchors else emptyList(), notes)
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -426,6 +586,90 @@ fun CloseStockSessionScreen(
                 }
             }
         }
+
+        variantPickerGroup?.let { group ->
+            RecipeVariantPickerDialog(
+                group = group,
+                selectedVariantId = selectedVariants[group.anchorIngredientId],
+                onDismiss = { variantPickerGroup = null },
+                onSelect = { variant ->
+                    selectedVariants[group.anchorIngredientId] = variant.menuVariantId
+                    variantPickerGroup = null
+                    if (recipeAnchorEdited) {
+                        onClearPreview()
+                    }
+                }
+            )
+        }
     }
+}
+
+@Composable
+private fun RecipeVariantPickerDialog(
+    group: ClosingRecipeGroup,
+    selectedVariantId: Long?,
+    onDismiss: () -> Unit,
+    onSelect: (ClosingRecipeGroupVariant) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(20.dp),
+        containerColor = Color.White,
+        title = {
+            Column {
+                Text(
+                    text = "Pilih resep",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = KebabTextDark
+                )
+                Text(
+                    text = "${group.anchorName} dipakai oleh beberapa varian.",
+                    fontSize = 12.sp,
+                    color = KebabTextGray
+                )
+            }
+        },
+        text = {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 360.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                items(group.variants, key = { it.menuVariantId }) { variant ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                if (variant.menuVariantId == selectedVariantId) {
+                                    KebabPrimary.copy(alpha = 0.08f)
+                                } else {
+                                    KebabInputBg
+                                }
+                            )
+                            .clickable { onSelect(variant) }
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = variant.menuVariantId == selectedVariantId,
+                            onClick = { onSelect(variant) }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = variant.label,
+                            modifier = Modifier.weight(1f),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = KebabTextDark
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {}
+    )
 }
 

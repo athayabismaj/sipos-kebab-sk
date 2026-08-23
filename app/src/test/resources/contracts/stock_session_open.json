@@ -12,6 +12,33 @@
         "unit": "pcs",
         "display_qty": "20"
       }
+    ],
+    "closing_groups": [
+      {
+        "group_id": 51,
+        "label": "Tortila Fixture",
+        "anchor_ingredient_id": 901,
+        "anchor_name": "Tortila Fixture",
+        "anchor_unit": "pcs",
+        "system_remaining": 18,
+        "default_menu_variant_id": 77,
+        "requires_allocation": true,
+        "ready": true,
+        "variants": [
+          {
+            "menu_variant_id": 77,
+            "label": "Kebab · Kebab Chicken",
+            "anchor_quantity": 1,
+            "is_default": true
+          },
+          {
+            "menu_variant_id": 78,
+            "label": "Kebab · Kebab Beef Patties",
+            "anchor_quantity": 1,
+            "is_default": false
+          }
+        ]
+      }
     ]
   }
 }

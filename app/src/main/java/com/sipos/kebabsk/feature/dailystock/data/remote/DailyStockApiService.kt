@@ -19,4 +19,10 @@ interface DailyStockApiService {
         @Header("Authorization") authorization: String,
         @Body body: JsonObject
     ): Response<JsonObject>
+
+    @POST("daily-stock-sessions/closing-preview")
+    suspend fun previewClosing(
+        @Header("Authorization") authorization: String,
+        @Body body: JsonObject
+    ): Response<JsonObject>
 }
