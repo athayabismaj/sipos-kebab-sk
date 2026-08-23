@@ -47,7 +47,8 @@ data class CreateTransactionData(
     @SerializedName("branch") val branch: CreateTransactionBranchData?,
     @SerializedName("total_amount") val totalAmount: Long?,
     @SerializedName("paid_amount") val paidAmount: Long?,
-    @SerializedName("change_amount") val changeAmount: Long?
+    @SerializedName("change_amount") val changeAmount: Long?,
+    @SerializedName("status") val status: String?
 )
 
 data class CreateTransactionBranchData(
@@ -72,7 +73,30 @@ data class GenerateQrisData(
     @SerializedName("branch_name") val branchName: String?,
     @SerializedName("merchant_name") val merchantName: String?,
     @SerializedName("amount") val amount: Long?,
-    @SerializedName("qris_payload") val qrisPayload: String?
+    @SerializedName("qris_payload") val qrisPayload: String?,
+    @SerializedName("qris_reference") val qrisReference: String?,
+    @SerializedName("generated_at") val generatedAt: String?,
+    @SerializedName("expires_at") val expiresAt: String?
+)
+
+data class ConfirmQrisRequest(
+    @SerializedName("transaction_id") val transactionId: Long,
+    @SerializedName("qris_reference") val qrisReference: String
+)
+
+data class ConfirmQrisResponse(
+    @SerializedName("success") val success: Boolean?,
+    @SerializedName("message") val message: String?,
+    @SerializedName("data") val data: ConfirmQrisData?
+)
+
+data class ConfirmQrisData(
+    @SerializedName("transaction_id") val transactionId: Long?,
+    @SerializedName("transaction_code") val transactionCode: String?,
+    @SerializedName("status") val status: String?,
+    @SerializedName("amount") val amount: Long?,
+    @SerializedName("qris_reference") val qrisReference: String?,
+    @SerializedName("confirmed_at") val confirmedAt: String?
 )
 
 interface CheckoutApiService {
@@ -92,4 +116,10 @@ interface CheckoutApiService {
         @Header("Authorization") authorization: String,
         @Body request: GenerateQrisRequest
     ): Response<GenerateQrisResponse>
+
+    @POST("payments/qris/confirm")
+    suspend fun confirmQris(
+        @Header("Authorization") authorization: String,
+        @Body request: ConfirmQrisRequest
+    ): Response<ConfirmQrisResponse>
 }

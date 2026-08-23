@@ -23,7 +23,8 @@ data class CheckoutResult(
     val branchAddress: String?,
     val totalAmount: Long,
     val paidAmount: Long,
-    val changeAmount: Long
+    val changeAmount: Long,
+    val status: String
 )
 
 data class QrisPayment(
@@ -31,5 +32,17 @@ data class QrisPayment(
     val branchName: String,
     val merchantName: String,
     val amount: Long,
-    val payload: String
+    val payload: String,
+    val reference: String,
+    val generatedAt: String,
+    val expiresAt: String
+)
+
+data class QrisConfirmation(
+    val transactionId: Long,
+    val transactionCode: String,
+    val status: String,
+    val amount: Long,
+    val reference: String,
+    val confirmedAt: String
 )

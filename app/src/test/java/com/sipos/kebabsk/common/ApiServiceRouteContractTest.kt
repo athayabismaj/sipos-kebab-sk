@@ -24,8 +24,10 @@ class ApiServiceRouteContractTest {
         assertRoute<CheckoutApiService>("getPaymentMethods", "GET", "payment-methods")
         assertRoute<CheckoutApiService>("createTransaction", "POST", "transactions")
         assertRoute<CheckoutApiService>("generateQris", "POST", "payments/qris/generate")
+        assertRoute<CheckoutApiService>("confirmQris", "POST", "payments/qris/confirm")
         assertRoute<DailyStockApiService>("getDailyStock", "GET", "daily-stock-items")
         assertRoute<DailyStockApiService>("closeSession", "POST", "daily-stock-sessions/close")
+        assertRoute<DailyStockApiService>("previewClosing", "POST", "daily-stock-sessions/closing-preview")
         assertRoute<OperationalExpenseApiService>("createExpense", "POST", "cashflow/expenses")
 
         assertRoute<TransactionsApiService>("getTransactions", "GET", "transactions")

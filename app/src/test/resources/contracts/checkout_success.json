@@ -24,6 +24,7 @@
     ],
     "total_amount": 10000,
     "paid_amount": 15000,
-    "change_amount": 5000
+    "change_amount": 5000,
+    "status": "SUCCESS"
   }
 }

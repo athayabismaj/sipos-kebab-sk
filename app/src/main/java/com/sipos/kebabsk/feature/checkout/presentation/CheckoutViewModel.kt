@@ -44,7 +44,11 @@ data class CheckoutUiState(
     val qrisMerchantName: String? = null,
     val qrisBranchName: String? = null,
     val qrisAmount: Long? = null,
+    val qrisReference: String? = null,
+    val qrisGeneratedAt: String? = null,
+    val qrisExpiresAt: String? = null,
     val isGeneratingQris: Boolean = false,
+    val isConfirmingQris: Boolean = false,
     val isQrisAwaitingConfirmation: Boolean = false,
     val qrisErrorMessage: String? = null,
     val checkoutReceiptItems: List<CartItem> = emptyList()
@@ -137,7 +141,11 @@ class CheckoutViewModel(
                 qrisMerchantName = null,
                 qrisBranchName = null,
                 qrisAmount = null,
+                qrisReference = null,
+                qrisGeneratedAt = null,
+                qrisExpiresAt = null,
                 isGeneratingQris = false,
+                isConfirmingQris = false,
                 isQrisAwaitingConfirmation = false,
                 qrisErrorMessage = null,
                 checkoutReceiptItems = emptyList()
@@ -162,7 +170,11 @@ class CheckoutViewModel(
                 qrisMerchantName = null,
                 qrisBranchName = null,
                 qrisAmount = null,
+                qrisReference = null,
+                qrisGeneratedAt = null,
+                qrisExpiresAt = null,
                 isGeneratingQris = false,
+                isConfirmingQris = false,
                 isQrisAwaitingConfirmation = false,
                 qrisErrorMessage = null,
                 checkoutReceiptItems = emptyList()
@@ -228,7 +240,11 @@ class CheckoutViewModel(
                             qrisMerchantName = null,
                             qrisBranchName = null,
                             qrisAmount = null,
+                            qrisReference = null,
+                            qrisGeneratedAt = null,
+                            qrisExpiresAt = null,
                             isGeneratingQris = false,
+                            isConfirmingQris = false,
                             isQrisAwaitingConfirmation = false,
                             qrisErrorMessage = null,
                             checkoutReceiptItems = emptyList()
@@ -243,6 +259,16 @@ class CheckoutViewModel(
 
                     createTransactionUseCase(token, request)
                         .onSuccess { result ->
+                            val expectedStatus = if (isQrisPayment) "PENDING_PAYMENT" else "SUCCESS"
+                            if (!result.status.equals(expectedStatus, ignoreCase = true)) {
+                                _uiState.update {
+                                    it.copy(
+                                        isLoading = false,
+                                        errorMessage = "Status transaksi dari server tidak valid. Muat ulang data sebelum mencoba lagi."
+                                    )
+                                }
+                                return@onSuccess
+                            }
                             setCheckoutResult(
                                 result = result,
                                 paymentMethodName = selectedMethod?.name.orEmpty(),
@@ -273,7 +299,11 @@ class CheckoutViewModel(
                                     qrisMerchantName = null,
                                     qrisBranchName = null,
                                     qrisAmount = null,
+                                    qrisReference = null,
+                                    qrisGeneratedAt = null,
+                                    qrisExpiresAt = null,
                                     isGeneratingQris = false,
+                                    isConfirmingQris = false,
                                     isQrisAwaitingConfirmation = false,
                                     qrisErrorMessage = null,
                                     checkoutReceiptItems = emptyList()
@@ -301,7 +331,11 @@ class CheckoutViewModel(
                 qrisMerchantName = null,
                 qrisBranchName = null,
                 qrisAmount = null,
+                qrisReference = null,
+                qrisGeneratedAt = null,
+                qrisExpiresAt = null,
                 isGeneratingQris = false,
+                isConfirmingQris = false,
                 isQrisAwaitingConfirmation = false,
                 qrisErrorMessage = null,
                 checkoutReceiptItems = emptyList()
@@ -330,12 +364,49 @@ class CheckoutViewModel(
     }
 
     fun confirmQrisPayment() {
-        if (_uiState.value.qrisPayload.isNullOrBlank()) return
-        _uiState.update {
-            it.copy(
-                isQrisAwaitingConfirmation = false,
-                checkoutMessage = "Pembayaran QRIS diterima: "
-            )
+        val token = latestQrisToken ?: return
+        val state = _uiState.value
+        val transactionId = state.qrisTransactionId ?: return
+        val reference = state.qrisReference?.takeIf { it.isNotBlank() } ?: return
+        if (state.qrisPayload.isNullOrBlank() || state.isConfirmingQris) return
+
+        _uiState.update { it.copy(isConfirmingQris = true, qrisErrorMessage = null) }
+        viewModelScope.launch {
+            checkoutRepository.confirmQris(token, transactionId, reference)
+                .onSuccess { confirmation ->
+                    val expectedAmount = _uiState.value.checkoutTotalAmount
+                    if (!confirmation.status.equals("SUCCESS", ignoreCase = true) ||
+                        confirmation.transactionId != transactionId ||
+                        confirmation.reference != reference ||
+                        confirmation.amount != expectedAmount
+                    ) {
+                        _uiState.update {
+                            it.copy(
+                                isConfirmingQris = false,
+                                qrisErrorMessage = "Konfirmasi QRIS dari server tidak sesuai dengan transaksi."
+                            )
+                        }
+                        return@onSuccess
+                    }
+                    _uiState.update {
+                        it.copy(
+                            isConfirmingQris = false,
+                            isQrisAwaitingConfirmation = false,
+                            checkoutPaidAmount = confirmation.amount,
+                            checkoutChangeAmount = 0,
+                            checkoutMessage = "Pembayaran QRIS terkonfirmasi: ",
+                            qrisErrorMessage = null
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    _uiState.update {
+                        it.copy(
+                            isConfirmingQris = false,
+                            qrisErrorMessage = normalizeQrisError(error.message)
+                        )
+                    }
+                }
         }
     }
 
@@ -362,7 +433,11 @@ class CheckoutViewModel(
                 qrisMerchantName = null,
                 qrisBranchName = null,
                 qrisAmount = if (isQrisPayment) result.totalAmount else null,
+                qrisReference = null,
+                qrisGeneratedAt = null,
+                qrisExpiresAt = null,
                 isGeneratingQris = isQrisPayment,
+                isConfirmingQris = false,
                 isQrisAwaitingConfirmation = isQrisPayment,
                 qrisErrorMessage = null,
                 checkoutReceiptItems = cartSnapshot,
@@ -373,17 +448,37 @@ class CheckoutViewModel(
 
     private suspend fun generateQrisForTransaction(token: String, transactionId: Long) {
         _uiState.update {
-            it.copy(isGeneratingQris = true, qrisErrorMessage = null)
+            it.copy(
+                isGeneratingQris = true,
+                qrisPayload = null,
+                qrisReference = null,
+                qrisGeneratedAt = null,
+                qrisExpiresAt = null,
+                qrisErrorMessage = null
+            )
         }
 
         checkoutRepository.generateQris(token, transactionId)
             .onSuccess { qris ->
+                val expectedAmount = _uiState.value.checkoutTotalAmount
+                if (qris.transactionId != transactionId || qris.amount != expectedAmount) {
+                    _uiState.update {
+                        it.copy(
+                            isGeneratingQris = false,
+                            qrisErrorMessage = "Nominal QRIS dari server tidak sesuai dengan transaksi."
+                        )
+                    }
+                    return@onSuccess
+                }
                 _uiState.update {
                     it.copy(
                         qrisPayload = qris.payload,
                         qrisMerchantName = qris.merchantName,
                         qrisBranchName = qris.branchName,
                         qrisAmount = qris.amount,
+                        qrisReference = qris.reference,
+                        qrisGeneratedAt = qris.generatedAt,
+                        qrisExpiresAt = qris.expiresAt,
                         isGeneratingQris = false,
                         qrisErrorMessage = null
                     )

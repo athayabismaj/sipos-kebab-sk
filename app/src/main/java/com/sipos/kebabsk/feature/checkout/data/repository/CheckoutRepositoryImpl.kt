@@ -4,6 +4,7 @@ import com.google.gson.JsonParser
 import com.sipos.kebabsk.common.retryNetworkRequest
 import com.sipos.kebabsk.common.suspendRunCatching
 import com.sipos.kebabsk.feature.checkout.data.remote.CheckoutApiService
+import com.sipos.kebabsk.feature.checkout.data.remote.ConfirmQrisRequest
 import com.sipos.kebabsk.feature.checkout.data.remote.CreateTransactionItemRequest
 import com.sipos.kebabsk.feature.checkout.data.remote.CreateTransactionRequest
 import com.sipos.kebabsk.feature.checkout.data.remote.GenerateQrisRequest
@@ -11,10 +12,12 @@ import com.sipos.kebabsk.feature.checkout.domain.model.CheckoutRequestData
 import com.sipos.kebabsk.feature.checkout.domain.model.CheckoutResult
 import com.sipos.kebabsk.feature.checkout.domain.model.PaymentMethod
 import com.sipos.kebabsk.feature.checkout.domain.model.QrisPayment
+import com.sipos.kebabsk.feature.checkout.domain.model.QrisConfirmation
 import com.sipos.kebabsk.feature.checkout.domain.repository.CheckoutRepository
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import java.time.OffsetDateTime
 
 class CheckoutRepositoryImpl(
     private val checkoutApiService: CheckoutApiService
@@ -71,7 +74,8 @@ class CheckoutRepositoryImpl(
                 branchAddress = data.branch?.address?.trim()?.takeIf { it.isNotEmpty() },
                 totalAmount = data.totalAmount ?: 0L,
                 paidAmount = data.paidAmount ?: 0L,
-                changeAmount = data.changeAmount ?: 0L
+                changeAmount = data.changeAmount ?: 0L,
+                status = data.status?.trim().orEmpty()
             )
         }.recoverCatching { throwable ->
             throw IllegalStateException(mapNetworkError(throwable))
@@ -99,16 +103,74 @@ class CheckoutRepositoryImpl(
             }
 
             val payload = data.qrisPayload?.trim().orEmpty()
-            if (payload.isBlank()) {
-                throw IllegalStateException("Payload QRIS dari server kosong.")
+            val reference = data.qrisReference?.trim().orEmpty()
+            val generatedAt = data.generatedAt?.trim().orEmpty()
+            val expiresAt = data.expiresAt?.trim().orEmpty()
+            val amount = data.amount ?: 0L
+            val validReference = reference.matches(Regex("^QRS-[A-Z0-9]{20}$"))
+            val validDates = runCatching {
+                OffsetDateTime.parse(generatedAt)
+                OffsetDateTime.parse(expiresAt)
+            }.isSuccess
+            if (payload.isBlank() || !validReference || !validDates || amount <= 0L) {
+                throw IllegalStateException("Data QRIS dari server tidak lengkap.")
             }
 
             QrisPayment(
                 transactionId = data.transactionId ?: transactionId,
                 branchName = data.branchName?.trim().orEmpty(),
                 merchantName = data.merchantName?.trim().orEmpty(),
+                amount = amount,
+                payload = payload,
+                reference = reference,
+                generatedAt = generatedAt,
+                expiresAt = expiresAt
+            )
+        }.recoverCatching { throwable ->
+            throw IllegalStateException(mapNetworkError(throwable))
+        }
+    }
+
+    override suspend fun confirmQris(
+        token: String,
+        transactionId: Long,
+        reference: String
+    ): Result<QrisConfirmation> {
+        return suspendRunCatching {
+            val response = checkoutApiService.confirmQris(
+                authorization = "Bearer $token",
+                request = ConfirmQrisRequest(transactionId, reference)
+            )
+            val body = response.body()
+            val data = body?.data
+
+            if (!response.isSuccessful || body?.success != true || data == null) {
+                val rawError = response.errorBody()?.string()
+                throw IllegalStateException(
+                    extractErrorMessage(rawError)
+                        ?: body?.message
+                        ?: "Pembayaran QRIS belum dapat dikonfirmasi."
+                )
+            }
+
+            val confirmedReference = data.qrisReference?.trim().orEmpty()
+            val confirmedAt = data.confirmedAt?.trim().orEmpty()
+            val validConfirmation = data.transactionId == transactionId &&
+                confirmedReference == reference &&
+                data.status.equals("SUCCESS", ignoreCase = true) &&
+                (data.amount ?: 0L) > 0L &&
+                runCatching { OffsetDateTime.parse(confirmedAt) }.isSuccess
+            if (!validConfirmation) {
+                throw IllegalStateException("Konfirmasi QRIS dari server tidak valid.")
+            }
+
+            QrisConfirmation(
+                transactionId = data.transactionId ?: transactionId,
+                transactionCode = data.transactionCode?.trim().orEmpty(),
+                status = data.status?.trim().orEmpty(),
                 amount = data.amount ?: 0L,
-                payload = payload
+                reference = confirmedReference,
+                confirmedAt = confirmedAt
             )
         }.recoverCatching { throwable ->
             throw IllegalStateException(mapNetworkError(throwable))

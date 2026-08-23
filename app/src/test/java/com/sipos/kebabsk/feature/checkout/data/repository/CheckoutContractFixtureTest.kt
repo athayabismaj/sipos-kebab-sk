@@ -4,6 +4,8 @@ import com.google.gson.Gson
 import com.sipos.kebabsk.feature.checkout.data.remote.CheckoutApiService
 import com.sipos.kebabsk.feature.checkout.data.remote.CreateTransactionRequest
 import com.sipos.kebabsk.feature.checkout.data.remote.CreateTransactionResponse
+import com.sipos.kebabsk.feature.checkout.data.remote.ConfirmQrisRequest
+import com.sipos.kebabsk.feature.checkout.data.remote.ConfirmQrisResponse
 import com.sipos.kebabsk.feature.checkout.data.remote.GenerateQrisRequest
 import com.sipos.kebabsk.feature.checkout.data.remote.GenerateQrisResponse
 import com.sipos.kebabsk.feature.checkout.data.remote.PaymentMethodsResponse
@@ -110,7 +112,28 @@ class CheckoutContractFixtureTest {
         assertEquals(1001L, api.qrisRequest?.transactionId)
         assertEquals("SK Kebab Pekeng", qris.merchantName)
         assertEquals(10_000L, qris.amount)
+        assertEquals("QRS-ABCDEFGHIJKLMNOPQRST", qris.reference)
+        assertEquals("2026-08-21T12:05:00+07:00", qris.expiresAt)
         assertTrue(qris.payload.startsWith("000201010212"))
+    }
+
+    @Test
+    fun qrisConfirmFixtureMapsServerConfirmationAndReference() = runTest {
+        val confirmBody = gson.fromJson(
+            ContractFixtureLoader.jsonObject("qris_confirm_success.json"),
+            ConfirmQrisResponse::class.java
+        )
+        val api = FixtureCheckoutApiService(confirmBody = confirmBody)
+
+        val confirmation = CheckoutRepositoryImpl(api)
+            .confirmQris("fixture-token", 1001L, "QRS-ABCDEFGHIJKLMNOPQRST")
+            .getOrThrow()
+
+        assertEquals("Bearer fixture-token", api.confirmAuthorization)
+        assertEquals(1001L, api.confirmRequest?.transactionId)
+        assertEquals("QRS-ABCDEFGHIJKLMNOPQRST", api.confirmRequest?.qrisReference)
+        assertEquals("SUCCESS", confirmation.status)
+        assertEquals(10_000L, confirmation.amount)
     }
 
     private fun fixtureResponse(name: String): CreateTransactionResponse {
@@ -130,13 +153,16 @@ private class FixtureCheckoutApiService(
     private val errorFixture: String? = null,
     private val errorCode: Int = 422,
     private val paymentMethodsBody: PaymentMethodsResponse? = null,
-    private val qrisBody: GenerateQrisResponse? = null
+    private val qrisBody: GenerateQrisResponse? = null,
+    private val confirmBody: ConfirmQrisResponse? = null
 ) : CheckoutApiService {
     var authorization: String? = null
     var paymentAuthorization: String? = null
     var request: CreateTransactionRequest? = null
     var qrisAuthorization: String? = null
     var qrisRequest: GenerateQrisRequest? = null
+    var confirmAuthorization: String? = null
+    var confirmRequest: ConfirmQrisRequest? = null
 
     override suspend fun createTransaction(
         authorization: String,
@@ -161,5 +187,14 @@ private class FixtureCheckoutApiService(
         qrisAuthorization = authorization
         qrisRequest = request
         return Response.success(requireNotNull(qrisBody))
+    }
+
+    override suspend fun confirmQris(
+        authorization: String,
+        request: ConfirmQrisRequest
+    ): Response<ConfirmQrisResponse> {
+        confirmAuthorization = authorization
+        confirmRequest = request
+        return Response.success(requireNotNull(confirmBody))
     }
 }

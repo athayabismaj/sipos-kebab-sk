@@ -55,7 +55,8 @@ val publicAuthPaths = setOf(
 val networkModule = module {
     single {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.HEADERS
+            // Never log request/response bodies: QRIS payloads and credentials must not enter logcat.
+            level = HttpLoggingInterceptor.Level.BASIC
             redactHeader("Authorization")
             redactHeader("Cookie")
             redactHeader("Set-Cookie")

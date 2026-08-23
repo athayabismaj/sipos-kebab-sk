@@ -1,8 +1,10 @@
 package com.sipos.kebabsk.feature.checkout.presentation
 
 import android.graphics.Bitmap
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,10 +16,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -43,6 +48,13 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import com.sipos.kebabsk.common.MoneyUtils
+import com.sipos.kebabsk.ui.theme.KebabDivider
+import com.sipos.kebabsk.ui.theme.KebabInputBg
+import com.sipos.kebabsk.ui.theme.KebabPrimary
+import com.sipos.kebabsk.ui.theme.KebabTextDark
+import com.sipos.kebabsk.ui.theme.KebabTextGray
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun QrisPaymentDialog(
@@ -50,81 +62,118 @@ fun QrisPaymentDialog(
     onRetry: () -> Unit,
     onPaymentReceived: () -> Unit
 ) {
+    val expiresAt = remember(state.qrisExpiresAt) {
+        state.qrisExpiresAt?.let { runCatching { OffsetDateTime.parse(it) }.getOrNull() }
+    }
+    val isLocallyExpired = expiresAt?.isBefore(OffsetDateTime.now()) == true
+
     Dialog(onDismissRequest = {}) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .widthIn(max = 420.dp),
-            shape = RoundedCornerShape(24.dp),
+                .widthIn(max = 390.dp),
+            shape = RoundedCornerShape(22.dp),
             color = Color.White,
-            tonalElevation = 8.dp
+            shadowElevation = 16.dp
         ) {
             Column(
-                modifier = Modifier.padding(20.dp),
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .background(Color(0xFFE8F7F1), CircleShape),
-                    contentAlignment = Alignment.Center
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(11.dp)
                 ) {
-                    Text("QR", color = Color(0xFF087F5B), fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(Color(0xFFE8F7F1), RoundedCornerShape(12.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.QrCode2, contentDescription = null, tint = Color(0xFF087F5B), modifier = Modifier.size(21.dp))
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Pembayaran QRIS", fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = KebabTextDark)
+                        Text(
+                            text = state.qrisMerchantName?.takeIf(String::isNotBlank)
+                                ?: state.qrisBranchName?.takeIf(String::isNotBlank)
+                                ?: "Merchant cabang",
+                            fontSize = 11.sp,
+                            color = KebabTextGray,
+                            maxLines = 2
+                        )
+                    }
+                    Surface(
+                        shape = CircleShape,
+                        color = if (isLocallyExpired) Color(0xFFFFF1F2) else Color(0xFFE8F7F1)
+                    ) {
+                        Text(
+                            text = if (isLocallyExpired) "Kedaluwarsa" else "Menunggu",
+                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                            color = if (isLocallyExpired) Color(0xFFBE123C) else Color(0xFF087F5B),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
 
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    text = "Pembayaran QRIS",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFF172033)
-                )
-                Text(
-                    text = state.qrisMerchantName?.takeIf(String::isNotBlank)
-                        ?: state.qrisBranchName?.takeIf(String::isNotBlank)
-                        ?: "Merchant cabang",
-                    modifier = Modifier.padding(top = 4.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF667085),
-                    textAlign = TextAlign.Center
-                )
-
-                Text(
-                    text = MoneyUtils.formatRupiah(state.qrisAmount ?: state.checkoutTotalAmount ?: 0L),
-                    modifier = Modifier.padding(top = 12.dp),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFF172033)
-                )
+                Surface(
+                    modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    color = KebabInputBg
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp)) {
+                        Text("Total pembayaran", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = KebabTextGray)
+                        Text(
+                            text = MoneyUtils.formatRupiah(state.qrisAmount ?: state.checkoutTotalAmount ?: 0L),
+                            modifier = Modifier.padding(top = 2.dp),
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = KebabTextDark
+                        )
+                    }
+                }
 
                 when {
                     state.isGeneratingQris -> {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .aspectRatio(1f)
-                                .padding(32.dp),
+                                .height(238.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            CircularProgressIndicator(color = Color(0xFF2563EB))
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircularProgressIndicator(color = KebabPrimary, strokeWidth = 2.5.dp)
+                                Text("Menyiapkan QR...", modifier = Modifier.padding(top = 12.dp), color = KebabTextGray, fontSize = 12.sp)
+                            }
                         }
-                        Text("Menyiapkan QRIS dinamis...", color = Color(0xFF667085), fontSize = 13.sp)
                     }
 
                     !state.qrisPayload.isNullOrBlank() -> {
-                        QrisCodeImage(
-                            payload = state.qrisPayload,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .aspectRatio(1f)
-                                .padding(top = 14.dp)
-                        )
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            QrisCodeImage(
+                                payload = state.qrisPayload,
+                                modifier = Modifier
+                                    .fillMaxWidth(0.76f)
+                                    .aspectRatio(1f)
+                            )
+                        }
                         Text(
-                            text = "Minta pelanggan memindai QR, lalu periksa notifikasi pembayaran pada aplikasi merchant.",
-                            modifier = Modifier.padding(top = 10.dp),
-                            color = Color(0xFF667085),
-                            fontSize = 12.sp,
-                            lineHeight = 18.sp,
+                            text = if (isLocallyExpired) {
+                                "QR telah kedaluwarsa. Buat QR baru untuk melanjutkan."
+                            } else {
+                                "Pindai QR, lalu pastikan pembayaran masuk sebelum dikonfirmasi."
+                            },
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 9.dp),
+                            color = KebabTextGray,
+                            fontSize = 11.sp,
+                            lineHeight = 16.sp,
                             textAlign = TextAlign.Center
                         )
                     }
@@ -133,7 +182,7 @@ fun QrisPaymentDialog(
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 16.dp),
+                                .padding(top = 14.dp),
                             shape = RoundedCornerShape(14.dp),
                             color = Color(0xFFFFF1F2)
                         ) {
@@ -149,41 +198,74 @@ fun QrisPaymentDialog(
                     }
                 }
 
-                state.checkoutTransactionCode?.let { code ->
-                    Text(
-                        text = code,
-                        modifier = Modifier.padding(top = 10.dp),
-                        color = Color(0xFF98A2B3),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                state.qrisExpiresAt?.let {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color.White,
+                        border = BorderStroke(1.dp, KebabDivider)
+                    ) {
+                        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp)) {
+                            Text(
+                                text = expiresAt?.format(DateTimeFormatter.ofPattern("dd MMM, HH:mm:ss"))
+                                    ?.let { formatted -> "Berlaku sampai $formatted" }
+                                    ?: "Masa berlaku mengikuti server",
+                                color = if (isLocallyExpired) Color(0xFFBE123C) else KebabTextGray,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            state.qrisReference?.let { reference ->
+                                Text("Ref. $reference", modifier = Modifier.padding(top = 2.dp), color = Color(0xFF98A2B3), fontSize = 9.sp)
+                            }
+                        }
+                    }
                 }
 
-                Row(
+                if (!state.qrisErrorMessage.isNullOrBlank() &&
+                    !state.qrisPayload.isNullOrBlank() &&
+                    !state.isGeneratingQris
+                ) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFFFF1F2)
+                    ) {
+                        Text(
+                            text = state.qrisErrorMessage,
+                            modifier = Modifier.padding(12.dp),
+                            color = Color(0xFFBE123C),
+                            fontSize = 12.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+
+                Button(
+                    onClick = onPaymentReceived,
+                    enabled = !state.qrisPayload.isNullOrBlank() &&
+                        !state.qrisReference.isNullOrBlank() &&
+                        !state.isGeneratingQris &&
+                        !state.isConfirmingQris &&
+                        !isLocallyExpired,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 18.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        .padding(top = 14.dp)
+                        .height(48.dp),
+                    shape = RoundedCornerShape(13.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF087F5B))
                 ) {
-                    OutlinedButton(
-                        onClick = onRetry,
-                        enabled = !state.isGeneratingQris,
-                        modifier = Modifier.weight(0.85f),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(17.dp))
-                        Text("Muat Ulang", modifier = Modifier.padding(start = 6.dp), fontWeight = FontWeight.Bold)
-                    }
-                    Button(
-                        onClick = onPaymentReceived,
-                        enabled = !state.qrisPayload.isNullOrBlank() && !state.isGeneratingQris,
-                        modifier = Modifier.weight(1.15f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F9F70))
-                    ) {
-                        Text("Sudah Dibayar", fontWeight = FontWeight.Bold)
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.padding(start = 6.dp).size(17.dp))
-                    }
+                    Text(if (state.isConfirmingQris) "Memverifikasi..." else "Konfirmasi Pembayaran", fontWeight = FontWeight.Bold)
+                    Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.padding(start = 7.dp).size(17.dp))
+                }
+                OutlinedButton(
+                    onClick = onRetry,
+                    enabled = !state.isGeneratingQris && !state.isConfirmingQris,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(44.dp),
+                    shape = RoundedCornerShape(13.dp),
+                    border = BorderStroke(1.dp, KebabDivider)
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Text(if (isLocallyExpired) "Buat QR Baru" else "Muat Ulang QR", modifier = Modifier.padding(start = 7.dp), fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -196,7 +278,11 @@ private fun QrisCodeImage(payload: String, modifier: Modifier = Modifier) {
     val bitmap = bitmapResult.getOrNull()
 
     if (bitmap != null) {
-        Surface(modifier = modifier, shape = RoundedCornerShape(16.dp), color = Color.White) {
+        Surface(
+            modifier = modifier.border(1.dp, KebabDivider, RoundedCornerShape(16.dp)),
+            shape = RoundedCornerShape(16.dp),
+            color = Color.White
+        ) {
             Image(
                 bitmap = bitmap.asImageBitmap(),
                 contentDescription = "QRIS dinamis untuk pembayaran",

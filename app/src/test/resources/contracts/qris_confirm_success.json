@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "message": "Pembayaran QRIS berhasil dikonfirmasi.",
+  "data": {
+    "transaction_id": 1001,
+    "transaction_code": "TRX-FIX-20260821-001",
+    "status": "SUCCESS",
+    "amount": 10000,
+    "qris_reference": "QRS-ABCDEFGHIJKLMNOPQRST",
+    "confirmed_at": "2026-08-21T12:01:00+07:00",
+    "confirmed_by": {
+      "id": 9,
+      "name": "Kasir Fixture"
+    },
+    "confirmation_source": "manual_cashier"
+  }
+}
