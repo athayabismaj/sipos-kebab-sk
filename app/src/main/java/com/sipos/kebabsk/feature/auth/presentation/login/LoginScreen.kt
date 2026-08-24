@@ -1,7 +1,6 @@
 package com.sipos.kebabsk.feature.auth.presentation.login
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,13 +21,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -43,11 +41,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -73,6 +73,7 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
+    val focusManager = LocalFocusManager.current
 
     Box(
         modifier = modifier
@@ -85,41 +86,27 @@ fun LoginScreen(
                 .fillMaxSize()
                 .imePadding()
                 .verticalScroll(scrollState)
-                .padding(horizontal = 18.dp, vertical = 20.dp),
+                .padding(horizontal = 20.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Card(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .widthIn(max = 420.dp)
-                    .shadow(
-                        elevation = 8.dp,
-                        shape = RoundedCornerShape(24.dp),
-                        ambientColor = Color.Black.copy(alpha = 0.05f),
-                        spotColor = Color.Black.copy(alpha = 0.08f)
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = KebabDivider,
-                        shape = RoundedCornerShape(24.dp)
-                    ),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                    .widthIn(max = 440.dp)
+                    .padding(horizontal = 4.dp, vertical = 8.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 22.dp)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
                         Box(
                             modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(Color.Black),
+                                .size(56.dp)
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(KebabTextDark),
                             contentAlignment = Alignment.Center
                         ) {
                             Image(
@@ -129,12 +116,12 @@ fun LoginScreen(
                                 modifier = Modifier.fillMaxSize()
                             )
                         }
-                        Spacer(modifier = Modifier.width(14.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = stringResource(R.string.login_store_name),
                                 color = KebabTextDark,
-                                fontSize = 18.sp,
+                                fontSize = 20.sp,
                                 fontWeight = FontWeight.ExtraBold
                             )
                             Text(
@@ -165,11 +152,11 @@ fun LoginScreen(
 
                     Text(
                         text = stringResource(R.string.login_title),
-                        fontSize = 26.sp,
+                        fontSize = 28.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = KebabTextDark,
                         textAlign = TextAlign.Start,
-                        lineHeight = 32.sp
+                        lineHeight = 34.sp
                     )
                     Text(
                         text = stringResource(R.string.login_subtitle),
@@ -188,7 +175,11 @@ fun LoginScreen(
                         label = stringResource(R.string.login_identifier_label),
                         placeholder = stringResource(R.string.login_identifier_placeholder),
                         leadingIcon = Icons.Default.Person,
-                        enabled = !uiState.isLoading
+                        enabled = !uiState.isLoading,
+                        imeAction = ImeAction.Next,
+                        keyboardActions = KeyboardActions(
+                            onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                        )
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -202,7 +193,14 @@ fun LoginScreen(
                         isPassword = true,
                         passwordVisible = passwordVisible,
                         onTogglePassword = { passwordVisible = !passwordVisible },
-                        enabled = !uiState.isLoading
+                        enabled = !uiState.isLoading,
+                        imeAction = ImeAction.Done,
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                focusManager.clearFocus()
+                                if (!uiState.isLoading) onLogin()
+                            }
+                        )
                     )
 
                     Box(
@@ -254,8 +252,11 @@ fun LoginScreen(
                             .height(56.dp)
                             .clip(RoundedCornerShape(14.dp))
                             .background(
-                                if (uiState.isLoading) KebabPrimary.copy(alpha = 0.58f)
-                                else KebabPrimary
+                                if (uiState.isLoading) {
+                                    KebabPrimary.copy(alpha = 0.58f)
+                                } else {
+                                    KebabPrimary
+                                }
                             )
                             .clickable(enabled = !uiState.isLoading, onClick = onLogin),
                         contentAlignment = Alignment.Center
@@ -286,17 +287,29 @@ fun LoginScreen(
                         }
                     }
 
-                    Text(
-                        text = stringResource(R.string.login_staff_only_note),
-                        color = KebabTextGray.copy(alpha = 0.70f),
-                        fontSize = 12.sp,
-                        textAlign = TextAlign.Center,
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 18.dp)
-                    )
+                            .padding(top = 20.dp, bottom = 4.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = KebabTextGray,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = stringResource(R.string.login_staff_only_note),
+                            color = KebabTextGray,
+                            fontSize = 12.sp,
+                            textAlign = TextAlign.Center,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
-            }
         }
     }
 }
@@ -312,7 +325,9 @@ private fun LoginInputField(
     isPassword: Boolean = false,
     passwordVisible: Boolean = false,
     onTogglePassword: () -> Unit = {},
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    imeAction: ImeAction = ImeAction.Done,
+    keyboardActions: KeyboardActions = KeyboardActions()
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
@@ -328,7 +343,7 @@ private fun LoginInputField(
             onValueChange = onValueChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(58.dp),
+                .height(60.dp),
             enabled = enabled,
             placeholder = { 
                 Text(
@@ -372,10 +387,12 @@ private fun LoginInputField(
                 VisualTransformation.None
             },
             keyboardOptions = KeyboardOptions(
-                keyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Text
+                keyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Text,
+                imeAction = imeAction
             ),
+            keyboardActions = keyboardActions,
             textStyle = androidx.compose.ui.text.TextStyle(color = KebabTextDark, fontSize = 16.sp, fontWeight = FontWeight.Medium),
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(16.dp),
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = KebabInputBg,
