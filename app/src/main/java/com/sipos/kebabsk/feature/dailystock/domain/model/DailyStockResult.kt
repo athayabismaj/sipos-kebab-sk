@@ -43,7 +43,8 @@ data class ClosingRecipePreset(
 
 data class ClosingRecipeAnchorInput(
     val menuVariantId: Long,
-    val actualRemaining: Double
+    val actualRemaining: Double,
+    val allocatedQuantity: Double? = null
 )
 
 data class ClosingRecipePreviewItem(
@@ -54,10 +55,19 @@ data class ClosingRecipePreviewItem(
     val unit: String
 )
 
+data class ClosingRecipeAffectedIngredient(
+    val ingredientId: Long,
+    val name: String,
+    val usedQty: Double,
+    val unit: String
+)
+
 data class ClosingRecipeSummary(
     val menuVariantId: Long,
     val label: String,
-    val inferredServings: Int
+    val inferredServings: Int,
+    val anchorIngredientId: Long? = null,
+    val affectedIngredients: List<ClosingRecipeAffectedIngredient> = emptyList()
 )
 
 data class ClosingRecipePreview(

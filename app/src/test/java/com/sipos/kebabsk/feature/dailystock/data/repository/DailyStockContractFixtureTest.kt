@@ -85,6 +85,10 @@ class DailyStockContractFixtureTest {
 
         val preview = repository.previewClosing("fixture-token", anchors).getOrThrow()
         assertEquals(7, preview.summaries.single().inferredServings)
+        assertEquals(901L, preview.summaries.single().anchorIngredientId)
+        assertEquals(2, preview.summaries.single().affectedIngredients.size)
+        assertEquals("Daging Kebab", preview.summaries.single().affectedIngredients.first().name)
+        assertEquals(252.0, preview.summaries.single().affectedIngredients.first().usedQty, 0.0)
         assertEquals(25.0, preview.remainingItems.single().remainingQty, 0.0)
         assertEquals(77L, api.previewBody?.getAsJsonArray("closing_anchors")?.get(0)?.asJsonObject?.get("menu_variant_id")?.asLong)
 
@@ -101,6 +105,26 @@ class DailyStockContractFixtureTest {
         assertEquals("closing-key-001", body.get("idempotency_key").asString)
         assertEquals(25.0, body.getAsJsonObject("remaining_overrides").get("901").asDouble, 0.0)
     }
+    @Test
+    fun recipeClosingSerializesCumulativeVariantAllocations() = runTest {
+        val api = FixtureDailyStockApiService("stock_session_open.json")
+        val repository = DailyStockRepositoryImpl(api)
+        val anchors = listOf(
+            ClosingRecipeAnchorInput(77L, 30.0, allocatedQuantity = 1.0),
+            ClosingRecipeAnchorInput(78L, 30.0, allocatedQuantity = 1.0)
+        )
+
+        repository.previewClosing("fixture-token", anchors).getOrThrow()
+
+        val rows = requireNotNull(api.previewBody)
+            .getAsJsonArray("closing_anchors")
+        assertEquals(2, rows.size())
+        assertEquals(1.0, rows[0].asJsonObject.get("allocated_quantity").asDouble, 0.0)
+        assertEquals(1.0, rows[1].asJsonObject.get("allocated_quantity").asDouble, 0.0)
+        assertEquals(30.0, rows[0].asJsonObject.get("actual_remaining").asDouble, 0.0)
+        assertEquals(30.0, rows[1].asJsonObject.get("actual_remaining").asDouble, 0.0)
+    }
+
 }
 
 private class FixtureDailyStockApiService(
@@ -150,6 +174,21 @@ private class FixtureDailyStockApiService(
                     addProperty("menu_variant_id", 77)
                     addProperty("label", "Kebab Mini")
                     addProperty("inferred_servings", 7)
+                    addProperty("anchor_ingredient_id", 901)
+                    add("affected_ingredients", com.google.gson.JsonArray().apply {
+                        add(JsonObject().apply {
+                            addProperty("ingredient_id", 902)
+                            addProperty("name", "Daging Kebab")
+                            addProperty("used_qty", 252)
+                            addProperty("unit", "gr")
+                        })
+                        add(JsonObject().apply {
+                            addProperty("ingredient_id", 903)
+                            addProperty("name", "Saus")
+                            addProperty("used_qty", 70)
+                            addProperty("unit", "ml")
+                        })
+                    })
                 })
             })
         })

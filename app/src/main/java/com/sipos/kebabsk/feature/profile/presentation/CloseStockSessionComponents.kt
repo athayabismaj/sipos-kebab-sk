@@ -14,11 +14,14 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -111,99 +114,223 @@ fun StepperSection(step: Int) {
 
 
 @Composable
-fun RingkasanSesiCard() {
+fun RingkasanSesiCard(
+    totalIngredients: Int,
+    usedIngredients: Int
+) {
     val dateFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.forLanguageTag("id-ID"))
-    // Menggunakan business date agar tanggal tidak otomatis berubah saat jam 12 malam sampai toleransi jam 4 pagi
     val hariIniStr = AppTime.businessDateJakarta().format(dateFormatter)
-    
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color.White)
-            .border(1.dp, Color(0xFFF0E4DB), RoundedCornerShape(16.dp))
-            .padding(14.dp)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, KebabDivider)
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 12.dp)) {
-                Icon(Icons.Default.Schedule, contentDescription = null, tint = KebabPrimary, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Ringkasan Sesi", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
-            }
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column {
-                    Text("TANGGAL SESI", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = KebabTextGray, letterSpacing = 1.sp)
-                    Text(hariIniStr, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = KebabTextDark, modifier = Modifier.padding(top = 3.dp))
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("STATUS", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = KebabTextGray, letterSpacing = 1.sp)
-                    Text("Akan Ditutup", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = KebabPrimary, modifier = Modifier.padding(top = 3.dp))
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Profil Kasir Bertugas
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(KebabCardBg)
-                    .padding(10.dp),
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
-                    modifier = Modifier.size(34.dp).clip(CircleShape).background(KebabTertiaryContainer),
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(KebabPrimary.copy(alpha = 0.08f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Person, contentDescription = null, tint = KebabOnTertiaryContainer)
+                    Icon(
+                        Icons.Default.Schedule,
+                        contentDescription = null,
+                        tint = KebabPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
-                Spacer(modifier = Modifier.width(10.dp))
-                Column {
-                    Text("Sesi Operasional", fontSize = 12.sp, color = KebabTextGray)
-                    Text("Harian", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
+                Spacer(modifier = Modifier.width(11.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Ringkasan sesi", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
+                    Text("Periksa kembali sebelum menutup", fontSize = 11.sp, color = KebabTextGray)
                 }
+                Text(
+                    text = "Siap ditutup",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = KebabPrimary,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(KebabPrimary.copy(alpha = 0.08f))
+                        .padding(horizontal = 9.dp, vertical = 6.dp)
+                )
+            }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 14.dp),
+                color = KebabDivider
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ReviewMetric(
+                    label = "Tanggal",
+                    value = hariIniStr,
+                    modifier = Modifier.weight(1.45f)
+                )
+                ReviewMetric(
+                    label = "Diperiksa",
+                    value = "$totalIngredients bahan",
+                    modifier = Modifier.weight(1f)
+                )
+                ReviewMetric(
+                    label = "Terpakai",
+                    value = "$usedIngredients bahan",
+                    modifier = Modifier.weight(1f),
+                    accent = usedIngredients > 0
+                )
             }
         }
     }
 }
 
 @Composable
+private fun ReviewMetric(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    accent: Boolean = false
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (accent) KebabPrimary.copy(alpha = 0.07f) else KebabInputBg)
+            .padding(horizontal = 10.dp, vertical = 9.dp)
+    ) {
+        Text(label, fontSize = 9.sp, fontWeight = FontWeight.Medium, color = KebabTextGray)
+        Spacer(modifier = Modifier.height(3.dp))
+        Text(
+            value,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (accent) KebabPrimary else KebabTextDark,
+            maxLines = 1
+        )
+    }
+}
+
+private data class ReviewUsageItem(
+    val title: String,
+    val stockAwal: String,
+    val sisaAkhir: String,
+    val terpakai: String,
+    val usedValue: Double,
+    val unit: String,
+    val usedUnit: String
+)
+
+@Composable
 fun DetailPenggunaanSection(
     items: List<DailyStockItem>,
     remainingInputs: Map<Long, String>
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "Detail Penggunaan",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            color = KebabTextDark,
-            modifier = Modifier.padding(start = 2.dp, bottom = 10.dp)
+    val usageItems = items.map { item ->
+        val sisa = remainingInputs[item.ingredientId]?.toDoubleOrNull() ?: 0.0
+        val used = (item.qty - sisa).coerceAtLeast(0.0)
+        val convertedUsage = convertUsedQuantityForReview(used, item.unit)
+        ReviewUsageItem(
+            title = item.name,
+            stockAwal = formatDisplayQty(item.qty),
+            sisaAkhir = formatDisplayQty(sisa),
+            terpakai = formatDisplayQty(convertedUsage.first),
+            usedValue = used,
+            unit = item.unit ?: "unit",
+            usedUnit = convertedUsage.second
         )
-        
-        Column(
-            modifier = Modifier
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items.forEachIndexed { index, item ->
-                val sisa = remainingInputs[item.ingredientId]?.toDoubleOrNull() ?: 0.0
-                val used = (item.qty - sisa).coerceAtLeast(0.0)
-                
-                // Rotasi icon untuk dummy mockup behavior (bisa menggunakan icon default API jika tersedia)
-                val iconList = listOf(Icons.Default.LocalCafe, Icons.Default.WaterDrop, Icons.Default.Spa)
-                val assignedIcon = iconList[index % iconList.size]
+    }
+    val changedItems = usageItems.filter { it.usedValue > 0.000001 }
+    val unchangedItems = usageItems.filterNot { it.usedValue > 0.000001 }
+    var showUnchanged by remember(items) { mutableStateOf(false) }
+    val visibleItems = if (showUnchanged) changedItems + unchangedItems else changedItems
 
-                PenggunaanItemCard(
-                    title = item.name,
-                    icon = assignedIcon,
-                    stockAwal = formatDisplayQty(item.qty),
-                    sisaAkhir = formatDisplayQty(sisa),
-                    terpakai = formatDisplayQty(used),
-                    unit = item.unit ?: "unit"
-                )
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 2.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text("Pemakaian bahan", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
+                Text("${changedItems.size} dari ${items.size} bahan berubah", fontSize = 11.sp, color = KebabTextGray)
+            }
+            Text(
+                text = "${changedItems.size} terpakai",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                color = KebabPrimary,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(KebabPrimary.copy(alpha = 0.08f))
+                    .padding(horizontal = 9.dp, vertical = 6.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            border = BorderStroke(1.dp, KebabDivider)
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                if (visibleItems.isEmpty()) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = KebabPrimary, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text("Tidak ada bahan yang terpakai.", fontSize = 12.sp, color = KebabTextGray)
+                    }
+                } else {
+                    visibleItems.forEachIndexed { index, usage ->
+                        PenggunaanItemCard(
+                            title = usage.title,
+                            stockAwal = usage.stockAwal,
+                            sisaAkhir = usage.sisaAkhir,
+                            terpakai = usage.terpakai,
+                            usedValue = usage.usedValue,
+                            unit = usage.unit,
+                            usedUnit = usage.usedUnit
+                        )
+                        if (index < visibleItems.lastIndex) {
+                            HorizontalDivider(color = KebabDivider.copy(alpha = 0.7f))
+                        }
+                    }
+                }
+
+                if (unchangedItems.isNotEmpty()) {
+                    if (visibleItems.isNotEmpty()) HorizontalDivider(color = KebabDivider)
+                    TextButton(
+                        onClick = { showUnchanged = !showUnchanged },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = if (showUnchanged) {
+                                "Sembunyikan bahan tanpa perubahan"
+                            } else {
+                                "Tampilkan ${unchangedItems.size} bahan tanpa perubahan"
+                            },
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = KebabPrimary
+                        )
+                    }
+                }
             }
         }
     }
@@ -211,84 +338,53 @@ fun DetailPenggunaanSection(
 
 @Composable
 fun PenggunaanItemCard(
-    title: String, 
-    icon: ImageVector, 
-    stockAwal: String, 
-    sisaAkhir: String, 
-    terpakai: String, 
-    unit: String
+    title: String,
+    stockAwal: String,
+    sisaAkhir: String,
+    terpakai: String,
+    usedValue: Double,
+    unit: String,
+    usedUnit: String
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        border = BorderStroke(1.dp, Color(0xFFF0E4DB))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(if (usedValue > 0.000001) KebabPrimary.copy(alpha = 0.08f) else KebabInputBg),
+            contentAlignment = Alignment.Center
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(KebabInputBg),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(icon, contentDescription = null, tint = KebabPrimary, modifier = Modifier.size(18.dp))
-                }
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = title,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = KebabTextDark,
-                    modifier = Modifier.weight(1f),
-                    maxLines = 2
-                )
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(KebabError.copy(alpha = 0.08f))
-                        .padding(horizontal = 9.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.TrendingDown, contentDescription = null, tint = KebabError, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("$terpakai $unit", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = KebabError)
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(KebabInputBg)
-                        .padding(horizontal = 10.dp, vertical = 8.dp)
-                ) {
-                    Text("Stok awal", fontSize = 10.sp, color = KebabTextGray)
-                    Text("$stockAwal $unit", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
-                }
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(KebabPrimary.copy(alpha = 0.07f))
-                        .padding(horizontal = 10.dp, vertical = 8.dp)
-                ) {
-                    Text("Sisa akhir", fontSize = 10.sp, color = KebabTextGray)
-                    Text("$sisaAkhir $unit", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = KebabPrimary)
-                }
-            }
+            Icon(
+                Icons.AutoMirrored.Filled.TrendingDown,
+                contentDescription = null,
+                tint = if (usedValue > 0.000001) KebabPrimary else KebabTextGray,
+                modifier = Modifier.size(17.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = KebabTextDark, maxLines = 2)
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "$stockAwal → $sisaAkhir ${unit.lowercase(Locale.ROOT)}",
+                fontSize = 10.sp,
+                color = KebabTextGray
+            )
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        Column(horizontalAlignment = Alignment.End) {
+            Text("Terpakai", fontSize = 9.sp, color = KebabTextGray)
+            Text(
+                text = "$terpakai $usedUnit",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (usedValue > 0.000001) KebabPrimary else KebabTextGray
+            )
         }
     }
 }
@@ -302,6 +398,14 @@ fun BahanInputCard(
     onSisaChange: (String) -> Unit,
     satuan: String,
     terpakai: String,
+    hasUsage: Boolean,
+    hasAutomaticRecipe: Boolean = false,
+    isAutomaticRecipeChanged: Boolean = false,
+    affectedIngredientCount: Int = 0,
+    isRecipePreviewLoading: Boolean = false,
+    recipePreviewError: String? = null,
+    onRecipeDetailClick: (() -> Unit)? = null,
+    onRecipeRetry: (() -> Unit)? = null,
     recipeVariantLabel: String? = null,
     onRecipeVariantClick: (() -> Unit)? = null
 ) {
@@ -317,7 +421,12 @@ fun BahanInputCard(
         onSisaChange(nextText)
     }
 
-    val terpakaiText = if (terpakai == "--") terpakai else "$terpakai $satuan"
+    val usageBadgeText = when {
+        terpakai == "--" -> "--"
+        hasUsage -> "Terpakai $terpakai $satuan"
+        else -> "Tidak berubah"
+    }
+    val usageBadgeHighlighted = terpakai != "--" && hasUsage
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -375,13 +484,13 @@ fun BahanInputCard(
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "Terpakai $terpakaiText",
+                    text = usageBadgeText,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (terpakai == "--") KebabTextGray else KebabPrimary,
+                    color = if (usageBadgeHighlighted) KebabPrimary else KebabTextGray,
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
-                        .background(KebabInputBg)
+                        .background(if (usageBadgeHighlighted) KebabPrimary.copy(alpha = 0.08f) else KebabInputBg)
                         .padding(horizontal = 9.dp, vertical = 6.dp)
                 )
             }
@@ -462,6 +571,70 @@ fun BahanInputCard(
                     }
                 }
             }
+
+            if (hasAutomaticRecipe) {
+                HorizontalDivider(color = KebabDivider.copy(alpha = 0.7f))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(KebabPrimary.copy(alpha = 0.06f))
+                        .padding(horizontal = 11.dp, vertical = 9.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (isRecipePreviewLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = KebabPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.FlashOn,
+                            contentDescription = null,
+                            tint = if (recipePreviewError == null) KebabPrimary else KebabError,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = when {
+                                isRecipePreviewLoading -> "Menghitung bahan terkait..."
+                                recipePreviewError != null -> "Tidak dapat menghitung bahan terkait."
+                                isAutomaticRecipeChanged && affectedIngredientCount > 0 ->
+                                    "$affectedIngredientCount bahan akan dihitung otomatis"
+                                isAutomaticRecipeChanged -> "Bahan resep akan dihitung otomatis"
+                                else -> "Pengurangan resep otomatis"
+                            },
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (recipePreviewError == null) KebabTextDark else KebabError,
+                            lineHeight = 15.sp
+                        )
+                        when {
+                            recipePreviewError != null && onRecipeRetry != null -> {
+                                Text(
+                                    text = "Coba lagi",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = KebabPrimary,
+                                    modifier = Modifier.padding(top = 3.dp).clickable(onClick = onRecipeRetry)
+                                )
+                            }
+                            affectedIngredientCount > 0 && onRecipeDetailClick != null -> {
+                                Text(
+                                    text = "Lihat detail",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = KebabPrimary,
+                                    modifier = Modifier.padding(top = 3.dp).clickable(onClick = onRecipeDetailClick)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -472,6 +645,14 @@ internal fun formatDisplayQty(qty: Double): String {
         qty.toInt().toString()
     } else {
         String.format(java.util.Locale.US, "%.2f", qty)
+    }
+}
+
+internal fun convertUsedQuantityForReview(qty: Double, unit: String?): Pair<Double, String> {
+    return when (unit?.trim()?.lowercase(Locale.ROOT)) {
+        "kg", "kilogram" -> qty * 1_000.0 to "g"
+        "l", "lt", "liter", "litre" -> qty * 1_000.0 to "ml"
+        else -> qty to (unit?.trim()?.lowercase(Locale.ROOT)?.takeIf { it.isNotBlank() } ?: "unit")
     }
 }
 
@@ -487,5 +668,3 @@ internal fun formatInitialQty(qty: Double): String {
 private fun border(width: androidx.compose.ui.unit.Dp, color: Color, shape: androidx.compose.ui.graphics.Shape): androidx.compose.foundation.BorderStroke {
     return androidx.compose.foundation.BorderStroke(width, color)
 }
-
-

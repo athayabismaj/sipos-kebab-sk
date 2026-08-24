@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,15 +30,20 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,6 +63,8 @@ import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -76,6 +84,7 @@ import com.sipos.kebabsk.common.validation.ValidationResult
 import com.sipos.kebabsk.feature.dailystock.domain.validation.DailyStockValidator
 import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipeAnchorInput
 import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipeGroup
+import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipeAffectedIngredient
 import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipeGroupVariant
 import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipePreset
 import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipePreview
@@ -104,7 +113,60 @@ private val LocalKebabSecondary = Color(0xFF795900)
 private val LocalKebabTertiary = Color(0xFF00658F)
 private val LocalKebabInfoBg = KebabInputBg
 
+private data class RecipeAllocation(
+    val menuVariantId: Long,
+    val quantity: Double
+)
+
+private data class PendingRecipeAllocation(
+    val group: ClosingRecipeGroup,
+    val previousRemaining: Double,
+    val newRemaining: Double,
+    val quantity: Double
+)
+
+private fun rollbackRecipeAllocations(
+    entries: List<RecipeAllocation>,
+    restoredQuantity: Double
+): List<RecipeAllocation> {
+    var quantityToRestore = restoredQuantity.coerceAtLeast(0.0)
+    val result = entries.toMutableList()
+    while (quantityToRestore > 0.000001 && result.isNotEmpty()) {
+        val lastIndex = result.lastIndex
+        val last = result[lastIndex]
+        if (last.quantity <= quantityToRestore + 0.000001) {
+            quantityToRestore -= last.quantity
+            result.removeAt(lastIndex)
+        } else {
+            result[lastIndex] = last.copy(quantity = last.quantity - quantityToRestore)
+            quantityToRestore = 0.0
+        }
+    }
+    return result.filter { it.quantity > 0.000001 }
+}
+
+private fun aggregateAffectedIngredients(
+    preview: ClosingRecipePreview?,
+    anchorIngredientId: Long,
+    allocatedVariantIds: Set<Long>
+): List<ClosingRecipeAffectedIngredient> {
+    return preview?.summaries.orEmpty()
+        .filter { summary ->
+            summary.anchorIngredientId == anchorIngredientId ||
+                (summary.anchorIngredientId == null && summary.menuVariantId in allocatedVariantIds)
+        }
+        .flatMap { it.affectedIngredients }
+        .filter { it.ingredientId != anchorIngredientId && it.usedQty > 0.0 }
+        .groupBy { it.ingredientId }
+        .values
+        .map { rows ->
+            val first = rows.first()
+            first.copy(usedQty = rows.sumOf { it.usedQty })
+        }
+}
+
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun CloseStockSessionScreen(
     modifier: Modifier = Modifier,
     items: List<DailyStockItem>,
@@ -130,8 +192,21 @@ fun CloseStockSessionScreen(
             }
         }
     }
+    val lastValidRemainingInputs = remember(items) {
+        mutableStateMapOf<Long, Double>().apply {
+            items.forEach { item ->
+                put(item.ingredientId, item.remainingQty ?: item.qty)
+            }
+        }
+    }
     val notesInput = remember { mutableStateOf("") }
-    var recipeAnchorEdited by remember { mutableStateOf(false) }
+    var selectedDetailAnchorId by remember { mutableStateOf<Long?>(null) }
+    var bottomActionHeightPx by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
+    val bottomContentPadding = with(density) {
+        bottomActionHeightPx.toDp() + 16.dp
+    }
+
     val effectiveClosingGroups = remember(closingGroups, closingPresets) {
         if (closingGroups.isNotEmpty()) {
             closingGroups
@@ -166,14 +241,11 @@ fun CloseStockSessionScreen(
             }
         }
     }
-    val selectedVariants = remember(effectiveClosingGroups) {
-        mutableStateMapOf<Long, Long>().apply {
-            effectiveClosingGroups.forEach { group ->
-                if (!group.requiresAllocation || group.variants.size == 1) {
-                    put(group.anchorIngredientId, group.defaultMenuVariantId)
-                }
-            }
-        }
+    val recipeAllocations = remember(effectiveClosingGroups) {
+        mutableStateMapOf<Long, List<RecipeAllocation>>()
+    }
+    var pendingRecipeAllocation by remember {
+        mutableStateOf<PendingRecipeAllocation?>(null)
     }
     var variantPickerGroup by remember { mutableStateOf<ClosingRecipeGroup?>(null) }
     var step by remember { mutableIntStateOf(1) } // 1: input, 2: review
@@ -183,20 +255,42 @@ fun CloseStockSessionScreen(
         val value = remainingInputs[item.ingredientId]?.toDoubleOrNull()
         dailyStockValidator.validateRemainingQuantity(value) is ValidationResult.Invalid
     }
-    val anchors = effectiveClosingGroups.mapNotNull { group ->
-        val selectedVariantId = selectedVariants[group.anchorIngredientId]
-            ?: return@mapNotNull null
-        anchorInputs[group.anchorIngredientId]?.toDoubleOrNull()?.let {
-            ClosingRecipeAnchorInput(selectedVariantId, it)
-        }
+    val editedClosingGroups = effectiveClosingGroups.filter {
+        recipeAllocations[it.anchorIngredientId].orEmpty().isNotEmpty()
     }
-    val recipeModeReady = !recipeAnchorEdited ||
-        (closingPreview != null && anchors.size == effectiveClosingGroups.size)
+    val anchors = editedClosingGroups.flatMap { group ->
+        val actualRemaining = anchorInputs[group.anchorIngredientId]
+            ?.toDoubleOrNull()
+            ?: return@flatMap emptyList()
+        recipeAllocations[group.anchorIngredientId]
+            .orEmpty()
+            .groupBy { it.menuVariantId }
+            .map { (menuVariantId, rows) ->
+                ClosingRecipeAnchorInput(
+                    menuVariantId = menuVariantId,
+                    actualRemaining = actualRemaining,
+                    allocatedQuantity = rows.sumOf { it.quantity }
+                )
+            }
+    }
+    val allocationsMatchPhysicalInput = editedClosingGroups.all { group ->
+        val actualRemaining = anchorInputs[group.anchorIngredientId]?.toDoubleOrNull()
+            ?: return@all false
+        val expectedUsage = (group.systemRemaining - actualRemaining).coerceAtLeast(0.0)
+        val allocatedUsage = recipeAllocations[group.anchorIngredientId]
+            .orEmpty()
+            .sumOf { it.quantity }
+        (expectedUsage - allocatedUsage).absoluteValue <= 0.000001
+    }
+    val recipeAnchorEdited = anchors.isNotEmpty()
+    val recipeModeReady = pendingRecipeAllocation == null &&
+        (!recipeAnchorEdited ||
+            (closingPreview != null && allocationsMatchPhysicalInput &&
+                editedClosingGroups.all { it.ready }))
 
-    LaunchedEffect(anchors, effectiveClosingGroups, recipeAnchorEdited) {
-        if (recipeAnchorEdited && effectiveClosingGroups.isNotEmpty() &&
-            anchors.size == effectiveClosingGroups.size &&
-            effectiveClosingGroups.all { it.ready }
+    LaunchedEffect(anchors, pendingRecipeAllocation) {
+        if (anchors.isNotEmpty() && pendingRecipeAllocation == null &&
+            allocationsMatchPhysicalInput && editedClosingGroups.all { it.ready }
         ) {
             delay(450)
             onPreview(anchors)
@@ -206,6 +300,7 @@ fun CloseStockSessionScreen(
     LaunchedEffect(closingPreview) {
         closingPreview?.remainingItems?.forEach { result ->
             remainingInputs[result.ingredientId] = formatInitialQty(result.remainingQty)
+            lastValidRemainingInputs[result.ingredientId] = result.remainingQty
         }
     }
 
@@ -249,6 +344,7 @@ fun CloseStockSessionScreen(
             // === SCROLLABLE CONTENT ===
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp),
+                contentPadding = PaddingValues(bottom = bottomContentPadding),
                 verticalArrangement = if (step == 1) Arrangement.spacedBy(8.dp) else Arrangement.Top,
                 horizontalAlignment = if (step == 2) Alignment.CenterHorizontally else Alignment.Start
             ) {
@@ -258,7 +354,7 @@ fun CloseStockSessionScreen(
                     StepperSection(step = step)
                         Spacer(modifier = Modifier.height(16.dp))
 
-                    val displayedError = closeErrorMessage ?: closingPreviewError
+                    val displayedError = closeErrorMessage
                     if (!displayedError.isNullOrBlank()) {
                         Card(
                             modifier = Modifier
@@ -319,31 +415,28 @@ fun CloseStockSessionScreen(
                                 .padding(horizontal = 12.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            if (isPreviewingClosing) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    color = KebabPrimary,
-                                    strokeWidth = 2.dp
+                            Icon(
+                                imageVector = Icons.Default.FlashOn,
+                                contentDescription = null,
+                                tint = KebabPrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(9.dp))
+                            Column {
+                                Text(
+                                    text = "Pengurangan otomatis aktif",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = KebabTextDark
                                 )
-                            } else {
-                                Icon(
-                                    imageVector = if (recipeAnchorEdited && closingPreview != null) Icons.Default.Check else Icons.Default.Info,
-                                    contentDescription = null,
-                                    tint = KebabPrimary,
-                                    modifier = Modifier.size(17.dp)
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "Saat sisa bahan utama berubah, bahan resep yang terkait akan dihitung otomatis.",
+                                    fontSize = 11.sp,
+                                    lineHeight = 15.sp,
+                                    color = KebabTextGray
                                 )
                             }
-                            Spacer(modifier = Modifier.width(9.dp))
-                            Text(
-                                text = when {
-                                    isPreviewingClosing -> "Menyesuaikan sisa bahan terkait..."
-                                    recipeAnchorEdited && closingPreview != null -> "Bahan terkait sudah disesuaikan dari resep."
-                                    else -> "Masukkan sisa fisik seperti biasa. Perhitungan resep berjalan otomatis saat diperlukan."
-                                },
-                                fontSize = 11.sp,
-                                lineHeight = 15.sp,
-                                color = KebabTextGray
-                            )
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                     }
@@ -353,12 +446,25 @@ fun CloseStockSessionScreen(
                         val closingGroup = effectiveClosingGroups.firstOrNull {
                             it.anchorIngredientId == item.ingredientId
                         }
-                        val selectedVariant = closingGroup?.variants?.firstOrNull {
-                            it.menuVariantId == selectedVariants[closingGroup.anchorIngredientId]
-                        }
+                        val allocatedVariantIds = recipeAllocations[item.ingredientId]
+                            .orEmpty()
+                            .map { it.menuVariantId }
+                            .toSet()
+                        val affectedIngredients = aggregateAffectedIngredients(
+                            preview = closingPreview,
+                            anchorIngredientId = item.ingredientId,
+                            allocatedVariantIds = allocatedVariantIds
+                        )
+                        val recipeAllocationActive = allocatedVariantIds.isNotEmpty()
+
                         
-                        val sisa = remainingInputs[item.ingredientId]?.toDoubleOrNull() ?: 0.0
+                        val parsedRemaining = remainingInputs[item.ingredientId]?.toDoubleOrNull()
+                        val sisa = parsedRemaining ?: 0.0
                         val terpakaiVal = (item.qty - sisa).coerceAtLeast(0.0)
+                        val isAutomaticRecipeChanged = parsedRemaining != null &&
+                            closingGroup != null &&
+                            recipeAllocationActive &&
+                            sisa < closingGroup.systemRemaining - 0.000001
                         
                         // Tandai sedang tidak ada perubahan jika nilainya persis sama seperti qty (belum terpakai)
                         // atau sesuai dengan remainingQty dari backend jika user belum input apa-apa.
@@ -373,24 +479,85 @@ fun CloseStockSessionScreen(
                             maxValue = Double.MAX_VALUE,
                             onSisaChange = { newValue ->
                                 if (newValue.isEmpty() || newValue.matches(Regex("^\\d*\\.?\\d*$"))) {
-                                    remainingInputs[item.ingredientId] = newValue
-                                    if (closingGroup != null) {
-                                        recipeAnchorEdited = true
-                                        anchorInputs[closingGroup.anchorIngredientId] = newValue
-                                        onClearPreview()
-                                        if (selectedVariants[closingGroup.anchorIngredientId] == null) {
-                                            variantPickerGroup = closingGroup
+                                    val ingredientId = item.ingredientId
+                                    val previousValue = lastValidRemainingInputs[ingredientId]
+                                    val nextValue = newValue.toDoubleOrNull()
+                                    remainingInputs[ingredientId] = newValue
+
+                                    if (closingGroup == null) {
+                                        if (nextValue != null) {
+                                            lastValidRemainingInputs[ingredientId] = nextValue
+                                        }
+                                    } else {
+                                        anchorInputs[ingredientId] = newValue
+                                        if (previousValue != null && nextValue != null) {
+                                            lastValidRemainingInputs[ingredientId] = nextValue
+                                            val currentAllocatedUsage = recipeAllocations[ingredientId]
+                                                .orEmpty()
+                                                .sumOf { it.quantity }
+                                            val targetAllocatedUsage =
+                                                (closingGroup.systemRemaining - nextValue).coerceAtLeast(0.0)
+                                            when {
+                                                nextValue < previousValue - 0.000001 &&
+                                                    targetAllocatedUsage > currentAllocatedUsage + 0.000001 -> {
+                                                    val quantity =
+                                                        targetAllocatedUsage - currentAllocatedUsage
+                                                    val onlyVariant = closingGroup.variants.singleOrNull()
+                                                    if (onlyVariant != null) {
+                                                        recipeAllocations[ingredientId] =
+                                                            recipeAllocations[ingredientId].orEmpty() +
+                                                                RecipeAllocation(onlyVariant.menuVariantId, quantity)
+                                                        onClearPreview()
+                                                    } else {
+                                                        pendingRecipeAllocation = PendingRecipeAllocation(
+                                                            group = closingGroup,
+                                                            previousRemaining = previousValue,
+                                                            newRemaining = nextValue,
+                                                            quantity = quantity
+                                                        )
+                                                        variantPickerGroup = closingGroup
+                                                    }
+                                                }
+
+                                                nextValue > previousValue + 0.000001 -> {
+                                                    val updatedAllocations = rollbackRecipeAllocations(
+                                                        entries = recipeAllocations[ingredientId].orEmpty(),
+                                                        restoredQuantity =
+                                                            (currentAllocatedUsage - targetAllocatedUsage)
+                                                                .coerceAtLeast(0.0)
+                                                    )
+                                                    if (updatedAllocations.isEmpty()) {
+                                                        recipeAllocations.remove(ingredientId)
+                                                    } else {
+                                                        recipeAllocations[ingredientId] = updatedAllocations
+                                                    }
+                                                    pendingRecipeAllocation = null
+                                                    variantPickerGroup = null
+                                                    onClearPreview()
+                                                }
+                                            }
                                         }
                                     }
                                 }
                             },
                             satuan = (item.unit ?: "unit").uppercase(Locale.ROOT),
                             terpakai = terpakaiFormat,
-                            recipeVariantLabel = selectedVariant?.label
-                                ?: closingGroup?.takeIf { it.requiresAllocation }?.let { "Pilih varian resep" },
-                            onRecipeVariantClick = if (closingGroup != null && closingGroup.variants.size > 1) {
-                                { variantPickerGroup = closingGroup }
-                            } else null
+                            hasUsage = terpakaiVal > 0.000001,
+                            hasAutomaticRecipe = closingGroup != null,
+                            isAutomaticRecipeChanged = isAutomaticRecipeChanged,
+                            affectedIngredientCount = affectedIngredients.size,
+                            isRecipePreviewLoading = isPreviewingClosing && recipeAllocationActive,
+                            recipePreviewError = closingPreviewError.takeIf {
+                                recipeAllocationActive && !isPreviewingClosing
+                            },
+                            onRecipeDetailClick = if (isAutomaticRecipeChanged && affectedIngredients.isNotEmpty()) {
+                                { selectedDetailAnchorId = item.ingredientId }
+                            } else null,
+                            onRecipeRetry = if (closingPreviewError != null && recipeAllocationActive) {
+                                { onPreview(anchors) }
+                            } else null,
+                            recipeVariantLabel = null,
+                            onRecipeVariantClick = null
                         )
                     }
                     
@@ -423,55 +590,76 @@ fun CloseStockSessionScreen(
                 } else {
                     // --- STEP 2: REVIEW TUTUP SESI ---
                     item {
-                        RingkasanSesiCard()
-                        Spacer(modifier = Modifier.height(18.dp))
+                        val usedIngredients = items.count { item ->
+                            val remaining = remainingInputs[item.ingredientId]?.toDoubleOrNull() ?: 0.0
+                            item.qty - remaining > 0.000001
+                        }
+                        RingkasanSesiCard(
+                            totalIngredients = items.size,
+                            usedIngredients = usedIngredients
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
                         DetailPenggunaanSection(items = items, remainingInputs = remainingInputs)
-                        Spacer(modifier = Modifier.height(18.dp))
-                        
-                        // Catatan Sesi Pindah Ke Step 2 Sesuai Mockup
+                        Spacer(modifier = Modifier.height(16.dp))
+
                         Column(modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                text = "Catatan Sesi",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = KebabTextDark,
-                                modifier = Modifier.padding(start = 2.dp, bottom = 10.dp)
-                            )
-                            Box(
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(104.dp)
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(Color.White)
-                                    .border(1.dp, Color(0xFFF0E4DB), RoundedCornerShape(14.dp))
-                                    .padding(14.dp)
+                                    .padding(horizontal = 2.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                if (notesInput.value.isEmpty()) {
-                                    Text(
-                                        text = "Tambahkan catatan khusus untuk shift ini (opsional)...",
-                                        color = KebabTextGray.copy(alpha = 0.5f),
-                                        fontSize = 14.sp
+                                Icon(
+                                    Icons.Default.EditNote,
+                                    contentDescription = null,
+                                    tint = KebabPrimary,
+                                    modifier = Modifier.size(19.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text("Catatan sesi", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
+                                    Text("Opsional, untuk informasi pergantian shift", fontSize = 11.sp, color = KebabTextGray)
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(18.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, KebabDivider)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(96.dp)
+                                        .padding(10.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(KebabInputBg)
+                                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                                ) {
+                                    if (notesInput.value.isEmpty()) {
+                                        Text(
+                                            text = "Contoh: stok fisik sudah dicek ulang...",
+                                            color = KebabTextGray.copy(alpha = 0.65f),
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                    BasicTextField(
+                                        value = notesInput.value,
+                                        onValueChange = { notesInput.value = it },
+                                        modifier = Modifier.fillMaxSize(),
+                                        textStyle = TextStyle(fontSize = 13.sp, color = KebabTextDark),
+                                        enabled = !isClosing
                                     )
                                 }
-                                BasicTextField(
-                                    value = notesInput.value,
-                                    onValueChange = { notesInput.value = it },
-                                    modifier = Modifier.fillMaxSize(),
-                                    textStyle = androidx.compose.ui.text.TextStyle(
-                                        fontSize = 14.sp,
-                                        color = KebabTextDark
-                                    ),
-                                    enabled = !isClosing
-                                )
                             }
                         }
                     }
                 }
                 
-                // Bottom Spacing (Buat Floating Button)
-                item {
-                    Spacer(modifier = Modifier.height(if (step == 1) 220.dp else 280.dp))
-                }
             }
         }
 
@@ -481,6 +669,7 @@ fun CloseStockSessionScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
+                    .onSizeChanged { bottomActionHeightPx = it.height }
                     .imePadding()
                     .background(KebabBg.copy(alpha = 0.9f))
                     .border(1.dp, KebabDivider, RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
@@ -528,41 +717,57 @@ fun CloseStockSessionScreen(
                     }
                 }
             } else {
-                // Tombol Step 2
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
+                        .onSizeChanged { bottomActionHeightPx = it.height }
                         .imePadding()
-                        .background(Brush.verticalGradient(listOf(Color.Transparent, KebabBg, KebabBg)))
-                        .padding(horizontal = 24.dp)
-                        .padding(top = 24.dp, bottom = 108.dp)
+                        .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp))
+                        .background(Color.White)
+                        .border(
+                            1.dp,
+                            KebabDivider,
+                            RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)
+                        )
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 14.dp, bottom = 104.dp)
                 ) {
-                    Column(
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        OutlinedButton(
+                    OutlinedButton(
                         onClick = { step = 1 },
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
+                            .weight(0.85f)
+                            .height(52.dp),
                         enabled = !isClosing,
-                        shape = RoundedCornerShape(16.dp),
-                        border = androidx.compose.foundation.BorderStroke(2.dp, KebabPrimary.copy(alpha = 0.2f)),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = KebabPrimary)
+                        shape = RoundedCornerShape(14.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, KebabDivider),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = KebabTextDark)
                     ) {
-                        Text("Ubah Input", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = null,
+                            modifier = Modifier.size(17.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Ubah", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
 
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                            .shadow(8.dp, RoundedCornerShape(16.dp), spotColor = KebabPrimaryContainer)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Brush.horizontalGradient(listOf(KebabPrimary, KebabPrimaryContainer)))
-                            .clickable(enabled = !isClosing && !hasInvalidInput) {
+                            .weight(1.4f)
+                            .height(52.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(
+                                KebabPrimary.copy(
+                                    alpha = if (!isClosing && !hasInvalidInput && recipeModeReady) 1f else 0.5f
+                                )
+                            )
+                            .clickable(enabled = !isClosing && !hasInvalidInput && recipeModeReady) {
                                 val remaining = mutableMapOf<Long, Double>()
                                 items.forEach { item ->
                                     val value = remainingInputs[item.ingredientId]?.toDoubleOrNull()
@@ -577,27 +782,73 @@ fun CloseStockSessionScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         if (isClosing) {
-                            CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(24.dp).padding(end = 8.dp))
-                            Text("Memproses...", color = Color.White, fontWeight = FontWeight.Bold)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Memproses", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            }
                         } else {
-                            Text(text = "Tutup Sesi Sekarang", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text(text = "Tutup Sesi", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
                     }
                 }
             }
         }
 
+        selectedDetailAnchorId?.let { anchorId ->
+            val anchorItem = items.firstOrNull { it.ingredientId == anchorId }
+            val affectedIngredients = aggregateAffectedIngredients(
+                preview = closingPreview,
+                anchorIngredientId = anchorId,
+                allocatedVariantIds = recipeAllocations[anchorId]
+                    .orEmpty()
+                    .map { it.menuVariantId }
+                    .toSet()
+            )
+            if (anchorItem != null && affectedIngredients.isNotEmpty()) {
+                val physicalRemaining = remainingInputs[anchorId]?.toDoubleOrNull() ?: anchorItem.qty
+                AutomaticDeductionBottomSheet(
+                    anchorName = anchorItem.name,
+                    usedQuantity = (anchorItem.qty - physicalRemaining).coerceAtLeast(0.0),
+                    anchorUnit = (anchorItem.unit ?: "unit").uppercase(Locale.ROOT),
+                    affectedIngredients = affectedIngredients,
+                    onDismiss = { selectedDetailAnchorId = null }
+                )
+            }
+        }
+
         variantPickerGroup?.let { group ->
             RecipeVariantPickerDialog(
                 group = group,
-                selectedVariantId = selectedVariants[group.anchorIngredientId],
-                onDismiss = { variantPickerGroup = null },
-                onSelect = { variant ->
-                    selectedVariants[group.anchorIngredientId] = variant.menuVariantId
+                selectedVariantId = null,
+                onDismiss = {
+                    pendingRecipeAllocation?.takeIf {
+                        it.group.anchorIngredientId == group.anchorIngredientId
+                    }?.let { pending ->
+                        val restored = formatInitialQty(pending.previousRemaining)
+                        remainingInputs[group.anchorIngredientId] = restored
+                        lastValidRemainingInputs[group.anchorIngredientId] = pending.previousRemaining
+                        anchorInputs[group.anchorIngredientId] = restored
+                    }
+                    pendingRecipeAllocation = null
                     variantPickerGroup = null
-                    if (recipeAnchorEdited) {
+                },
+                onSelect = { variant ->
+                    pendingRecipeAllocation?.takeIf {
+                        it.group.anchorIngredientId == group.anchorIngredientId
+                    }?.let { pending ->
+                        val ingredientId = group.anchorIngredientId
+                        recipeAllocations[ingredientId] =
+                            recipeAllocations[ingredientId].orEmpty() +
+                                RecipeAllocation(variant.menuVariantId, pending.quantity)
+                        val remaining = formatInitialQty(pending.newRemaining)
+                        remainingInputs[ingredientId] = remaining
+                        lastValidRemainingInputs[ingredientId] = pending.newRemaining
+                        anchorInputs[ingredientId] = remaining
                         onClearPreview()
                     }
+                    pendingRecipeAllocation = null
+                    variantPickerGroup = null
                 }
             )
         }
@@ -618,13 +869,13 @@ private fun RecipeVariantPickerDialog(
         title = {
             Column {
                 Text(
-                    text = "Pilih resep",
+                    text = "Pilih menu yang berkurang",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = KebabTextDark
                 )
                 Text(
-                    text = "${group.anchorName} dipakai oleh beberapa varian.",
+                    text = "${group.anchorName} dipakai di beberapa menu. Pilih menu untuk menghitung perubahan ini.",
                     fontSize = 12.sp,
                     color = KebabTextGray
                 )
@@ -673,3 +924,115 @@ private fun RecipeVariantPickerDialog(
     )
 }
 
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AutomaticDeductionBottomSheet(
+    anchorName: String,
+    usedQuantity: Double,
+    anchorUnit: String,
+    affectedIngredients: List<ClosingRecipeAffectedIngredient>,
+    onDismiss: () -> Unit
+) {
+    val displayedAnchorUsage = convertUsedQuantityForReview(usedQuantity, anchorUnit)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 24.dp)
+        ) {
+            Text(
+                text = "Pengurangan otomatis",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = KebabTextDark
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(anchorName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
+            Text(
+                text = "Terpakai: ${formatDisplayQty(displayedAnchorUsage.first)} ${displayedAnchorUsage.second.uppercase(Locale.ROOT)}",
+                fontSize = 13.sp,
+                color = KebabTextGray
+            )
+            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = KebabDivider)
+            Text(
+                text = "Bahan yang ikut berubah",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = KebabTextDark
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 280.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(affectedIngredients, key = { it.ingredientId }) { ingredient ->
+                    val displayedUsage = convertUsedQuantityForReview(
+                        ingredient.usedQty,
+                        ingredient.unit
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = ingredient.name,
+                            modifier = Modifier.weight(1f),
+                            fontSize = 13.sp,
+                            color = KebabTextDark
+                        )
+                        Text(
+                            text = "-${formatDisplayQty(displayedUsage.first)} ${displayedUsage.second.uppercase(Locale.ROOT)}",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = KebabPrimary
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(KebabPrimary.copy(alpha = 0.06f))
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.FlashOn, contentDescription = null, tint = KebabPrimary, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Dihitung otomatis berdasarkan resep.",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = KebabTextDark
+                )
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = "Perubahan ini belum disimpan.",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = KebabError
+            )
+            Spacer(modifier = Modifier.height(18.dp))
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = KebabPrimary)
+            ) {
+                Text("Tutup", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}

@@ -2,6 +2,7 @@ package com.sipos.kebabsk.feature.dailystock.data.repository
 
 import com.sipos.kebabsk.feature.dailystock.domain.model.DailyStockResult
 import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipeAnchorInput
+import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipeAffectedIngredient
 import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipeGroup
 import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipeGroupVariant
 import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipePreset
@@ -138,6 +139,9 @@ class DailyStockRepositoryImpl(
             add(JsonObject().apply {
                 addProperty("menu_variant_id", anchor.menuVariantId)
                 addProperty("actual_remaining", anchor.actualRemaining)
+                anchor.allocatedQuantity?.let {
+                    addProperty("allocated_quantity", it)
+                }
             })
         }
     }
@@ -224,10 +228,27 @@ class DailyStockRepositoryImpl(
         }.orEmpty()
         val summaries = data.getAsJsonArray("summaries")?.mapNotNull { element ->
             val obj = element.takeIf { it.isJsonObject }?.asJsonObject ?: return@mapNotNull null
+            val anchorIngredientId = obj.firstLong("anchor_ingredient_id")
+            val affectedRows = obj.getAsJsonArray("affected_ingredients")
+                ?: obj.getAsJsonArray("usage")
+            val affectedIngredients = affectedRows?.mapNotNull affectedMap@{ affectedElement ->
+                val affected = affectedElement.takeIf { it.isJsonObject }?.asJsonObject
+                    ?: return@affectedMap null
+                ClosingRecipeAffectedIngredient(
+                    ingredientId = affected.firstLong("ingredient_id") ?: return@affectedMap null,
+                    name = affected.firstString("name") ?: "Bahan",
+                    usedQty = firstDouble(affected, "used_qty") ?: 0.0,
+                    unit = affected.firstString("unit") ?: "unit"
+                )
+            }.orEmpty()
             ClosingRecipeSummary(
                 menuVariantId = obj.firstLong("menu_variant_id") ?: return@mapNotNull null,
                 label = obj.firstString("label") ?: "Menu",
-                inferredServings = firstDouble(obj, "inferred_servings")?.toInt() ?: 0
+                inferredServings = firstDouble(obj, "inferred_servings")?.toInt() ?: 0,
+                anchorIngredientId = anchorIngredientId,
+                affectedIngredients = affectedIngredients.filter {
+                    anchorIngredientId == null || it.ingredientId != anchorIngredientId
+                }
             )
         }.orEmpty()
         return ClosingRecipePreview(items, summaries)
