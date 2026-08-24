@@ -66,11 +66,10 @@ class CheckoutViewModel(
     val uiState: StateFlow<CheckoutUiState> = _uiState.asStateFlow()
 
     private val checkoutMutex = Mutex()
-    private var paymentMethodsLoaded = false
     private var latestQrisToken: String? = null
 
     fun loadPaymentMethods(token: String) {
-        if (paymentMethodsLoaded || _uiState.value.isLoading) return
+        if (_uiState.value.isLoading) return
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
@@ -80,7 +79,6 @@ class CheckoutViewModel(
                         val supportedMethods = methods
                             .filter { it.isCashPaymentMethod() || it.isQrisPaymentMethod() }
                             .sortedBy { if (it.isCashPaymentMethod()) 0 else 1 }
-                        paymentMethodsLoaded = supportedMethods.isNotEmpty()
                         _uiState.update {
                             it.copy(
                                 paymentMethods = supportedMethods,
@@ -348,7 +346,6 @@ class CheckoutViewModel(
     }
 
     fun clear() {
-        paymentMethodsLoaded = false
         latestQrisToken = null
         _uiState.value = CheckoutUiState()
     }

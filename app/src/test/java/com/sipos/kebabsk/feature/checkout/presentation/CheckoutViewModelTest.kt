@@ -92,6 +92,30 @@ class CheckoutViewModelTest {
     }
 
     @Test
+    fun loadPaymentMethods_whenQrisIsDeactivated_refreshesAndHidesQris() = runTest {
+        val fakeCheckoutRepo = FakeCheckoutRepository(
+            paymentMethodsResult = Result.success(
+                listOf(PaymentMethod(id = 1L, name = "Cash"), PaymentMethod(id = 2L, name = "QRIS"))
+            )
+        )
+        val viewModel = CheckoutViewModel(fakeCheckoutRepo)
+
+        viewModel.loadPaymentMethods("token")
+        advanceUntilIdle()
+        assertEquals(listOf("Cash", "QRIS"), viewModel.uiState.value.paymentMethods.map { it.name })
+
+        fakeCheckoutRepo.paymentMethodsResult = Result.success(
+            listOf(PaymentMethod(id = 1L, name = "Cash"))
+        )
+        viewModel.loadPaymentMethods("token")
+        advanceUntilIdle()
+
+        assertEquals(listOf("Cash"), viewModel.uiState.value.paymentMethods.map { it.name })
+        assertEquals(1L, viewModel.uiState.value.selectedPaymentMethodId)
+        assertEquals(2, fakeCheckoutRepo.paymentMethodsCalls)
+    }
+
+    @Test
     fun submitCheckout_whenCartEmpty_setsErrorAndSkipsCreateRequest() = runTest {
         val fakeCheckoutRepo = FakeCheckoutRepository()
         val viewModel = CheckoutViewModel(fakeCheckoutRepo)
@@ -505,7 +529,7 @@ private data class CheckoutRequestItem(
 )
 
 private class FakeCheckoutRepository(
-    private val paymentMethodsResult: Result<List<PaymentMethod>> = Result.success(
+    var paymentMethodsResult: Result<List<PaymentMethod>> = Result.success(
         listOf(PaymentMethod(id = 1L, name = "Cash"))
     ),
     private val createDelayMs: Long = 0L,
@@ -535,11 +559,13 @@ private class FakeCheckoutRepository(
     )
 ) : CheckoutRepository {
     var createCalls: Int = 0
+    var paymentMethodsCalls: Int = 0
     var qrisCalls: Int = 0
     var confirmCalls: Int = 0
     var lastRequest: CheckoutRequestData? = null
 
     override suspend fun getPaymentMethods(token: String): Result<List<PaymentMethod>> {
+        paymentMethodsCalls += 1
         return paymentMethodsResult
     }
 
