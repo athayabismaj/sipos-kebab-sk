@@ -40,7 +40,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -55,7 +54,6 @@ import com.sipos.kebabsk.ui.theme.KebabBg
 import com.sipos.kebabsk.ui.theme.KebabCardBg
 import com.sipos.kebabsk.ui.theme.KebabDivider
 import com.sipos.kebabsk.ui.theme.KebabPrimary
-import com.sipos.kebabsk.ui.theme.KebabPrimaryContainer
 import com.sipos.kebabsk.ui.theme.KebabTextDark
 import com.sipos.kebabsk.ui.theme.KebabTextGray
 import java.time.format.DateTimeFormatter
@@ -86,6 +84,7 @@ fun DailyStockScreen(
     PullToRefreshBox(
         isRefreshing = isLoading,
         onRefresh = onRetry,
+        indicator = {},
         modifier = modifier.fillMaxSize()
     ) {
         Box(
@@ -272,9 +271,8 @@ fun DailyStockScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp)
-                        .shadow(8.dp, RoundedCornerShape(12.dp), spotColor = KebabPrimaryContainer)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Brush.horizontalGradient(listOf(KebabPrimary, KebabPrimaryContainer)))
+                        .background(KebabPrimary)
                         .clickable { onCloseSession() },
                     contentAlignment = Alignment.Center
                 ) {

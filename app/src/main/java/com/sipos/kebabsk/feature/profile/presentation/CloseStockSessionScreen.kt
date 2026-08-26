@@ -66,8 +66,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.SpanStyle
@@ -94,7 +92,6 @@ import com.sipos.kebabsk.ui.theme.KebabCardBg
 import com.sipos.kebabsk.ui.theme.KebabDivider
 import com.sipos.kebabsk.ui.theme.KebabErrorText
 import com.sipos.kebabsk.ui.theme.KebabPrimary
-import com.sipos.kebabsk.ui.theme.KebabPrimaryContainer
 import com.sipos.kebabsk.ui.theme.KebabTextDark
 import com.sipos.kebabsk.ui.theme.KebabTextGray
 import com.sipos.kebabsk.ui.theme.KebabInputBg
@@ -694,17 +691,12 @@ fun CloseStockSessionScreen(
                             .weight(1f)
                             .padding(start = 16.dp)
                             .height(56.dp)
-                            .shadow(
-                                elevation = if (!isClosing && items.isNotEmpty() && !hasInvalidInput && recipeModeReady) 8.dp else 0.dp,
-                                shape = RoundedCornerShape(12.dp),
-                                spotColor = KebabPrimaryContainer
-                            )
                             .clip(RoundedCornerShape(12.dp))
                             .background(
                                 if (!isClosing && items.isNotEmpty() && !hasInvalidInput && recipeModeReady)
-                                    Brush.horizontalGradient(listOf(KebabPrimary, KebabPrimaryContainer))
+                                    KebabPrimary
                                 else
-                                    Brush.horizontalGradient(listOf(Color.Gray.copy(alpha = 0.5f), Color.Gray.copy(alpha = 0.5f)))
+                                    Color.Gray.copy(alpha = 0.5f)
                             )
                             .clickable(enabled = !isClosing && items.isNotEmpty() && !hasInvalidInput && recipeModeReady) { step = 2 },
                         contentAlignment = Alignment.Center

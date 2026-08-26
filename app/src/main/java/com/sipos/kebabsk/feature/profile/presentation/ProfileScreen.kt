@@ -74,6 +74,7 @@ fun ProfileScreen(
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
+        indicator = {},
         modifier = modifier.fillMaxSize()
     ) {
         Column(
