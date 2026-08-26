@@ -15,7 +15,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -43,7 +42,6 @@ fun KebabSkSplashScreen() {
             Box(
                 modifier = Modifier
                     .size(128.dp)
-                    .shadow(elevation = 20.dp, shape = CircleShape, clip = false)
                     .clip(CircleShape)
                     .background(Color.Black),
                 contentAlignment = Alignment.Center
