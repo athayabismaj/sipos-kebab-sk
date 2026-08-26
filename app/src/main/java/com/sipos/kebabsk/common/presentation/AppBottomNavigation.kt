@@ -21,7 +21,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -49,20 +48,19 @@ fun AppBottomNavigation(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .shadow(8.dp, RoundedCornerShape(24.dp), spotColor = Color.Black.copy(alpha = 0.10f))
-                .clip(RoundedCornerShape(24.dp))
+                .clip(RoundedCornerShape(12.dp))
                 .background(Color.White)
-                .border(1.dp, KebabDivider, RoundedCornerShape(24.dp))
+                .border(1.dp, KebabDivider, RoundedCornerShape(12.dp))
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(6.dp),
+                    .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -78,8 +76,8 @@ fun AppBottomNavigation(
                         modifier = Modifier
                             .weight(1f)
                             .minimumInteractiveComponentSize()
-                            .height(52.dp)
-                            .clip(RoundedCornerShape(17.dp))
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(8.dp))
                             .background(itemBg)
                             .semantics(mergeDescendants = true) {
                                 contentDescription = label
