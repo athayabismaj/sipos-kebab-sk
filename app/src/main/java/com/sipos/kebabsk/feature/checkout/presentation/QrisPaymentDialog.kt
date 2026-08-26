@@ -72,9 +72,9 @@ fun QrisPaymentDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .widthIn(max = 390.dp),
-            shape = RoundedCornerShape(22.dp),
+            shape = RoundedCornerShape(12.dp),
             color = Color.White,
-            shadowElevation = 16.dp
+            shadowElevation = 2.dp
         ) {
             Column(
                 modifier = Modifier

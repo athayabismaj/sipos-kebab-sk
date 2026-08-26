@@ -76,9 +76,9 @@ fun ReceiptSuccessDialog(
                 .padding(horizontal = 16.dp)
                 .fillMaxWidth()
                 .widthIn(max = 410.dp),
-            shape = RoundedCornerShape(22.dp),
+            shape = RoundedCornerShape(12.dp),
             color = Color.White,
-            shadowElevation = 18.dp
+            shadowElevation = 2.dp
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -184,9 +184,9 @@ private fun CheckoutReceiptPreview(receipt: ReceiptData) {
         modifier = Modifier
             .fillMaxWidth()
             .widthIn(max = 352.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(Color.White)
-            .border(1.dp, KebabDivider, RoundedCornerShape(16.dp))
+            .border(1.dp, KebabDivider, RoundedCornerShape(10.dp))
             .padding(horizontal = 17.dp, vertical = 18.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {

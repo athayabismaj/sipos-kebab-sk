@@ -59,7 +59,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -395,10 +394,9 @@ fun PaymentTab(
                 .imePadding()
                 .padding(horizontal = 14.dp)
                 .padding(bottom = 68.dp)
-                .shadow(4.dp, RoundedCornerShape(18.dp))
-                .clip(RoundedCornerShape(18.dp))
+                .clip(RoundedCornerShape(10.dp))
                 .background(Color.White)
-                .border(1.dp, KebabDivider, RoundedCornerShape(18.dp))
+                .border(1.dp, KebabDivider, RoundedCornerShape(10.dp))
                 .padding(10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -490,13 +488,9 @@ private fun TotalTagihanCard(totalAmount: Long, itemsCount: Int, isQrisSelected:
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(
-                brush = Brush.linearGradient(
-                    colors = listOf(Color(0xFF7D440D), Color(0xFFE98208))
-                )
-            )
-            .padding(horizontal = 18.dp, vertical = 16.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(KebabPrimary)
+            .padding(horizontal = 16.dp, vertical = 14.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
             Row(
@@ -572,9 +566,9 @@ private fun PaymentMethodSelector(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(Color.White)
-            .border(1.dp, KebabDivider, RoundedCornerShape(18.dp))
+            .border(1.dp, KebabDivider, RoundedCornerShape(10.dp))
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
@@ -643,9 +637,9 @@ private fun QrisPaymentCard() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(Color(0xFFF0FDF8))
-            .border(1.dp, Color(0xFFB7E4D3), RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color.White)
+            .border(1.dp, KebabDivider, RoundedCornerShape(10.dp))
             .padding(14.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -686,9 +680,9 @@ private fun CashPaymentCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(Color.White)
-            .border(1.dp, KebabDivider, RoundedCornerShape(18.dp))
+            .border(1.dp, KebabDivider, RoundedCornerShape(10.dp))
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -830,9 +824,9 @@ private fun RingkasanOrderCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(KebabSummaryBg)
-            .border(1.dp, KebabDivider, RoundedCornerShape(18.dp))
+            .border(1.dp, KebabDivider, RoundedCornerShape(10.dp))
             .padding(14.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

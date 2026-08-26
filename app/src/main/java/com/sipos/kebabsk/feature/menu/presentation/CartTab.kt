@@ -59,8 +59,8 @@ fun CartTab(
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         text = stringResource(R.string.cart_title),
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
                         color = KebabTextDark,
                         letterSpacing = (-1).sp
                     )
@@ -227,8 +227,8 @@ fun CartTab(
                         .padding(horizontal = 12.dp)
                         .padding(bottom = 100.dp),
                     color = Color.White,
-                    shadowElevation = 5.dp,
-                    shape = RoundedCornerShape(18.dp)
+                    shadowElevation = 0.dp,
+                    shape = RoundedCornerShape(10.dp)
                 ) {
                     Column(
                         modifier = Modifier
