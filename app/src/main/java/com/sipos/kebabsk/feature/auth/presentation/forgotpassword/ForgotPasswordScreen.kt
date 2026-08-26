@@ -442,7 +442,7 @@ private fun RecoveryContentCard(
             .fillMaxWidth()
             .shadow(
                 elevation = 3.dp,
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(10.dp),
                 ambientColor = Color.Black.copy(alpha = 0.04f),
                 spotColor = Color.Black.copy(alpha = 0.06f)
             )
