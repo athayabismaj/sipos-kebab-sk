@@ -38,6 +38,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -70,8 +71,6 @@ import androidx.compose.material.icons.filled.DeleteForever
 
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -101,14 +100,12 @@ import com.sipos.kebabsk.common.TransactionCodeFormatter
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionReceipt
 import com.sipos.kebabsk.feature.transactions.domain.model.TransactionReceiptItem
 import com.sipos.kebabsk.ui.theme.KebabBg
-import com.sipos.kebabsk.ui.theme.KebabDateInactiveBg
 import com.sipos.kebabsk.ui.theme.KebabDivider
 import com.sipos.kebabsk.ui.theme.KebabErrorBg
 import com.sipos.kebabsk.ui.theme.KebabErrorText
 import com.sipos.kebabsk.ui.theme.KebabItemBg
 import com.sipos.kebabsk.ui.theme.KebabInputBg
 import com.sipos.kebabsk.ui.theme.KebabPrimary
-import com.sipos.kebabsk.ui.theme.KebabPrimaryContainer
 import com.sipos.kebabsk.ui.theme.KebabSuccess
 import com.sipos.kebabsk.ui.theme.KebabSuccessBg
 import com.sipos.kebabsk.ui.theme.KebabTextDark
@@ -217,6 +214,7 @@ fun TransactionsScreen(
     PullToRefreshBox(
         isRefreshing = uiState.isLoading,
         onRefresh = viewModel::fetchTransactions,
+        indicator = {},
         modifier = modifier.fillMaxSize()
     ) {
         Column(
@@ -229,25 +227,14 @@ fun TransactionsScreen(
 
         // === DATE PICKER DIALOG ===
         if (showDatePicker) {
-            val datePickerState = rememberDatePickerState(
-                initialSelectedDateMillis = AppTime.toEpochMillisAtStartOfDay(uiState.currentDate)
-            )
-            DatePickerDialog(
-                onDismissRequest = { showDatePicker = false },
-                confirmButton = {
-                    TextButton(onClick = {
-                        datePickerState.selectedDateMillis?.let { millis ->
-                            viewModel.setDate(AppTime.dateFromEpochMillis(millis))
-                        }
-                        showDatePicker = false
-                    }) { Text("Pilih") }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showDatePicker = false }) { Text("Batal") }
+            TransactionDatePickerDialog(
+                selectedDate = uiState.currentDate,
+                onDismiss = { showDatePicker = false },
+                onDateSelected = { date ->
+                    viewModel.setDate(date)
+                    showDatePicker = false
                 }
-            ) {
-                DatePicker(state = datePickerState)
-            }
+            )
         }
 
             // === SCROLLABLE CONTENT ===
@@ -300,7 +287,7 @@ fun TransactionsScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(22.dp))
+                                .clip(RoundedCornerShape(10.dp))
                                 .background(KebabErrorBg)
                                 .padding(20.dp),
                             contentAlignment = Alignment.Center
@@ -325,9 +312,9 @@ fun TransactionsScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(24.dp))
+                                .clip(RoundedCornerShape(10.dp))
                                 .background(Color.White)
-                                .border(1.dp, KebabDivider.copy(alpha = 0.24f), RoundedCornerShape(24.dp))
+                                .border(1.dp, KebabDivider, RoundedCornerShape(10.dp))
                                 .padding(vertical = 36.dp, horizontal = 20.dp),
                             contentAlignment = Alignment.Center
                         ) {
@@ -394,6 +381,146 @@ fun TransactionsScreen(
 
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TransactionDatePickerDialog(
+    selectedDate: LocalDate,
+    onDismiss: () -> Unit,
+    onDateSelected: (LocalDate) -> Unit
+) {
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = AppTime.toEpochMillisAtStartOfDay(selectedDate)
+    )
+    val selectedDateLabel = datePickerState.selectedDateMillis
+        ?.let(AppTime::dateFromEpochMillis)
+        ?.format(
+            DateTimeFormatter.ofPattern(
+                "EEEE, d MMMM yyyy",
+                Locale.forLanguageTag("id-ID")
+            )
+        )
+        .orEmpty()
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(24.dp),
+        colors = DatePickerDefaults.colors(containerColor = Color.White),
+        tonalElevation = 0.dp,
+        confirmButton = {
+            Button(
+                onClick = {
+                    datePickerState.selectedDateMillis
+                        ?.let(AppTime::dateFromEpochMillis)
+                        ?.let(onDateSelected)
+                },
+                enabled = datePickerState.selectedDateMillis != null,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = KebabPrimary,
+                    contentColor = Color.White
+                ),
+                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 10.dp)
+            ) {
+                Text(
+                    text = "Pilih tanggal",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = "Batal",
+                    color = KebabTextGray,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    ) {
+        DatePicker(
+            state = datePickerState,
+            showModeToggle = false,
+            title = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 24.dp, end = 24.dp, top = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Surface(
+                        modifier = Modifier.size(36.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        color = KebabInputBg
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.CalendarToday,
+                                contentDescription = null,
+                                tint = KebabPrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = "Pilih tanggal transaksi",
+                            color = KebabTextDark,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Tampilkan transaksi berdasarkan tanggal",
+                            color = KebabTextGray,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            },
+            headline = {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 14.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = KebabInputBg
+                ) {
+                    Text(
+                        text = selectedDateLabel,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                        color = KebabTextDark,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            colors = DatePickerDefaults.colors(
+                containerColor = Color.White,
+                titleContentColor = KebabTextDark,
+                headlineContentColor = KebabTextDark,
+                weekdayContentColor = KebabTextGray,
+                subheadContentColor = KebabTextDark,
+                navigationContentColor = KebabTextDark,
+                yearContentColor = KebabTextDark,
+                currentYearContentColor = KebabPrimary,
+                selectedYearContentColor = Color.White,
+                selectedYearContainerColor = KebabPrimary,
+                dayContentColor = KebabTextDark,
+                selectedDayContentColor = Color.White,
+                selectedDayContainerColor = KebabPrimary,
+                todayContentColor = KebabPrimary,
+                todayDateBorderColor = KebabPrimary,
+                dividerColor = KebabDivider
+            )
+        )
+    }
+}
 @Composable
 private fun VoidTransactionDialog(
     isLoading: Boolean,
@@ -410,7 +537,7 @@ private fun VoidTransactionDialog(
         )
     ) {
         Surface(
-            shape = RoundedCornerShape(22.dp),
+            shape = RoundedCornerShape(12.dp),
             color = Color.White,
             tonalElevation = 0.dp,
             shadowElevation = 18.dp,
@@ -667,15 +794,12 @@ private fun DateCard(label: String, date: String, month: String, isActive: Boole
     Box(
         modifier = Modifier
             .height(76.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .background(
-                brush = if (isActive) Brush.linearGradient(listOf(KebabPrimary, KebabPrimaryContainer))
-                else Brush.linearGradient(listOf(Color.White, KebabDateInactiveBg.copy(alpha = 0.45f)))
-            )
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (isActive) KebabPrimary else Color.White)
             .border(
                 1.dp,
-                if (isActive) Color.Transparent else KebabDivider.copy(alpha = 0.35f),
-                RoundedCornerShape(18.dp)
+                if (isActive) KebabPrimary else KebabDivider,
+                RoundedCornerShape(10.dp)
             )
             .clickable { onClick() }
             .padding(horizontal = 12.dp, vertical = 8.dp)
@@ -711,8 +835,7 @@ private fun DateCard(label: String, date: String, month: String, isActive: Boole
 private fun SummaryMetricCard(modifier: Modifier = Modifier, title: String, value: String, icon: ImageVector) {
     Box(
         modifier = modifier
-            .shadow(3.dp, RoundedCornerShape(20.dp), spotColor = Color.Black.copy(alpha = 0.04f))
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(Color.White)
             .border(1.dp, KebabDivider.copy(alpha = 0.22f), RoundedCornerShape(20.dp))
             .padding(16.dp)
@@ -943,7 +1066,7 @@ private fun ReceiptReprintDialog(
         )
     ) {
         Surface(
-            shape = RoundedCornerShape(22.dp),
+            shape = RoundedCornerShape(12.dp),
             color = Color.White,
             tonalElevation = 0.dp,
             shadowElevation = 18.dp,
