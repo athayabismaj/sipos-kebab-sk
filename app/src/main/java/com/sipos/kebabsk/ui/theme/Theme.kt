@@ -1,13 +1,16 @@
 package com.sipos.kebabsk.ui.theme
 
 import android.app.Activity
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 
 private val LightColorScheme = lightColorScheme(
@@ -18,12 +21,12 @@ private val LightColorScheme = lightColorScheme(
 
     secondary = BrandAmber,
     onSecondary = OnBrandAmber,
-    secondaryContainer = Color(0xFFFFE0B2),
+    secondaryContainer = Color(0xFFFFF3E0),
     onSecondaryContainer = BrownDark,
 
     tertiary = BrownMid,
     onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFD7CCC8),
+    tertiaryContainer = Color(0xFFF2F4F7),
     onTertiaryContainer = BrownDark,
 
     background = CreamBg,
@@ -41,6 +44,14 @@ private val LightColorScheme = lightColorScheme(
     onError = Color.White,
     errorContainer = Color(0xFFFFDAD6),
     onErrorContainer = Color(0xFF410002),
+)
+
+private val AppShapes = Shapes(
+    extraSmall = RoundedCornerShape(4.dp),
+    small = RoundedCornerShape(6.dp),
+    medium = RoundedCornerShape(8.dp),
+    large = RoundedCornerShape(10.dp),
+    extraLarge = RoundedCornerShape(12.dp),
 )
 
 @Composable
@@ -63,6 +74,7 @@ fun SiposKebabSkTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        shapes = AppShapes,
         content = content
     )
 }

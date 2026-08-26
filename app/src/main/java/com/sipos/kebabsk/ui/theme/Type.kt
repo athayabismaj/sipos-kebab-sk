@@ -13,40 +13,40 @@ val NunitoFontFamily = AppFontFamily
 val Typography = Typography(
     displayLarge = TextStyle(
         fontFamily = NunitoFontFamily,
-        fontWeight = FontWeight.ExtraBold,
-        fontSize = 57.sp,
-        lineHeight = 64.sp,
+        fontWeight = FontWeight.Bold,
+        fontSize = 36.sp,
+        lineHeight = 44.sp,
         letterSpacing = (-0.25).sp
     ),
     displayMedium = TextStyle(
         fontFamily = NunitoFontFamily,
         fontWeight = FontWeight.Bold,
-        fontSize = 45.sp,
-        lineHeight = 52.sp
-    ),
-    headlineLarge = TextStyle(
-        fontFamily = NunitoFontFamily,
-        fontWeight = FontWeight.ExtraBold,
         fontSize = 32.sp,
         lineHeight = 40.sp
     ),
-    headlineMedium = TextStyle(
-        fontFamily = NunitoFontFamily,
-        fontWeight = FontWeight.Bold,
-        fontSize = 28.sp,
-        lineHeight = 36.sp
-    ),
-    headlineSmall = TextStyle(
+    headlineLarge = TextStyle(
         fontFamily = NunitoFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 24.sp,
         lineHeight = 32.sp
     ),
+    headlineMedium = TextStyle(
+        fontFamily = NunitoFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 22.sp,
+        lineHeight = 28.sp
+    ),
+    headlineSmall = TextStyle(
+        fontFamily = NunitoFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 20.sp,
+        lineHeight = 26.sp
+    ),
     titleLarge = TextStyle(
         fontFamily = NunitoFontFamily,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 22.sp,
-        lineHeight = 28.sp
+        fontSize = 18.sp,
+        lineHeight = 24.sp
     ),
     titleMedium = TextStyle(
         fontFamily = NunitoFontFamily,
