@@ -44,7 +44,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -64,7 +63,6 @@ import com.sipos.kebabsk.common.MoneyUtils
 import com.sipos.kebabsk.feature.shift.presentation.ShiftSummaryUiState
 import com.sipos.kebabsk.ui.theme.BrandOrange
 import com.sipos.kebabsk.ui.theme.KebabPrimary
-import com.sipos.kebabsk.ui.theme.KebabPrimaryContainer
 import com.sipos.kebabsk.ui.theme.KebabSecondaryContainer
 import com.sipos.kebabsk.ui.theme.KebabSuccess
 import com.sipos.kebabsk.ui.theme.KebabSuccessBg
@@ -106,6 +104,7 @@ fun DashboardScreen(
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
+        indicator = {},
         modifier = modifier.fillMaxSize()
     ) {
         Column(
@@ -433,9 +432,9 @@ private fun UserInfoSection(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
@@ -446,7 +445,7 @@ private fun UserInfoSection(
                     modifier = Modifier
                         .size(58.dp)
                         .clip(CircleShape)
-                        .background(Brush.linearGradient(listOf(Color(0xFFFF9800), Color(0xFFFFD08A))))
+                        .background(KebabPrimary)
                         .border(3.dp, Color.White, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
@@ -625,7 +624,7 @@ private fun MainActionButton(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Brush.horizontalGradient(listOf(KebabPrimary, KebabPrimaryContainer)))
+                .background(KebabPrimary)
                 .padding(horizontal = 20.dp),
             contentAlignment = Alignment.CenterStart
         ) {
