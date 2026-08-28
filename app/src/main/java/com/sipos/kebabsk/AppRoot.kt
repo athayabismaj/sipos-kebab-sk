@@ -438,6 +438,10 @@ private fun AppScaffold(
                             modifier = Modifier.padding(innerPadding),
                             items = sharedDailyStockUiState.items,
                             sessionId = sharedDailyStockUiState.sessionId,
+                            businessDate = sharedDailyStockUiState.businessDate,
+                            cutoffTime = sharedDailyStockUiState.cutoffTime,
+                            canClose = sharedDailyStockUiState.canClose,
+                            isOverdue = sharedDailyStockUiState.isOverdue,
                             isLoading = sharedDailyStockUiState.isLoading,
                             errorMessage = sharedDailyStockUiState.errorMessage,
                             onBack = {
@@ -459,6 +463,7 @@ private fun AppScaffold(
 
                         LaunchedEffect(Unit) {
                             dailyStockViewModel.refresh()
+                            dailyStockViewModel.loadCashReconciliation()
                         }
 
                         LaunchedEffect(dailyStockUiState.closeSuccess) {
@@ -477,17 +482,25 @@ private fun AppScaffold(
                             isPreviewingClosing = dailyStockUiState.isPreviewingClosing,
                             closingPreview = dailyStockUiState.closingPreview,
                             closingPreviewError = dailyStockUiState.closingPreviewError,
+                            cashReconciliation = dailyStockUiState.cashReconciliation,
+                            isLoadingCashReconciliation = dailyStockUiState.isLoadingCashReconciliation,
+                            cashReconciliationError = dailyStockUiState.cashReconciliationError,
                             onBack = {
                                 dailyStockViewModel.clearCloseState()
                                 profilePage = ProfilePage.DAILY_STOCK
                             },
                             onPreview = dailyStockViewModel::previewClosing,
                             onClearPreview = dailyStockViewModel::clearClosingPreview,
-                            onSubmit = { remaining, anchors, notes ->
+                            onSubmit = { remaining, anchors, notes, actualCash ->
                                 if (anchors.isEmpty()) {
-                                    dailyStockViewModel.closeSession(remaining, notes)
+                                    dailyStockViewModel.closeSession(remaining, notes, actualCash)
                                 } else {
-                                    dailyStockViewModel.closeSessionWithRecipe(remaining, anchors, notes)
+                                    dailyStockViewModel.closeSessionWithRecipe(
+                                        remaining,
+                                        anchors,
+                                        notes,
+                                        actualCash
+                                    )
                                 }
                             }
                         )
@@ -503,8 +516,18 @@ private fun AppScaffold(
                             uiState = expenseUiState,
                             onAmountChanged = expenseViewModel::onAmountChanged,
                             onCategoryChanged = expenseViewModel::onCategoryChanged,
+                            onPaymentSourceChanged = expenseViewModel::onPaymentSourceChanged,
                             onNoteChanged = expenseViewModel::onNoteChanged,
                             onSubmit = expenseViewModel::submit,
+                            businessDate = sharedDailyStockUiState.businessDate,
+                            canSubmit = sharedDailyStockUiState.sessionId != null &&
+                                sharedDailyStockUiState.canClose &&
+                                !sharedDailyStockUiState.isOverdue,
+                            blockedMessage = if (sharedDailyStockUiState.isOverdue) {
+                                "Melewati cut-off ${sharedDailyStockUiState.cutoffTime ?: "06:00"}"
+                            } else {
+                                "Tidak ada sesi operasional aktif"
+                            },
                             onBack = {
                                 profilePage = ProfilePage.SUMMARY
                             }

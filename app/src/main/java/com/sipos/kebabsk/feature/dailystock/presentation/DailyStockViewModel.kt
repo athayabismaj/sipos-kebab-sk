@@ -11,6 +11,7 @@ import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipeAnchorInpu
 import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipeGroup
 import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipePreset
 import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipePreview
+import com.sipos.kebabsk.feature.dailystock.domain.model.CashReconciliation
 import com.sipos.kebabsk.feature.dailystock.domain.validation.DailyStockValidator
 import com.sipos.kebabsk.feature.menu.domain.model.DailyStockItem
 import com.sipos.kebabsk.common.validation.ValidationResult
@@ -29,6 +30,10 @@ data class DailyStockUiState(
     val sessionId: Long? = null,
     val isSessionOpen: Boolean? = null,
     val sessionStatusLabel: String? = null,
+    val businessDate: String? = null,
+    val cutoffTime: String? = null,
+    val canClose: Boolean = false,
+    val isOverdue: Boolean = false,
     val errorMessage: String? = null,
     val isCashReconciliationPending: Boolean = false,
     val closingPresets: List<ClosingRecipePreset> = emptyList(),
@@ -36,6 +41,9 @@ data class DailyStockUiState(
     val isPreviewingClosing: Boolean = false,
     val closingPreview: ClosingRecipePreview? = null,
     val closingPreviewError: String? = null,
+    val cashReconciliation: CashReconciliation? = null,
+    val isLoadingCashReconciliation: Boolean = false,
+    val cashReconciliationError: String? = null,
 
     // Close session state
     val isClosing: Boolean = false,
@@ -65,6 +73,11 @@ class DailyStockViewModel(
             var isPending = false
             var isSessionOpen: Boolean? = null
             var sessionStatusLabel: String? = null
+            var businessDate: String? = null
+            var cutoffTime: String? = null
+            var canClose = false
+            var isOverdue = false
+            var backendStatusMessage: String? = null
             try {
                 val token = AppSessionStore.loadSession()?.token ?: ""
                 val statusResponse = authApiService.sessionCurrentStatus("Bearer $token")
@@ -76,6 +89,17 @@ class DailyStockViewModel(
                         val data = body.getAsJsonObject("data")
                         val stockStatus = data.get("stock_session_status")?.asString ?: data.get("stock_status")?.asString
                         val sessionStatus = data.get("status")?.asString
+                        businessDate = data.get("business_date")?.asString
+                            ?: data.get("session_date")?.asString
+                        cutoffTime = data.get("cutoff_time")?.asString
+                            ?: data.get("closing_grace_until")?.asString
+                        canClose = data.getBooleanOrNull("can_close") ?: false
+                        isOverdue = data.getBooleanOrNull("overdue") ?: false
+                        backendStatusMessage = if (isOverdue) {
+                            body.get("message")?.asString
+                        } else {
+                            null
+                        }
 
                         val isStockClosed = stockStatus?.uppercase() == "CLOSED" || stockStatus?.uppercase() == "RECONCILED"
                         val isFinanciallyOpen = sessionStatus?.uppercase() == "OPEN"
@@ -86,7 +110,11 @@ class DailyStockViewModel(
                             sessionStatus = sessionStatus,
                             stockStatus = stockStatus
                         )
-                        sessionStatusLabel = resolveSessionStatusLabel(isSessionOpen, sessionStatus, stockStatus)
+                        sessionStatusLabel = if (isOverdue) {
+                            "Melewati Cut-off"
+                        } else {
+                            resolveSessionStatusLabel(isSessionOpen, sessionStatus, stockStatus)
+                        }
                     } else if (rootActive != null) {
                         isSessionOpen = rootActive
                         sessionStatusLabel = if (rootActive) {
@@ -117,8 +145,12 @@ class DailyStockViewModel(
                                 closingGroups = result.closingGroups,
                                 isSessionOpen = isSessionOpen,
                                 sessionStatusLabel = sessionStatusLabel,
+                                businessDate = result.businessDate ?: businessDate,
+                                cutoffTime = result.cutoffTime ?: cutoffTime,
+                                canClose = result.canClose,
+                                isOverdue = result.overdue || isOverdue,
                                 isCashReconciliationPending = isPending,
-                                errorMessage = if (result.items.isEmpty() && result.sessionId == null) {
+                                errorMessage = result.statusMessage ?: backendStatusMessage ?: if (result.items.isEmpty() && result.sessionId == null) {
                                     "Sesi stok harian belum dibuka oleh admin hari ini."
                                 } else null
                             )
@@ -130,6 +162,10 @@ class DailyStockViewModel(
                                 items = emptyList(),
                                 isSessionOpen = isSessionOpen ?: it.isSessionOpen,
                                 sessionStatusLabel = sessionStatusLabel ?: it.sessionStatusLabel,
+                                businessDate = businessDate ?: it.businessDate,
+                                cutoffTime = cutoffTime ?: it.cutoffTime,
+                                canClose = canClose,
+                                isOverdue = isOverdue,
                                 isCashReconciliationPending = isPending,
                                 errorMessage = sanitizeUserMessage(
                                     error.message,
@@ -146,7 +182,48 @@ class DailyStockViewModel(
         }
     }
 
-    fun closeSession(remaining: Map<Long, Double>, notes: String?) {
+    fun loadCashReconciliation() {
+        if (_uiState.value.isLoadingCashReconciliation) return
+        _uiState.update {
+            it.copy(
+                isLoadingCashReconciliation = true,
+                cashReconciliationError = null
+            )
+        }
+        val token = AppSessionStore.loadSession()?.token ?: ""
+        viewModelScope.launch {
+            try {
+                repository.getCashReconciliation(token)
+                    .onSuccess { reconciliation ->
+                        _uiState.update {
+                            it.copy(
+                                cashReconciliation = reconciliation,
+                                cashReconciliationError = null
+                            )
+                        }
+                    }
+                    .onFailure { error ->
+                        _uiState.update {
+                            it.copy(
+                                cashReconciliation = null,
+                                cashReconciliationError = sanitizeUserMessage(
+                                    error.message,
+                                    "Rekonsiliasi kas belum bisa dimuat."
+                                )
+                            )
+                        }
+                    }
+            } finally {
+                _uiState.update { it.copy(isLoadingCashReconciliation = false) }
+            }
+        }
+    }
+
+    fun closeSession(
+        remaining: Map<Long, Double>,
+        notes: String?,
+        actualCash: Long = 0L
+    ) {
         if (_uiState.value.isClosing) return
         val validation = validator.validateCloseSession(
             sessionId = _uiState.value.sessionId,
@@ -166,7 +243,12 @@ class DailyStockViewModel(
         val token = AppSessionStore.loadSession()?.token ?: ""
         viewModelScope.launch {
             try {
-                repository.closeSession(token, remaining, notes?.trim()?.takeIf { it.isNotBlank() })
+                repository.closeSession(
+                    token,
+                    remaining,
+                    notes?.trim()?.takeIf { it.isNotBlank() },
+                    actualCash
+                )
                     .onSuccess { message ->
                         _uiState.update {
                             it.copy(
@@ -243,7 +325,8 @@ class DailyStockViewModel(
     fun closeSessionWithRecipe(
         remainingOverrides: Map<Long, Double>,
         anchors: List<ClosingRecipeAnchorInput>,
-        notes: String?
+        notes: String?,
+        actualCash: Long = 0L
     ) {
         if (_uiState.value.isClosing) return
         if (_uiState.value.closingPreview == null) {
@@ -268,7 +351,8 @@ class DailyStockViewModel(
                     remainingOverrides,
                     anchors,
                     notes?.trim()?.takeIf { it.isNotBlank() },
-                    closingIdempotencyKey
+                    closingIdempotencyKey,
+                    actualCash
                 ).onSuccess { message ->
                     closingIdempotencyKey = UUID.randomUUID().toString()
                     _uiState.update {
@@ -299,7 +383,10 @@ class DailyStockViewModel(
                 closeSuccessMessage = null,
                 closeErrorMessage = null,
                 closingPreview = null,
-                closingPreviewError = null
+                closingPreviewError = null,
+                cashReconciliation = null,
+                cashReconciliationError = null,
+                isLoadingCashReconciliation = false
             )
         }
     }

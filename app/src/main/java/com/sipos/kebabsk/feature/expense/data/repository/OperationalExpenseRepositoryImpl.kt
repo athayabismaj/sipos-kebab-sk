@@ -17,11 +17,20 @@ class OperationalExpenseRepositoryImpl(
         amount: Long,
         source: String,
         note: String?
+    ): Result<String> = submitExpense(token, amount, source, "CASH_DRAWER", note)
+
+    override suspend fun submitExpense(
+        token: String,
+        amount: Long,
+        source: String,
+        paymentSource: String,
+        note: String?
     ): Result<String> {
         return suspendRunCatching {
             val requestBody = OperationalExpenseRequest(
                 amount = amount,
                 source = source,
+                paymentSource = paymentSource,
                 note = note
             )
 

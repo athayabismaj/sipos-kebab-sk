@@ -5,6 +5,11 @@ import com.sipos.kebabsk.feature.menu.domain.model.DailyStockItem
 data class DailyStockResult(
     val sessionId: Long?,
     val items: List<DailyStockItem>,
+    val businessDate: String? = null,
+    val cutoffTime: String? = null,
+    val canClose: Boolean = false,
+    val overdue: Boolean = false,
+    val statusMessage: String? = null,
     val closingPresets: List<ClosingRecipePreset> = emptyList(),
     val closingGroups: List<ClosingRecipeGroup> = emptyList()
 )

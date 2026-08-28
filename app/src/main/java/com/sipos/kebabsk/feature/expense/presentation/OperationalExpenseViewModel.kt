@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 data class OperationalExpenseUiState(
     val amountInput: String = "",
     val categoryInput: String = "",
+    val paymentSource: String = "CASH_DRAWER",
     val noteInput: String = "",
     val isSaving: Boolean = false,
     val successMessage: String? = null,
@@ -61,6 +62,17 @@ class OperationalExpenseViewModel(
         }
     }
 
+    fun onPaymentSourceChanged(value: String) {
+        if (value !in setOf("CASH_DRAWER", "NON_CASH")) return
+        _uiState.update {
+            it.copy(
+                paymentSource = value,
+                successMessage = null,
+                errorMessage = null
+            )
+        }
+    }
+
     fun submit() {
         val state = _uiState.value
         if (state.isSaving) return
@@ -85,6 +97,7 @@ class OperationalExpenseViewModel(
                 token = token,
                 amount = validInput.amount,
                 category = validInput.category,
+                paymentSource = state.paymentSource,
                 note = validInput.note
             )
         }
@@ -94,6 +107,7 @@ class OperationalExpenseViewModel(
         token: String,
         amount: Long,
         category: String,
+        paymentSource: String,
         note: String?
     ) {
         try {
@@ -101,6 +115,7 @@ class OperationalExpenseViewModel(
                 token = token,
                 amount = amount,
                 source = category,
+                paymentSource = paymentSource,
                 note = note
             ).onSuccess { message ->
                 _uiState.update {
@@ -108,6 +123,7 @@ class OperationalExpenseViewModel(
                         isSaving = false,
                         amountInput = "",
                         categoryInput = "",
+                        paymentSource = "CASH_DRAWER",
                         noteInput = "",
                         successMessage = message,
                         errorMessage = null

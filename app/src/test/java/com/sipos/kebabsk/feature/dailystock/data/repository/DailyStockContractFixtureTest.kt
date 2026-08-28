@@ -64,7 +64,8 @@ class DailyStockContractFixtureTest {
         val result = repository.closeSession(
             token = "fixture-token",
             remaining = mapOf(901L to 18.0, 902L to 0.0),
-            notes = "  "
+            notes = "  ",
+            actualCash = 895000
         )
 
         assertTrue(result.isSuccess)
@@ -73,6 +74,7 @@ class DailyStockContractFixtureTest {
         assertFalse(body.has("session_id"))
         assertFalse(body.has("branch_id"))
         assertFalse(body.has("notes"))
+        assertEquals(895000L, body.get("actual_cash").asLong)
         assertEquals(18.0, body.getAsJsonObject("remaining").get("901").asDouble, 0.0)
         assertEquals(0.0, body.getAsJsonObject("remaining").get("902").asDouble, 0.0)
     }
@@ -97,13 +99,32 @@ class DailyStockContractFixtureTest {
             remainingOverrides = mapOf(901L to 25.0),
             anchors = anchors,
             notes = "closing resep",
-            idempotencyKey = "closing-key-001"
+            idempotencyKey = "closing-key-001",
+            actualCash = 900000
         ).getOrThrow()
 
         val body = requireNotNull(api.closeBody)
         assertFalse(body.has("remaining"))
         assertEquals("closing-key-001", body.get("idempotency_key").asString)
+        assertEquals(900000L, body.get("actual_cash").asLong)
         assertEquals(25.0, body.getAsJsonObject("remaining_overrides").get("901").asDouble, 0.0)
+    }
+
+    @Test
+    fun cashReconciliationMapsServerCalculatedAmounts() = runTest {
+        val api = FixtureDailyStockApiService("stock_session_open.json")
+
+        val result = DailyStockRepositoryImpl(api)
+            .getCashReconciliation("fixture-token")
+            .getOrThrow()
+
+        assertEquals("Bearer fixture-token", api.cashReviewAuthorization)
+        assertEquals(801L, result.sessionId)
+        assertEquals("2026-08-27", result.businessDate)
+        assertEquals(100000L, result.openingCash)
+        assertEquals(850000L, result.cashSales)
+        assertEquals(50000L, result.cashExpenses)
+        assertEquals(900000L, result.expectedCash)
     }
     @Test
     fun recipeClosingSerializesCumulativeVariantAllocations() = runTest {
@@ -134,6 +155,7 @@ private class FixtureDailyStockApiService(
     var closeAuthorization: String? = null
     var closeBody: JsonObject? = null
     var previewBody: JsonObject? = null
+    var cashReviewAuthorization: String? = null
 
     override suspend fun getDailyStock(authorization: String): Response<JsonObject> {
         getAuthorization = authorization
@@ -193,5 +215,22 @@ private class FixtureDailyStockApiService(
             })
         })
     })
+    }
+
+    override suspend fun getCashReconciliation(
+        authorization: String
+    ): Response<JsonObject> {
+        cashReviewAuthorization = authorization
+        return Response.success(JsonObject().apply {
+            addProperty("success", true)
+            add("data", JsonObject().apply {
+                addProperty("session_id", 801)
+                addProperty("business_date", "2026-08-27")
+                addProperty("opening_cash", 100000)
+                addProperty("cash_sales", 850000)
+                addProperty("cash_expenses", 50000)
+                addProperty("expected_cash", 900000)
+            })
+        })
     }
 }

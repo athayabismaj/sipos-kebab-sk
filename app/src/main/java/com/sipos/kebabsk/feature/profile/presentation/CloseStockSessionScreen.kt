@@ -49,6 +49,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
@@ -59,6 +60,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
@@ -86,6 +88,7 @@ import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipeAffectedIn
 import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipeGroupVariant
 import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipePreset
 import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipePreview
+import com.sipos.kebabsk.feature.dailystock.domain.model.CashReconciliation
 import com.sipos.kebabsk.feature.menu.domain.model.DailyStockItem
 import com.sipos.kebabsk.ui.theme.KebabBg
 import com.sipos.kebabsk.ui.theme.KebabCardBg
@@ -97,6 +100,7 @@ import com.sipos.kebabsk.ui.theme.KebabTextGray
 import com.sipos.kebabsk.ui.theme.KebabInputBg
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import java.text.NumberFormat
 import kotlin.math.absoluteValue
 
 val KebabItemBg = Color(0xFFFFFFFF)
@@ -174,10 +178,13 @@ fun CloseStockSessionScreen(
     isPreviewingClosing: Boolean = false,
     closingPreview: ClosingRecipePreview? = null,
     closingPreviewError: String? = null,
+    cashReconciliation: CashReconciliation? = null,
+    isLoadingCashReconciliation: Boolean = false,
+    cashReconciliationError: String? = null,
     onBack: () -> Unit,
     onPreview: (List<ClosingRecipeAnchorInput>) -> Unit = {},
     onClearPreview: () -> Unit = {},
-    onSubmit: (remaining: Map<Long, Double>, anchors: List<ClosingRecipeAnchorInput>, notes: String?) -> Unit
+    onSubmit: (remaining: Map<Long, Double>, anchors: List<ClosingRecipeAnchorInput>, notes: String?, actualCash: Long) -> Unit
 ) {
     val remainingInputs = remember(items) {
         mutableStateMapOf<Long, String>().apply {
@@ -197,6 +204,7 @@ fun CloseStockSessionScreen(
         }
     }
     val notesInput = remember { mutableStateOf("") }
+    var actualCashInput by rememberSaveable { mutableStateOf("") }
     var selectedDetailAnchorId by remember { mutableStateOf<Long?>(null) }
     var bottomActionHeightPx by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
@@ -284,6 +292,16 @@ fun CloseStockSessionScreen(
         (!recipeAnchorEdited ||
             (closingPreview != null && allocationsMatchPhysicalInput &&
                 editedClosingGroups.all { it.ready }))
+    val actualCash = actualCashInput.toLongOrNull()
+    val cashDifference = if (actualCash != null && cashReconciliation != null) {
+        actualCash - cashReconciliation.expectedCash
+    } else {
+        null
+    }
+    val cashInputReady = cashReconciliation != null &&
+        actualCash != null &&
+        actualCash >= 0L &&
+        (cashDifference == 0L || notesInput.value.isNotBlank())
 
     LaunchedEffect(anchors, pendingRecipeAllocation) {
         if (anchors.isNotEmpty() && pendingRecipeAllocation == null &&
@@ -599,6 +617,19 @@ fun CloseStockSessionScreen(
                         DetailPenggunaanSection(items = items, remainingInputs = remainingInputs)
                         Spacer(modifier = Modifier.height(16.dp))
 
+                        CashReconciliationSection(
+                            reconciliation = cashReconciliation,
+                            actualCashInput = actualCashInput,
+                            difference = cashDifference,
+                            isLoading = isLoadingCashReconciliation,
+                            errorMessage = cashReconciliationError,
+                            enabled = !isClosing,
+                            onActualCashChanged = { value ->
+                                actualCashInput = value.filter(Char::isDigit).take(12)
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Row(
                                 modifier = Modifier
@@ -615,7 +646,15 @@ fun CloseStockSessionScreen(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Column {
                                     Text("Catatan sesi", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = KebabTextDark)
-                                    Text("Opsional, untuk informasi pergantian shift", fontSize = 11.sp, color = KebabTextGray)
+                                    Text(
+                                        if (cashDifference != null && cashDifference != 0L) {
+                                            "Wajib diisi karena terdapat selisih kas"
+                                        } else {
+                                            "Opsional, untuk informasi pergantian shift"
+                                        },
+                                        fontSize = 11.sp,
+                                        color = if (cashDifference != null && cashDifference != 0L) KebabErrorText else KebabTextGray
+                                    )
                                 }
                             }
 
@@ -756,10 +795,10 @@ fun CloseStockSessionScreen(
                             .clip(RoundedCornerShape(14.dp))
                             .background(
                                 KebabPrimary.copy(
-                                    alpha = if (!isClosing && !hasInvalidInput && recipeModeReady) 1f else 0.5f
+                                    alpha = if (!isClosing && !hasInvalidInput && recipeModeReady && cashInputReady) 1f else 0.5f
                                 )
                             )
-                            .clickable(enabled = !isClosing && !hasInvalidInput && recipeModeReady) {
+                            .clickable(enabled = !isClosing && !hasInvalidInput && recipeModeReady && cashInputReady) {
                                 val remaining = mutableMapOf<Long, Double>()
                                 items.forEach { item ->
                                     val value = remainingInputs[item.ingredientId]?.toDoubleOrNull()
@@ -769,7 +808,12 @@ fun CloseStockSessionScreen(
                                     remaining[item.ingredientId] = value ?: return@clickable
                                 }
                                 val notes = notesInput.value.trim().takeIf { it.isNotBlank() }
-                                onSubmit(remaining, if (recipeAnchorEdited) anchors else emptyList(), notes)
+                                onSubmit(
+                                    remaining,
+                                    if (recipeAnchorEdited) anchors else emptyList(),
+                                    notes,
+                                    actualCash ?: return@clickable
+                                )
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -845,6 +889,168 @@ fun CloseStockSessionScreen(
             )
         }
     }
+}
+
+@Composable
+private fun CashReconciliationSection(
+    reconciliation: CashReconciliation?,
+    actualCashInput: String,
+    difference: Long?,
+    isLoading: Boolean,
+    errorMessage: String?,
+    enabled: Boolean,
+    onActualCashChanged: (String) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Rekonsiliasi Kas",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = KebabTextDark
+        )
+        Text(
+            text = "Hitung seluruh uang tunai yang benar-benar ada di laci kas.",
+            fontSize = 11.sp,
+            lineHeight = 16.sp,
+            color = KebabTextGray
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, KebabDivider)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                when {
+                    isLoading -> {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                                color = KebabPrimary
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text("Menghitung kas dari server...", fontSize = 12.sp, color = KebabTextGray)
+                        }
+                    }
+
+                    reconciliation == null -> {
+                        Text(
+                            text = errorMessage ?: "Rekonsiliasi kas belum tersedia.",
+                            fontSize = 12.sp,
+                            color = KebabErrorText
+                        )
+                    }
+
+                    else -> {
+                        CashSummaryRow("Kas awal", formatRupiah(reconciliation.openingCash))
+                        CashSummaryRow("Penjualan tunai", formatRupiah(reconciliation.cashSales))
+                        CashSummaryRow("Pengeluaran dari kas", formatRupiah(reconciliation.cashExpenses))
+                        HorizontalDivider(color = KebabDivider)
+                        CashSummaryRow(
+                            "Kas seharusnya",
+                            formatRupiah(reconciliation.expectedCash),
+                            emphasized = true
+                        )
+
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Uang fisik aktual",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = KebabTextDark
+                        )
+                        OutlinedTextField(
+                            value = actualCashInput,
+                            onValueChange = onActualCashChanged,
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = enabled,
+                            singleLine = true,
+                            prefix = {
+                                Text("Rp", fontWeight = FontWeight.Bold, color = KebabPrimary)
+                            },
+                            placeholder = { Text("0") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = KebabInputBg,
+                                unfocusedContainerColor = KebabInputBg,
+                                disabledContainerColor = KebabInputBg,
+                                focusedIndicatorColor = KebabPrimary,
+                                unfocusedIndicatorColor = KebabDivider
+                            )
+                        )
+
+                        HorizontalDivider(color = KebabDivider)
+                        val differenceColor = when {
+                            difference == null -> KebabTextGray
+                            difference == 0L -> Color(0xFF16794B)
+                            else -> KebabErrorText
+                        }
+                        CashSummaryRow(
+                            "Selisih kas",
+                            difference?.let(::formatSignedRupiah) ?: "-",
+                            emphasized = true,
+                            valueColor = differenceColor
+                        )
+                        CashSummaryRow(
+                            "Status",
+                            when {
+                                difference == null -> "-"
+                                difference < 0L -> "KURANG"
+                                difference > 0L -> "LEBIH"
+                                else -> "SESUAI"
+                            },
+                            emphasized = true,
+                            valueColor = differenceColor
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CashSummaryRow(
+    label: String,
+    value: String,
+    emphasized: Boolean = false,
+    valueColor: Color = KebabTextDark
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = if (emphasized) FontWeight.Bold else FontWeight.Medium,
+            color = if (emphasized) KebabTextDark else KebabTextGray
+        )
+        Text(
+            text = value,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = valueColor
+        )
+    }
+}
+
+private fun formatRupiah(value: Long): String =
+    "Rp " + NumberFormat.getNumberInstance(Locale.forLanguageTag("id-ID")).format(value)
+
+private fun formatSignedRupiah(value: Long): String = when {
+    value > 0L -> "+" + formatRupiah(value)
+    value < 0L -> "-" + formatRupiah(-value)
+    else -> formatRupiah(0)
 }
 
 @Composable

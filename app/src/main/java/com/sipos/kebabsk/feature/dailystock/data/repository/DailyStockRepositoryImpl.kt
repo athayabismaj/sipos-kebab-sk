@@ -9,6 +9,7 @@ import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipePreset
 import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipePreview
 import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipePreviewItem
 import com.sipos.kebabsk.feature.dailystock.domain.model.ClosingRecipeSummary
+import com.sipos.kebabsk.feature.dailystock.domain.model.CashReconciliation
 import com.sipos.kebabsk.feature.dailystock.domain.repository.DailyStockRepository
 
 import com.google.gson.JsonArray
@@ -26,6 +27,12 @@ import com.sipos.kebabsk.feature.menu.domain.model.DailyStockItem
 class DailyStockRepositoryImpl(
     private val apiService: DailyStockApiService
 ) : DailyStockRepository {
+    override suspend fun closeSession(
+        token: String,
+        remaining: Map<Long, Double>,
+        notes: String?
+    ): Result<String> = closeSession(token, remaining, notes, 0L)
+
     override suspend fun getDailyStock(token: String): Result<DailyStockResult> {
         return suspendRunCatching {
             retryNetworkRequest {
@@ -40,8 +47,27 @@ class DailyStockRepositoryImpl(
                 val body = response.body() ?: return Result.failure(IllegalStateException("Empty response body"))
                 val sessionId = extractSessionId(body)
                 val extracted = extractItems(body)
+                val data = body.getAsJsonObject("data")
+                val overdueSession = data?.get("overdue_session")
+                    ?.takeIf { it.isJsonObject }
+                    ?.asJsonObject
+                val businessDate = data?.firstString("business_date", "session_date")
+                    ?: overdueSession?.firstString("business_date", "session_date")
+                val cutoffTime = data?.firstString("cutoff_time", "closing_grace_until")
+                    ?: overdueSession?.firstString("cutoff_time", "closing_grace_until")
+                val overdue = runCatching {
+                    data?.get("overdue")?.asBoolean ?: overdueSession?.get("overdue")?.asBoolean
+                }.getOrNull() ?: false
+                val canClose = runCatching {
+                    data?.get("can_close")?.asBoolean ?: overdueSession?.get("can_close")?.asBoolean
+                }.getOrNull() ?: (sessionId != null && !overdue)
+                val statusMessage = if (overdue) {
+                    "Sesi operasional ${businessDate.orEmpty()} telah melewati batas penyelesaian pukul ${cutoffTime ?: "06:00"} WIB. Hubungi admin/owner."
+                } else {
+                    null
+                }
 
-                if (sessionId == null && extracted.isEmpty()) {
+                if (sessionId == null && extracted.isEmpty() && overdueSession == null) {
                     return Result.failure(IllegalStateException("Sesi stok harian belum dibuka oleh admin."))
                 }
 
@@ -49,6 +75,11 @@ class DailyStockRepositoryImpl(
                     DailyStockResult(
                         sessionId = sessionId,
                         items = extracted,
+                        businessDate = businessDate,
+                        cutoffTime = cutoffTime,
+                        canClose = canClose,
+                        overdue = overdue,
+                        statusMessage = statusMessage,
                         closingPresets = extractClosingPresets(body),
                         closingGroups = extractClosingGroups(body)
                     )
@@ -63,7 +94,8 @@ class DailyStockRepositoryImpl(
     override suspend fun closeSession(
         token: String,
         remaining: Map<Long, Double>,
-        notes: String?
+        notes: String?,
+        actualCash: Long
     ): Result<String> {
         return suspendRunCatching {
             val body = JsonObject().apply {
@@ -72,6 +104,7 @@ class DailyStockRepositoryImpl(
                     remainingObj.addProperty(ingredientId.toString(), qty)
                 }
                 add("remaining", remainingObj)
+                addProperty("actual_cash", actualCash)
                 if (!notes.isNullOrBlank()) {
                     addProperty("notes", notes)
                 }
@@ -97,6 +130,30 @@ class DailyStockRepositoryImpl(
         }
     }
 
+    override suspend fun getCashReconciliation(token: String): Result<CashReconciliation> =
+        suspendRunCatching {
+            val response = retryNetworkRequest {
+                apiService.getCashReconciliation("Bearer $token")
+            }
+            if (!response.isSuccessful) {
+                throw IllegalStateException(
+                    extractErrorMessage(response, "Rekonsiliasi kas belum bisa dihitung.")
+                )
+            }
+
+            val data = response.body()?.getAsJsonObject("data")
+                ?: throw IllegalStateException("Respons rekonsiliasi kas tidak lengkap.")
+            CashReconciliation(
+                sessionId = data.firstLong("session_id")
+                    ?: throw IllegalStateException("Sesi rekonsiliasi tidak ditemukan."),
+                businessDate = data.firstString("business_date"),
+                openingCash = data.firstLong("opening_cash") ?: 0L,
+                cashSales = data.firstLong("cash_sales") ?: 0L,
+                cashExpenses = data.firstLong("cash_expenses") ?: 0L,
+                expectedCash = data.firstLong("expected_cash") ?: 0L
+            )
+        }
+
     override suspend fun previewClosing(
         token: String,
         anchors: List<ClosingRecipeAnchorInput>
@@ -118,6 +175,22 @@ class DailyStockRepositoryImpl(
         anchors: List<ClosingRecipeAnchorInput>,
         notes: String?,
         idempotencyKey: String
+    ): Result<String> = closeSessionWithRecipe(
+        token,
+        remainingOverrides,
+        anchors,
+        notes,
+        idempotencyKey,
+        0L
+    )
+
+    override suspend fun closeSessionWithRecipe(
+        token: String,
+        remainingOverrides: Map<Long, Double>,
+        anchors: List<ClosingRecipeAnchorInput>,
+        notes: String?,
+        idempotencyKey: String,
+        actualCash: Long
     ): Result<String> = suspendRunCatching {
         val body = JsonObject().apply {
             add("closing_anchors", anchorsJson(anchors))
@@ -125,6 +198,7 @@ class DailyStockRepositoryImpl(
                 remainingOverrides.forEach { (id, value) -> overrides.addProperty(id.toString(), value) }
             })
             addProperty("idempotency_key", idempotencyKey)
+            addProperty("actual_cash", actualCash)
             if (!notes.isNullOrBlank()) addProperty("notes", notes)
         }
         val response = retryNetworkRequest { apiService.closeSession("Bearer $token", body) }

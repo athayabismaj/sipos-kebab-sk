@@ -67,6 +67,10 @@ import com.sipos.kebabsk.ui.theme.KebabTextDark
 import com.sipos.kebabsk.ui.theme.KebabTextGray
 
 private val kategoriOptions = listOf("Gas", "Sayuran", "Daging", "Kemasan", "Kebersihan", "Lainnya")
+private val paymentSourceOptions = listOf(
+    "CASH_DRAWER" to "Kas Tunai Outlet",
+    "NON_CASH" to "Non-Tunai / Transfer Owner"
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,12 +79,17 @@ fun OperationalExpenseScreen(
     uiState: OperationalExpenseUiState,
     onAmountChanged: (String) -> Unit,
     onCategoryChanged: (String) -> Unit,
+    onPaymentSourceChanged: (String) -> Unit,
     onNoteChanged: (String) -> Unit,
     onSubmit: () -> Unit,
+    businessDate: String? = null,
+    canSubmit: Boolean = true,
+    blockedMessage: String? = null,
     onBack: () -> Unit
 ) {
     val scrollState = rememberScrollState()
     var expandedDropdown by remember { mutableStateOf(false) }
+    var expandedPaymentSource by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -187,7 +196,8 @@ fun OperationalExpenseScreen(
                             color = KebabTextDark
                         )
                         Text(
-                            text = "Masukkan biaya operasional outlet hari ini.",
+                            text = businessDate?.let { "Tanggal operasional $it." }
+                                ?: "Masukkan biaya operasional outlet hari ini.",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             color = KebabTextGray,
@@ -272,6 +282,71 @@ fun OperationalExpenseScreen(
                         }
                     }
 
+                    // Sumber pembayaran
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "Sumber Pembayaran",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = KebabTextGray
+                        )
+                        ExposedDropdownMenuBox(
+                            expanded = expandedPaymentSource,
+                            onExpandedChange = { expandedPaymentSource = !expandedPaymentSource }
+                        ) {
+                            OutlinedTextField(
+                                value = paymentSourceOptions.firstOrNull {
+                                    it.first == uiState.paymentSource
+                                }?.second ?: "Kas Tunai Outlet",
+                                onValueChange = {},
+                                readOnly = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true),
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(
+                                        expanded = expandedPaymentSource
+                                    )
+                                },
+                                colors = TextFieldDefaults.colors(
+                                    unfocusedContainerColor = KebabInputBg,
+                                    focusedContainerColor = KebabInputBg,
+                                    unfocusedIndicatorColor = KebabDivider,
+                                    focusedIndicatorColor = KebabPrimary,
+                                    focusedTextColor = KebabTextDark,
+                                    unfocusedTextColor = KebabTextDark
+                                ),
+                                shape = RoundedCornerShape(14.dp)
+                            )
+                            ExposedDropdownMenu(
+                                expanded = expandedPaymentSource,
+                                onDismissRequest = { expandedPaymentSource = false },
+                                modifier = Modifier.background(Color.White)
+                            ) {
+                                paymentSourceOptions.forEach { (value, label) ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Column {
+                                                Text(label)
+                                                if (value == "CASH_DRAWER") {
+                                                    Text(
+                                                        "Mengurangi kas seharusnya saat closing",
+                                                        fontSize = 10.sp,
+                                                        color = KebabTextGray
+                                                    )
+                                                }
+                                            }
+                                        },
+                                        onClick = {
+                                            onPaymentSourceChanged(value)
+                                            expandedPaymentSource = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     // Catatan
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
@@ -317,11 +392,11 @@ fun OperationalExpenseScreen(
                             .height(50.dp)
                             .clip(RoundedCornerShape(14.dp))
                             .background(
-                                if (uiState.isSaving) KebabPrimary.copy(alpha = 0.58f)
+                                if (uiState.isSaving || !canSubmit) KebabPrimary.copy(alpha = 0.38f)
                                 else KebabPrimary
                             )
                             .then(
-                                if (uiState.isSaving) Modifier
+                                if (uiState.isSaving || !canSubmit) Modifier
                                 else Modifier.clickable { onSubmit() }
                             ),
                         contentAlignment = Alignment.Center
@@ -342,7 +417,7 @@ fun OperationalExpenseScreen(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Simpan Pengeluaran",
+                                    text = if (canSubmit) "Simpan Pengeluaran" else (blockedMessage ?: "Sesi tidak dapat diproses"),
                                     color = Color.White,
                                     fontWeight = FontWeight.ExtraBold,
                                     fontSize = 14.sp

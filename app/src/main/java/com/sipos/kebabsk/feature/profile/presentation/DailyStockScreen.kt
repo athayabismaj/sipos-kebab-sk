@@ -69,6 +69,10 @@ fun DailyStockScreen(
     modifier: Modifier = Modifier,
     items: List<DailyStockItem>,
     sessionId: Long?,
+    businessDate: String?,
+    cutoffTime: String?,
+    canClose: Boolean,
+    isOverdue: Boolean,
     isLoading: Boolean,
     errorMessage: String?,
     onBack: () -> Unit,
@@ -79,7 +83,9 @@ fun DailyStockScreen(
     onSessionAlreadyClosed: () -> Unit = {}
 ) {
     val dateFormatter = DateTimeFormatter.ofPattern("EEEE, dd MMM yyyy", Locale.forLanguageTag("id-ID"))
-    val hariIni = AppTime.todayJakarta().format(dateFormatter)
+    val hariIni = businessDate?.let { rawDate ->
+        runCatching { java.time.LocalDate.parse(rawDate).format(dateFormatter) }.getOrNull()
+    } ?: AppTime.todayJakarta().format(dateFormatter)
 
     PullToRefreshBox(
         isRefreshing = isLoading,
@@ -107,7 +113,7 @@ fun DailyStockScreen(
             ) {
                 // Header Tanggal / Sesi
                 Text(
-                    text = "Sesi Aktif",
+                    text = if (isOverdue) "Sesi Melewati Cut-off" else "Sesi Operasional",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = KebabTextGray
@@ -254,7 +260,7 @@ fun DailyStockScreen(
         }
 
         // --- FLOATING ACTION BUTTON (Bawah) ---
-        if (sessionId != null && items.isNotEmpty() && !isLoading && errorMessage.isNullOrBlank()) {
+        if (sessionId != null && items.isNotEmpty() && canClose && !isOverdue && !isLoading && errorMessage.isNullOrBlank()) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -277,7 +283,7 @@ fun DailyStockScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Input Sisa & Tutup Sesi",
+                        text = "Input Sisa & Tutup Sesi${cutoffTime?.let { " · sebelum $it" }.orEmpty()}",
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp

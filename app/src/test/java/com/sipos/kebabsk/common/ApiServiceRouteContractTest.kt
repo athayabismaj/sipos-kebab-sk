@@ -28,6 +28,11 @@ class ApiServiceRouteContractTest {
         assertRoute<DailyStockApiService>("getDailyStock", "GET", "daily-stock-items")
         assertRoute<DailyStockApiService>("closeSession", "POST", "daily-stock-sessions/close")
         assertRoute<DailyStockApiService>("previewClosing", "POST", "daily-stock-sessions/closing-preview")
+        assertRoute<DailyStockApiService>(
+            "getCashReconciliation",
+            "GET",
+            "daily-stock-sessions/closing-cash-review"
+        )
         assertRoute<OperationalExpenseApiService>("createExpense", "POST", "cashflow/expenses")
 
         assertRoute<TransactionsApiService>("getTransactions", "GET", "transactions")

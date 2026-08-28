@@ -7,4 +7,12 @@ interface OperationalExpenseRepository {
         source: String,
         note: String?
     ): Result<String>
+
+    suspend fun submitExpense(
+        token: String,
+        amount: Long,
+        source: String,
+        paymentSource: String,
+        note: String?
+    ): Result<String> = submitExpense(token, amount, source, note)
 }

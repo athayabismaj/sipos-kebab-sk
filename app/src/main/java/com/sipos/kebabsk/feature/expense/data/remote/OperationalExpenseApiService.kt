@@ -10,6 +10,7 @@ import retrofit2.http.Url
 data class OperationalExpenseRequest(
     @SerializedName("amount") val amount: Long,
     @SerializedName("source") val source: String,
+    @SerializedName("payment_source") val paymentSource: String,
     @SerializedName("note") val note: String?
 )
 

@@ -25,4 +25,9 @@ interface DailyStockApiService {
         @Header("Authorization") authorization: String,
         @Body body: JsonObject
     ): Response<JsonObject>
+
+    @GET("daily-stock-sessions/closing-cash-review")
+    suspend fun getCashReconciliation(
+        @Header("Authorization") authorization: String
+    ): Response<JsonObject>
 }
